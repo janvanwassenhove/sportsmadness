@@ -1,0 +1,439 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel", 
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "filter": "Filter",
+    "actions": "Actions",
+    "status": "Status",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "date": "Date",
+    "time": "Time",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "minutes": "minutes",
+    "reset": "Reset",
+    "close": "Close"
+  },
+  "navigation": {
+    "home": "Home",
+    "scoreboard": "Scoreboard", 
+    "admin": "Admin",
+    "dashboard": "Dashboard",
+    "tournaments": "Tournaments",
+    "teams": "Teams",
+    "boosters": "Boosters",
+    "userManagement": "User Management",
+    "profile": "Profile",
+    "login": "Login",
+    "logout": "Logout",
+    "language": "Language"
+  },
+  "theme": {
+    "switchTheme": "Switch Theme",
+    "selectTheme": "Select Theme"
+  },
+  "home": {
+    "title": "Hockey Madness",
+    "subtitle": "Real-time tournament management for hockey championships",
+    "liveScoreboard": {
+      "title": "Live Scoreboard",
+      "description": "Watch live matches with real-time updates"
+    },
+    "tournamentAdmin": {
+      "title": "Tournament Admin", 
+      "description": "Manage teams, players, and matches"
+    },
+    "myDashboard": {
+      "title": "My Dashboard",
+      "description": "View your matches, team standings, and game help"
+    },
+    "myTeamProfile": {
+      "title": "My Team Profile",
+      "description": "View and edit your team information"
+    },
+    "login": {
+      "title": "Login",
+      "description": "Access your account"
+    },
+    "profile": {
+      "title": "Profile",
+      "description": "Manage your account settings"
+    }
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember me",
+    "loginSuccess": "Login successful!",
+    "loginError": "Login failed. Please check your credentials.",
+    "logoutSuccess": "Logged out successfully",
+    "createAccount": "Create Account",
+    "adminLogin": "Admin Login",
+    "signUpSubtitle": "Sign up for Hockey Madness",
+    "loginSubtitle": "Access tournament management",
+    "enterPassword": "Enter your password",
+    "creatingAccount": "Creating Account...",
+    "signingIn": "Signing In...",
+    "alreadyHaveAccount": "Already have an account? Sign in",
+    "needAccount": "Need an account? Sign up",
+    "backToHome": "← Back to Home",
+    "demoCredentials": "Demo Credentials:",
+    "demoNote": "(You'll need to create this account first)",
+    "emailRequired": "Email and password are required",
+    "checkEmail": "Check your email for confirmation link"
+  },
+  "scoreboard": {
+    "title": "Live Scoreboard",
+    "liveUpdate": "LIVE",
+    "loading": "Loading Match...",
+    "noActiveMatch": "No Active Match",
+    "checkBackMessage": "Check back for live tournament action!",
+    "noMatches": "No active matches",
+    "teamA": "Team A",
+    "teamB": "Team B",
+    "score": "Score",
+    "timeLeft": "Time Left",
+    "period": "Period",
+    "status": "Status",
+    "boosterSelection": "🎰 Booster Selection 🎰",
+    "spinningFor": "🎰 Spinning for {team} 🎰",
+    "hockeyCasino": "🎰 HOCKEY CASINO 🎰",
+    "boosterSelectionLabel": "⚡ BOOSTER SELECTION ⚡",
+    "waitingForBoosters": "Waiting for boosters...",
+    "boostersConfirmed": "✅ Boosters Confirmed!",
+    "returningToScoreboard": "Returning to scoreboard automatically...",
+    "vs": "VS",
+    "quarter": "Quarter {number}",
+    "halftime": "Halftime",
+    "overtime": "Overtime",
+    "finished": "Finished",
+    "penalties": "Penalties",
+    "noPenalties": "No active penalties",
+    "timeRemaining": "{time} remaining",
+    "yellowCard": "Yellow Card",
+    "redCard": "Red Card",
+    "greenCard": "Green Card",
+    "statuses": {
+      "pending": "PENDING",
+      "active": "LIVE",
+      "paused": "PAUSED", 
+      "finished": "FINISHED"
+    }
+  },
+  "admin": {
+    "title": "Tournament Admin",
+    "subtitle": "Manage your hockey tournament",
+    "quickActions": {
+      "tournaments": {
+        "title": "Tournaments",
+        "description": "Create and manage tournaments"
+      },
+      "teams": {
+        "title": "Manage Teams", 
+        "description": "Add teams, manage players"
+      },
+      "boosters": {
+        "title": "Boosters & Maddies",
+        "description": "Manage special effects"
+      },
+      "scoreboard": {
+        "title": "View Scoreboard",
+        "description": "Public display view"
+      },
+      "backHome": {
+        "title": "Back to Home",
+        "description": "Return to main page"
+      }
+    },
+    "matches": {
+      "title": "Tournament Matches",
+      "filters": {
+        "all": "All",
+        "tournament": "Tournament", 
+        "standalone": "Standalone"
+      },
+      "newMatch": "+ New Match",
+      "loading": "Loading matches...",
+      "noMatches": {
+        "title": "No matches yet",
+        "description": "Create your first match to get started"
+      },
+      "labels": {
+        "tournament": "Tournament",
+        "standalone": "Standalone"
+      },
+      "actions": {
+        "controlMatch": "Control Match",
+        "viewMatch": "View Match",
+        "editSettings": "Edit Match Settings",
+        "startMatch": "Start Match"
+      }
+    },
+    "teams": {
+      "title": "Teams Overview",
+      "manageTeams": "Manage Teams",
+      "playersCount": "players"
+    },
+    "editMatch": {
+      "title": "Edit Match Settings",
+      "duration": {
+        "title": "Match Duration",
+        "quarters": "Quarters",
+        "halves": "Halves", 
+        "quarterLength": "Quarter Length (min)",
+        "halfLength": "Half Length (min)",
+        "breakTime": "Break Time (min)",
+        "halftime": "Halftime (min)",
+        "totalTime": "Total match time"
+      },
+      "actions": {
+        "save": "Save Settings",
+        "cancel": "Cancel"
+      }
+    }
+  },
+  "tournaments": {
+    "title": "Tournaments",
+    "create": "Create Tournament",
+    "edit": "Edit Tournament",
+    "delete": "Delete Tournament",
+    "name": "Tournament Name",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "description": "Description",
+    "maxTeams": "Maximum Teams",
+    "status": "Status"
+  },
+  "teams": {
+    "title": "Teams",
+    "create": "Create Team",
+    "edit": "Edit Team",
+    "delete": "Delete Team",
+    "name": "Team Name",
+    "players": "Players",
+    "addPlayer": "Add Player",
+    "removePlayer": "Remove Player",
+    "playerName": "Player Name",
+    "jerseyNumber": "Jersey Number"
+  },
+  "matches": {
+    "title": "Matches",
+    "create": "Create Match",
+    "edit": "Edit Match",
+    "delete": "Delete Match",
+    "teamA": "Team A",
+    "teamB": "Team B",
+    "startTime": "Start Time",
+    "duration": "Duration",
+    "venue": "Venue",
+    "status": "Status",
+    "score": "Score"
+  },
+  "users": {
+    "title": "Users",
+    "create": "Create User",
+    "edit": "Edit User",
+    "delete": "Delete User",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "lastLogin": "Last Login",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "profile": {
+    "title": "Profile",
+    "personalInfo": "Personal Information",
+    "accountSettings": "Account Settings",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password", 
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password"
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordMismatch": "Passwords do not match",
+    "minLength": "Must be at least {min} characters",
+    "maxLength": "Must be no more than {max} characters",
+    "networkError": "Network error. Please try again.",
+    "serverError": "Server error. Please try again later.",
+    "unauthorized": "You are not authorized to perform this action",
+    "notFound": "The requested resource was not found"
+  },
+  "success": {
+    "created": "Created successfully",
+    "updated": "Updated successfully", 
+    "deleted": "Deleted successfully",
+    "saved": "Saved successfully"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "user": "User",
+    "team": "Team Member"
+  },
+  "features": {
+    "title": "Features",
+    "liveTimer": {
+      "title": "Live Timer",
+      "description": "Real-time match countdown with admin controls"
+    },
+    "scoreTracking": {
+      "title": "Score Tracking", 
+      "description": "Instant score updates and match statistics"
+    },
+    "specialEffects": {
+      "title": "Special Effects",
+      "description": "Boosters, Maddie triggers, and visual effects"
+    }
+  },
+  "matchControl": {
+    "title": "Match Control",
+    "loading": "Loading Match...",
+    "notFound": {
+      "title": "Match Not Found",
+      "backButton": "Back to Admin"
+    },
+    "backToAdmin": "← Back to Admin",
+    "setup": {
+      "title": "Match Ready for Setup",
+      "description": "Initialize the match to make teams available on the scoreboard and begin booster selection",
+      "initializeButton": "🏒 Initialize Match"
+    },
+    "score": {
+      "controls": "Score Control"
+    },
+    "penalties": {
+      "title": "Active Penalties",
+      "noPenalties": "No active penalties",
+      "total": "Total",
+      "yellow": "Y",
+      "green": "G", 
+      "red": "R",
+      "timeRemaining": "time remaining"
+    },
+    "boosters": {
+      "title": "🎯 Active Boosters",
+      "activate": "Activate",
+      "active": "ACTIVE",
+      "ready": "READY",
+      "live": "🟢 LIVE"
+    },
+    "players": {
+      "title": "Players",
+      "cards": {
+        "yellow": "YELLOW CARD",
+        "green": "GREEN CARD", 
+        "red": "RED CARD"
+      }
+    },
+    "timer": {
+      "title": "Match Timer",
+      "phase": "Phase",
+      "period": "Period",
+      "quarter": "Quarter",
+      "half": "Half",
+      "break": "Break",
+      "halftime": "Halftime", 
+      "finished": "Finished",
+      "timeLeft": "Time Left",
+      "controls": {
+        "start": "▶ Start",
+        "pause": "⏸ Pause", 
+        "resume": "▶ Resume",
+        "reset": "🔄 Reset Match"
+      }
+    },
+    "boosterSelection": {
+      "title": "🎯 Booster Selection",
+      "subtitle": "Select boosters for both teams",
+      "phase": {
+        "ready": "Ready to select boosters",
+        "teamAFirst": "Team A - First Booster",
+        "teamASecond": "Team A - Second Booster", 
+        "teamBFirst": "Team B - First Booster",
+        "teamBSecond": "Team B - Second Booster",
+        "complete": "Selection Complete"
+      },
+      "spinWheel": "🎲 Spin Wheel",
+      "spinning": "Spinning...",
+      "confirmSelection": "✓ Confirm Selection",
+      "autoConfirm": "Auto-confirming in",
+      "seconds": "seconds"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "maddie": "🎉 Trigger Maddie",
+      "boosterSelection": "🎯 Booster Selection",
+      "resetMatch": "🔄 Reset Match"
+    }
+  },
+  "boostersAdmin": {
+    "title": "Boosters & Maddies Management", 
+    "subtitle": "Configure special effects for matches",
+    "tabs": {
+      "boosters": "⚡ Boosters",
+      "maddies": "✨ Maddies"
+    },
+    "boosters": {
+      "title": "Boosters",
+      "addNew": "+ Add New Booster",
+      "loading": "Loading boosters...",
+      "empty": {
+        "title": "No Boosters Yet",
+        "description": "Create your first booster to add special effects to matches",
+        "createButton": "+ Create First Booster"
+      },
+      "form": {
+        "title": "Title",
+        "description": "Description", 
+        "icon": "Icon",
+        "hasCountdown": "Has Countdown Timer",
+        "duration": "Duration (seconds)",
+        "soundFile": "Sound File (optional)"
+      },
+      "actions": {
+        "edit": "✏️ Edit",
+        "delete": "🗑️ Delete",
+        "test": "🔊 Test Sound"
+      }
+    },
+    "maddies": {
+      "title": "Maddies",
+      "addNew": "+ Add New Maddie",
+      "loading": "Loading maddies...",
+      "empty": {
+        "title": "No Maddies Yet", 
+        "description": "Create your first maddie to add surprise effects to matches",
+        "createButton": "+ Create First Maddie"
+      }
+    },
+    "modal": {
+      "addBooster": "Add New Booster",
+      "editBooster": "Edit Booster",
+      "addMaddie": "Add New Maddie",
+      "editMaddie": "Edit Maddie",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
+  }
+}

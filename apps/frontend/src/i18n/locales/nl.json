@@ -1,0 +1,439 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "save": "Opslaan",
+    "cancel": "Annuleren", 
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "add": "Toevoegen",
+    "create": "Aanmaken",
+    "update": "Bijwerken",
+    "search": "Zoeken",
+    "filter": "Filteren",
+    "actions": "Acties",
+    "status": "Status",
+    "name": "Naam",
+    "email": "E-mail",
+    "role": "Rol",
+    "date": "Datum",
+    "time": "Tijd",
+    "yes": "Ja",
+    "no": "Nee",
+    "confirm": "Bevestigen",
+    "back": "Terug",
+    "next": "Volgende",
+        "submit": "Verzenden",
+    "minutes": "minuten",
+    "reset": "Resetten",
+    "close": "Sluiten"
+  },
+  "navigation": {
+    "home": "Home",
+    "scoreboard": "Scorebord", 
+    "admin": "Beheer",
+    "dashboard": "Dashboard",
+    "tournaments": "Toernooien",
+    "teams": "Teams",
+    "boosters": "Boosters",
+    "userManagement": "Gebruikersbeheer",
+    "profile": "Profiel",
+    "login": "Inloggen",
+    "logout": "Uitloggen",
+    "language": "Taal"
+  },
+  "theme": {
+    "switchTheme": "Thema Wijzigen",
+    "selectTheme": "Selecteer Thema"
+  },
+  "home": {
+    "title": "Hockey Madness",
+    "subtitle": "Real-time toernooibeheer voor hockeykampioenschappen",
+    "liveScoreboard": {
+      "title": "Live Scorebord",
+      "description": "Bekijk live wedstrijden met real-time updates"
+    },
+    "tournamentAdmin": {
+      "title": "Toernooi Beheer", 
+      "description": "Beheer teams, spelers en wedstrijden"
+    },
+    "myDashboard": {
+      "title": "Mijn Dashboard",
+      "description": "Bekijk je wedstrijden, team ranglijsten en spel hulp"
+    },
+    "myTeamProfile": {
+      "title": "Mijn Team Profiel",
+      "description": "Bekijk en bewerk je teaminformatie"
+    },
+    "login": {
+      "title": "Inloggen",
+      "description": "Toegang tot je account"
+    },
+    "profile": {
+      "title": "Profiel",
+      "description": "Beheer je account instellingen"
+    }
+  },
+  "auth": {
+    "login": "Inloggen",
+    "logout": "Uitloggen",
+    "email": "E-mail",
+    "password": "Wachtwoord",
+    "signIn": "Inloggen",
+    "signUp": "Registreren",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "rememberMe": "Onthouden",
+    "loginSuccess": "Succesvol ingelogd!",
+    "loginError": "Inloggen mislukt. Controleer je gegevens.",
+    "logoutSuccess": "Succesvol uitgelogd",
+    "createAccount": "Account Aanmaken",
+    "adminLogin": "Beheerder Inloggen",
+    "signUpSubtitle": "Registreer voor Hockey Madness",
+    "loginSubtitle": "Toegang tot toernooibeheer",
+    "enterPassword": "Voer je wachtwoord in",
+    "creatingAccount": "Account Aanmaken...",
+    "signingIn": "Inloggen...",
+    "alreadyHaveAccount": "Al een account? Inloggen",
+    "needAccount": "Account nodig? Registreren",
+    "backToHome": "← Terug naar Home",
+    "demoCredentials": "Demo Inloggegevens:",
+    "demoNote": "(Je moet dit account eerst aanmaken)",
+    "emailRequired": "E-mail en wachtwoord zijn verplicht",
+    "checkEmail": "Controleer je e-mail voor de bevestigingslink"
+  },
+  "scoreboard": {
+    "title": "Live Scorebord",
+    "liveUpdate": "LIVE",
+    "loading": "Wedstrijd Laden...",
+    "noActiveMatch": "Geen Actieve Wedstrijd",
+    "checkBackMessage": "Kijk later terug voor live toernooi actie!",
+    "noMatches": "Geen actieve wedstrijden",
+    "teamA": "Team A",
+    "teamB": "Team B",
+    "score": "Score",
+    "timeLeft": "Resterende Tijd",
+    "period": "Periode",
+    "status": "Status",
+    "boosterSelection": "🎰 Booster Selectie 🎰",
+    "spinningFor": "🎰 Draait voor {team} 🎰",
+    "hockeyCasino": "🎰 HOCKEY CASINO 🎰",
+    "boosterSelectionLabel": "⚡ BOOSTER SELECTIE ⚡",
+    "waitingForBoosters": "Wachten op boosters...",
+    "boostersConfirmed": "✅ Boosters Bevestigd!",
+    "returningToScoreboard": "Terugkeren naar scorebord automatisch...",
+    "vs": "VS",
+    "quarter": "Kwart {number}",
+    "halftime": "Rusttijd",
+    "overtime": "Verlenging",
+    "finished": "Afgelopen",
+    "penalties": "Straffen",
+    "noPenalties": "Geen actieve straffen",
+    "timeRemaining": "{time} resterend",
+    "yellowCard": "Gele Kaart",
+    "redCard": "Rode Kaart",
+    "greenCard": "Groene Kaart",
+    "statuses": {
+      "pending": "WACHTEND",
+      "active": "LIVE",
+      "paused": "GEPAUZEERD", 
+      "finished": "AFGELOPEN"
+    }
+  },
+  "admin": {
+    "title": "Toernooi Beheer",
+    "subtitle": "Beheer uw hockey toernooi",
+    "quickActions": {
+      "tournaments": {
+        "title": "Toernooien",
+        "description": "Toernooien maken en beheren"
+      },
+      "teams": {
+        "title": "Teams Beheren", 
+        "description": "Teams toevoegen, spelers beheren"
+      },
+      "boosters": {
+        "title": "Boosters & Maddies",
+        "description": "Speciale effecten beheren"
+      },
+      "scoreboard": {
+        "title": "Scorebord Bekijken",
+        "description": "Openbare weergave"
+      },
+      "backHome": {
+        "title": "Terug naar Home",
+        "description": "Terug naar hoofdpagina"
+      }
+    },
+    "matches": {
+      "title": "Toernooi Wedstrijden",
+      "filters": {
+        "all": "Alle",
+        "tournament": "Toernooi", 
+        "standalone": "Losstaand"
+      },
+      "newMatch": "+ Nieuwe Wedstrijd",
+      "loading": "Wedstrijden laden...",
+      "noMatches": {
+        "title": "Nog geen wedstrijden",
+        "description": "Maak uw eerste wedstrijd om te beginnen"
+      },
+      "labels": {
+        "tournament": "Toernooi",
+        "standalone": "Losstaand"
+      },
+      "actions": {
+        "controlMatch": "Wedstrijd Besturen",
+        "viewMatch": "Wedstrijd Bekijken",
+        "editSettings": "Wedstrijd Instellingen Bewerken",
+        "startMatch": "Wedstrijd Starten"
+      }
+    },
+    "teams": {
+      "title": "Teams Overzicht",
+      "manageTeams": "Teams Beheren",
+      "playersCount": "spelers"
+    },
+    "editMatch": {
+      "title": "Wedstrijd Instellingen Bewerken",
+      "duration": {
+        "title": "Wedstrijd Duur",
+        "quarters": "Kwarten",
+        "halves": "Helften", 
+        "quarterLength": "Kwart Lengte (min)",
+        "halfLength": "Helft Lengte (min)",
+        "breakTime": "Pauze Tijd (min)",
+        "halftime": "Rust (min)",
+        "totalTime": "Totale wedstrijdtijd"
+      },
+      "actions": {
+        "save": "Instellingen Opslaan",
+        "cancel": "Annuleren"
+      }
+    }
+  },
+  "tournaments": {
+    "title": "Toernooien",
+    "create": "Toernooi Aanmaken",
+    "edit": "Toernooi Bewerken",
+    "delete": "Toernooi Verwijderen",
+    "name": "Toernooi Naam",
+    "startDate": "Startdatum",
+    "endDate": "Einddatum",
+    "description": "Beschrijving",
+    "maxTeams": "Maximum Teams",
+    "status": "Status"
+  },
+  "teams": {
+    "title": "Teams",
+    "create": "Team Aanmaken",
+    "edit": "Team Bewerken",
+    "delete": "Team Verwijderen",
+    "name": "Team Naam",
+    "players": "Spelers",
+    "addPlayer": "Speler Toevoegen",
+    "removePlayer": "Speler Verwijderen",
+    "playerName": "Speler Naam",
+    "jerseyNumber": "Rugnummer"
+  },
+  "matches": {
+    "title": "Wedstrijden",
+    "create": "Wedstrijd Aanmaken",
+    "edit": "Wedstrijd Bewerken",
+    "delete": "Wedstrijd Verwijderen",
+    "teamA": "Team A",
+    "teamB": "Team B",
+    "startTime": "Starttijd",
+    "duration": "Duur",
+    "venue": "Locatie",
+    "status": "Status",
+    "score": "Score"
+  },
+  "users": {
+    "title": "Gebruikers",
+    "create": "Gebruiker Aanmaken",
+    "edit": "Gebruiker Bewerken",
+    "delete": "Gebruiker Verwijderen",
+    "name": "Naam",
+    "email": "E-mail",
+    "role": "Rol",
+    "lastLogin": "Laatst Ingelogd",
+    "status": "Status",
+    "active": "Actief",
+    "inactive": "Inactief"
+  },
+  "profile": {
+    "title": "Profiel",
+    "personalInfo": "Persoonlijke Informatie",
+    "accountSettings": "Account Instellingen",
+    "changePassword": "Wachtwoord Wijzigen",
+    "currentPassword": "Huidig Wachtwoord", 
+    "newPassword": "Nieuw Wachtwoord",
+    "confirmPassword": "Wachtwoord Bevestigen"
+  },
+  "errors": {
+    "required": "Dit veld is verplicht",
+    "invalidEmail": "Voer een geldig e-mailadres in",
+    "passwordMismatch": "Wachtwoorden komen niet overeen",
+    "minLength": "Moet minstens {min} tekens bevatten",
+    "maxLength": "Mag niet meer dan {max} tekens bevatten",
+    "networkError": "Netwerkfout. Probeer opnieuw.",
+    "serverError": "Serverfout. Probeer later opnieuw.",
+    "unauthorized": "Je bent niet geautoriseerd om deze actie uit te voeren",
+    "notFound": "De gevraagde bron werd niet gevonden"
+  },
+  "success": {
+    "created": "Succesvol aangemaakt",
+    "updated": "Succesvol bijgewerkt", 
+    "deleted": "Succesvol verwijderd",
+    "saved": "Succesvol opgeslagen"
+  },
+  "roles": {
+    "admin": "Beheerder",
+    "user": "Gebruiker",
+    "team": "Team Lid"
+  },
+  "features": {
+    "title": "Functionaliteiten",
+    "liveTimer": {
+      "title": "Live Timer",
+      "description": "Real-time wedstrijdteller met beheerdercontroles"
+    },
+    "scoreTracking": {
+      "title": "Score Bijhouden", 
+      "description": "Directe score updates en wedstrijdstatistieken"
+    },
+    "specialEffects": {
+      "title": "Speciale Effecten",
+      "description": "Boosters, Maddie triggers, en visuele effecten"
+    }
+  },
+  "matchControl": {
+    "title": "Wedstrijd Besturen",
+    "loading": "Wedstrijd Laden...",
+    "notFound": {
+      "title": "Wedstrijd Niet Gevonden",
+      "backButton": "Terug naar Beheer"
+    },
+    "backToAdmin": "← Terug naar Beheer",
+    "setup": {
+      "title": "Wedstrijd Klaar voor Instelling",
+      "description": "Initialiseer de wedstrijd om teams beschikbaar te maken op het scorebord en booster selectie te beginnen",
+      "initializeButton": "🏒 Wedstrijd Initialiseren"
+    },
+    "score": {
+      "controls": "Score Controle"
+    },
+    "penalties": {
+      "title": "Actieve Straffen",
+      "noPenalties": "Geen actieve straffen",
+      "total": "Totaal",
+      "yellow": "G",
+      "green": "Gr", 
+      "red": "R",
+      "timeRemaining": "tijd over"
+    },
+    "boosters": {
+      "title": "🎯 Actieve Boosters",
+      "activate": "Activeren",
+      "active": "ACTIEF",
+      "ready": "KLAAR",
+      "live": "🟢 LIVE"
+    },
+    "players": {
+      "title": "Spelers",
+      "cards": {
+        "yellow": "GELE KAART",
+        "green": "GROENE KAART", 
+        "red": "RODE KAART"
+      }
+    },
+    "timer": {
+      "title": "Wedstrijd Timer",
+      "phase": "Fase",
+      "period": "Periode",
+      "quarter": "Kwart",
+      "half": "Helft",
+      "break": "Pauze",
+      "halftime": "Rust", 
+      "finished": "Afgelopen",
+      "timeLeft": "Tijd Over",
+      "controls": {
+        "start": "▶ Starten",
+        "pause": "⏸ Pauzeren", 
+        "resume": "▶ Hervatten",
+        "reset": "🔄 Wedstrijd Resetten"
+      }
+    },
+    "boosterSelection": {
+      "title": "🎯 Booster Selectie",
+      "subtitle": "Selecteer boosters voor beide teams",
+      "phase": {
+        "ready": "Klaar om boosters te selecteren",
+        "teamAFirst": "Team A - Eerste Booster",
+        "teamASecond": "Team A - Tweede Booster", 
+        "teamBFirst": "Team B - Eerste Booster",
+        "teamBSecond": "Team B - Tweede Booster",
+        "complete": "Selectie Compleet"
+      },
+      "spinWheel": "🎲 Wiel Draaien",
+      "spinning": "Aan het draaien...",
+      "confirmSelection": "✓ Selectie Bevestigen",
+      "autoConfirm": "Auto-bevestigen in",
+      "seconds": "seconden"
+    },
+    "quickActions": {
+      "title": "Snelle Acties",
+      "maddie": "🎉 Maddie Activeren",
+      "boosterSelection": "🎯 Booster Selectie",
+      "resetMatch": "🔄 Wedstrijd Resetten"
+    }
+  },
+  "boostersAdmin": {
+    "title": "Boosters & Maddies Beheer", 
+    "subtitle": "Configureer speciale effecten voor wedstrijden",
+    "tabs": {
+      "boosters": "⚡ Boosters",
+      "maddies": "✨ Maddies"
+    },
+    "boosters": {
+      "title": "Boosters",
+      "addNew": "+ Nieuwe Booster Toevoegen",
+      "loading": "Boosters laden...",
+      "empty": {
+        "title": "Nog Geen Boosters",
+        "description": "Maak je eerste booster om speciale effecten aan wedstrijden toe te voegen",
+        "createButton": "+ Eerste Booster Maken"
+      },
+      "form": {
+        "title": "Titel",
+        "description": "Beschrijving", 
+        "icon": "Icoon",
+        "hasCountdown": "Heeft Afteltimer",
+        "duration": "Duur (seconden)",
+        "soundFile": "Geluidsbestand (optioneel)"
+      },
+      "actions": {
+        "edit": "✏️ Bewerken",
+        "delete": "🗑️ Verwijderen",
+        "test": "🔊 Geluid Testen"
+      }
+    },
+    "maddies": {
+      "title": "Maddies",
+      "addNew": "+ Nieuwe Maddie Toevoegen",
+      "loading": "Maddies laden...",
+      "empty": {
+        "title": "Nog Geen Maddies", 
+        "description": "Maak je eerste maddie om verrassingseffecten aan wedstrijden toe te voegen",
+        "createButton": "+ Eerste Maddie Maken"
+      }
+    },
+    "modal": {
+      "addBooster": "Nieuwe Booster Toevoegen",
+      "editBooster": "Booster Bewerken",
+      "addMaddie": "Nieuwe Maddie Toevoegen",
+      "editMaddie": "Maddie Bewerken",
+      "save": "Opslaan",
+      "cancel": "Annuleren"
+    }
+  }
+}
