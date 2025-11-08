@@ -427,14 +427,14 @@
                 />
               </div>
               
-              <div>
+              <div v-if="newTournament.quarters_count > 1">
                 <label class="block text-blue-200 text-xs font-semibold mb-1">
                   {{ newTournament.quarters_count === 2 ? 'Halftime (min)' : 'Halftime (min)' }}
                 </label>
                 <input 
                   v-model.number="newTournament.halftime_duration_minutes"
                   type="number" 
-                  min="5" 
+                  min="0" 
                   max="20"
                   class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
                 />
@@ -651,12 +651,12 @@
                 />
               </div>
               
-              <div>
+              <div v-if="editTournament.quarters_count > 1">
                 <label class="block text-blue-200 text-xs font-semibold mb-1">Halftime Duration (min)</label>
                 <input 
                   v-model.number="editTournament.halftime_duration_minutes"
                   type="number" 
-                  min="5" 
+                  min="0" 
                   max="20"
                   class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
                 />
@@ -758,28 +758,43 @@
                 />
               </div>
               
-              <div>
+              <div v-if="editMatchData.quarters_count > 1">
                 <label class="block text-blue-200 text-xs font-semibold mb-1">
                   {{ editMatchData.quarters_count === 2 ? 'Halftime (min)' : 'Halftime (min)' }}
                 </label>
                 <input 
                   v-model.number="editMatchData.halftime_duration_minutes"
                   type="number" 
-                  min="5" 
+                  min="0" 
                   max="20"
                   class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                  required
                 />
               </div>
             </div>
             
             <div class="text-xs text-white/60 mt-2">
               Total match time: {{ 
-                (editMatchData.quarters_count * editMatchData.quarter_duration_minutes) + 
-                (editMatchData.quarters_count === 2 ? editMatchData.halftime_duration_minutes : 
-                  ((editMatchData.quarters_count - 1) * editMatchData.break_duration_minutes) + 
-                  (editMatchData.quarters_count > 2 ? editMatchData.halftime_duration_minutes : 0)
-                ) 
+                (() => {
+                  const quarters = editMatchData.quarters_count
+                  const quarterDuration = editMatchData.quarter_duration_minutes
+                  const breakDuration = editMatchData.break_duration_minutes
+                  const halftimeDuration = editMatchData.halftime_duration_minutes
+                  
+                  const totalPlayingTime = quarters * quarterDuration
+                  let totalBreakTime = 0
+                  
+                  if (quarters === 1) {
+                    totalBreakTime = 0
+                  } else if (quarters === 2) {
+                    totalBreakTime = halftimeDuration
+                  } else if (quarters > 2) {
+                    const numberOfBreaks = quarters - 1
+                    const regularBreaks = numberOfBreaks - 1
+                    totalBreakTime = regularBreaks * breakDuration + halftimeDuration
+                  }
+                  
+                  return totalPlayingTime + totalBreakTime
+                })()
               }} minutes
             </div>
           </div>
@@ -1060,14 +1075,17 @@ function calculateTotalMatchTime() {
   
   // Total break time
   let totalBreakTime = 0
-  if (quarters === 2) {
+  if (quarters === 1) {
+    // Single quarter game - no breaks at all
+    totalBreakTime = 0
+  } else if (quarters === 2) {
     // For 2-quarter game (halves), only halftime between them
     totalBreakTime = halftimeDuration
   } else if (quarters > 2) {
     // For multi-quarter games, breaks between quarters plus halftime
     const numberOfBreaks = quarters - 1
-    const regularBreaks = numberOfBreaks > 1 ? numberOfBreaks - 1 : 0 // All breaks except halftime
-    totalBreakTime = regularBreaks * breakDuration + (numberOfBreaks > 0 ? halftimeDuration : 0)
+    const regularBreaks = numberOfBreaks - 1 // All breaks except halftime
+    totalBreakTime = regularBreaks * breakDuration + halftimeDuration
   }
   
   return totalPlayingTime + totalBreakTime
@@ -1085,10 +1103,20 @@ function calculateSelectedTournamentMatchTime() {
   // Total playing time
   const totalPlayingTime = quarters * quarterDuration
   
-  // Total break time (breaks between quarters, with longer halftime)
-  const numberOfBreaks = quarters - 1
-  const regularBreaks = numberOfBreaks > 1 ? numberOfBreaks - 1 : 0 // All breaks except halftime
-  const totalBreakTime = regularBreaks * breakDuration + (numberOfBreaks > 0 ? halftimeDuration : 0)
+  // Total break time
+  let totalBreakTime = 0
+  if (quarters === 1) {
+    // Single quarter game - no breaks at all
+    totalBreakTime = 0
+  } else if (quarters === 2) {
+    // For 2-quarter game (halves), only halftime between them
+    totalBreakTime = halftimeDuration
+  } else if (quarters > 2) {
+    // For multi-quarter games, breaks between quarters plus halftime
+    const numberOfBreaks = quarters - 1
+    const regularBreaks = numberOfBreaks - 1 // All breaks except halftime
+    totalBreakTime = regularBreaks * breakDuration + halftimeDuration
+  }
   
   return totalPlayingTime + totalBreakTime
 }
@@ -1132,9 +1160,20 @@ function calculateTournamentMatchDuration(tournament: Tournament): number {
   const halftimeDuration = tournament.halftime_duration_minutes || 10
   
   const totalPlayingTime = quarters * quarterDuration
-  const numberOfBreaks = quarters - 1
-  const regularBreaks = numberOfBreaks > 1 ? numberOfBreaks - 1 : 0
-  const totalBreakTime = regularBreaks * breakDuration + (numberOfBreaks > 0 ? halftimeDuration : 0)
+  
+  let totalBreakTime = 0
+  if (quarters === 1) {
+    // Single quarter game - no breaks at all
+    totalBreakTime = 0
+  } else if (quarters === 2) {
+    // For 2-quarter game (halves), only halftime between them
+    totalBreakTime = halftimeDuration
+  } else if (quarters > 2) {
+    // For multi-quarter games, breaks between quarters plus halftime
+    const numberOfBreaks = quarters - 1
+    const regularBreaks = numberOfBreaks - 1 // All breaks except halftime
+    totalBreakTime = regularBreaks * breakDuration + halftimeDuration
+  }
   
   return totalPlayingTime + totalBreakTime
 }

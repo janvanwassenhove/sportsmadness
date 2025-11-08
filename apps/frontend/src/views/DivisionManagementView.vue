@@ -933,7 +933,27 @@ async function generateMatches() {
             match_type: 'group',
             score_a: 0,
             score_b: 0,
-            time_left: defaultSettings.quarter_duration_minutes * defaultSettings.quarters_count * 60, // Convert to seconds
+            time_left: (() => {
+              const quarters = defaultSettings.quarters_count
+              const quarterDuration = defaultSettings.quarter_duration_minutes
+              const breakDuration = defaultSettings.break_duration_minutes
+              const halftimeDuration = defaultSettings.halftime_duration_minutes
+              
+              const totalPlayingTime = quarters * quarterDuration
+              let totalBreakTime = 0
+              
+              if (quarters === 1) {
+                totalBreakTime = 0
+              } else if (quarters === 2) {
+                totalBreakTime = halftimeDuration
+              } else if (quarters > 2) {
+                const numberOfBreaks = quarters - 1
+                const regularBreaks = numberOfBreaks - 1
+                totalBreakTime = regularBreaks * breakDuration + halftimeDuration
+              }
+              
+              return (totalPlayingTime + totalBreakTime) * 60 // Convert to seconds
+            })(),
             maddie: false,
             boosters: {},
             cards: {},
@@ -964,7 +984,27 @@ async function generateMatches() {
           match_order: matchesToCreate.length,
           score_a: 0,
           score_b: 0,
-          time_left: defaultSettings.quarter_duration_minutes * defaultSettings.quarters_count * 60, // Convert to seconds
+          time_left: (() => {
+            const quarters = defaultSettings.quarters_count
+            const quarterDuration = defaultSettings.quarter_duration_minutes
+            const breakDuration = defaultSettings.break_duration_minutes
+            const halftimeDuration = defaultSettings.halftime_duration_minutes
+            
+            const totalPlayingTime = quarters * quarterDuration
+            let totalBreakTime = 0
+            
+            if (quarters === 1) {
+              totalBreakTime = 0
+            } else if (quarters === 2) {
+              totalBreakTime = halftimeDuration
+            } else if (quarters > 2) {
+              const numberOfBreaks = quarters - 1
+              const regularBreaks = numberOfBreaks - 1
+              totalBreakTime = regularBreaks * breakDuration + halftimeDuration
+            }
+            
+            return (totalPlayingTime + totalBreakTime) * 60 // Convert to seconds
+          })(),
           maddie: false,
           boosters: {},
           cards: {},

@@ -430,7 +430,10 @@ function initializeMatchPhase() {
   const totalQuarterTime = settings.quarters_count * quarterTimeSeconds
   
   let totalBreakTime = 0
-  if (settings.quarters_count === 2) {
+  if (settings.quarters_count === 1) {
+    // Single quarter game - no breaks at all
+    totalBreakTime = 0
+  } else if (settings.quarters_count === 2) {
     // For 2-quarter games (halves), there's halftime between them
     totalBreakTime = halftimeTimeSeconds
   } else if (settings.quarters_count > 2) {

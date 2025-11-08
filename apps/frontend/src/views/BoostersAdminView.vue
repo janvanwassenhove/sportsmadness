@@ -133,7 +133,8 @@ function getRandomSound(type: 'boosters' | 'maddies'): string {
     ? ['booster_1.mp3', 'booster_2.mp3', 'booster_3.mp3', 'booster_4.mp3']
     : ['maddie_1.mp3', 'maddie_2.mp3', 'maddie_3.mp3', 'maddie_4.mp3']
   
-  return sounds[Math.floor(Math.random() * sounds.length)] || sounds[0]
+  const index = Math.floor(Math.random() * sounds.length)
+  return sounds[index]!   // assert non-null because array is never empty
 }
 
 function assignRandomSoundIfNeeded(item: Booster | Maddie, type: 'boosters' | 'maddies'): string {

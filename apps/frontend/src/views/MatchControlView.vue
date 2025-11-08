@@ -59,7 +59,19 @@ const isSpinning = ref(false)
 const currentTeamSpinning = ref<'A' | 'B' | null>(null)
 const spinningSlot = ref(0)
 const selectedBoosters = ref<{ teamA: Booster[], teamB: Booster[] }>({ teamA: [], teamB: [] })
-const boosterPhase = ref<'ready' | 'team-a-first' | 'team-a-second' | 'team-b-first' | 'team-b-second' | 'complete'>('ready')
+
+// Add a single canonical type for booster phases
+type BoosterPhase =
+  | 'ready'
+  | 'team-a-first'
+  | 'team-a-second'
+  | 'team-b-first'
+  | 'team-b-second'
+  | 'complete'
+
+// Use it when declaring the ref
+const boosterPhase = ref<BoosterPhase>('ready')
+
 const autoConfirmationPending = ref(false)
 
 // Available boosters and maddies from database
@@ -344,7 +356,10 @@ function initializeMatchPhase() {
   const totalQuarterTime = settings.quarters_count * quarterTimeSeconds
   
   let totalBreakTime = 0
-  if (settings.quarters_count === 2) {
+  if (settings.quarters_count === 1) {
+    // Single quarter game - no breaks at all
+    totalBreakTime = 0
+  } else if (settings.quarters_count === 2) {
     // For 2-quarter games (halves), there's halftime between them
     totalBreakTime = halftimeTimeSeconds
   } else if (settings.quarters_count > 2) {
@@ -418,7 +433,10 @@ function getCalculatedMatchTime(): number {
   const totalQuarterTime = settings.quarters_count * quarterTimeSeconds
   
   let totalBreakTime = 0
-  if (settings.quarters_count === 2) {
+  if (settings.quarters_count === 1) {
+    // Single quarter game - no breaks at all
+    totalBreakTime = 0
+  } else if (settings.quarters_count === 2) {
     // For 2-quarter games (halves), there's halftime between them
     totalBreakTime = halftimeTimeSeconds
   } else if (settings.quarters_count > 2) {

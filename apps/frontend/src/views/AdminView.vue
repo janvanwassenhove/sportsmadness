@@ -637,17 +637,16 @@ onMounted(() => {
                 />
               </div>
               
-              <div>
+              <div v-if="editMatchData.quarters_count > 1">
                 <label class="block text-blue-200 text-xs font-semibold mb-1">
                   {{ $t('admin.editMatch.duration.halftime') }}
                 </label>
                 <input 
                   v-model.number="editMatchData.halftime_duration_minutes"
                   type="number" 
-                  min="5" 
+                  min="0" 
                   max="20"
                   class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                  required
                 />
               </div>
             </div>
@@ -771,15 +770,14 @@ onMounted(() => {
                 />
               </div>
               
-              <div v-if="newMatchData.quarters_count > 2">
+              <div v-if="newMatchData.quarters_count > 1">
                 <label class="block text-blue-200 text-xs font-semibold mb-1">{{ $t('admin.createMatch.duration.halftimeBreak') }}</label>
                 <input 
                   v-model.number="newMatchData.halftime_duration_minutes"
                   type="number" 
-                  min="5" 
+                  min="0" 
                   max="20"
                   class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                  required
                 />
               </div>
             </div>
