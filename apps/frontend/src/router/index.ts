@@ -67,6 +67,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
+      path: '/admin/tournaments/builder',
+      name: 'tournament-builder',
+      component: () => import('../views/TournamentBuilderView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
       path: '/admin/tournaments/division/:divisionId',
       name: 'division-management',
       component: () => import('../views/DivisionManagementView.vue'),

@@ -459,6 +459,101 @@
       "cancel": "Annuler"
     }
   },
+  "tournament": {
+    "builder": {
+      "title": "Créateur de Tournoi",
+      "description": "Créez des tournois multi-phases avancés avec différents formats",
+      "chooseType": "Choisissez un format de tournoi",
+      "buildTournament": "Construisez Votre Tournoi",
+      "buildInstructions": "Construisez votre tournoi en combinant différentes phases : poules, brackets et matchs individuels.",
+      "addPhase": "Ajouter une Phase",
+      "phase": "Phase"
+    },
+    "types": {
+      "groupOnly": "Phase de groupe uniquement",
+      "groupOnlyDesc": "Tournoi round-robin avec seulement des matchs de groupe",
+      "mixed": "Phase de groupe et élimination",
+      "mixedDesc": "Groupes suivis de tours d'élimination knockout",
+      "knockoutOnly": "Élimination uniquement",
+      "knockoutOnlyDesc": "Tournoi à élimination simple ou double"
+    },
+    "phaseTypes": {
+      "poule": "POULE",
+      "bracket": "BRACKET",
+      "standalone": "MATCH INDIVIDUEL"
+    },
+    "phase": {
+      "name": "Nom de la Phase",
+      "namePlaceholder": "Entrez le nom de la phase",
+      "groups": "Nombre de Groupes",
+      "teamsPerGroup": "Équipes par Groupe",
+      "advancingTeams": "Équipes Qualifiées par Groupe",
+      "bracketType": "Type de Bracket",
+      "participants": "Nombre de Participants",
+      "matchType": "Type de Match",
+      "teamSelection": "Sélection d'Équipes",
+      "selectTeamsDirectly": "Sélectionnez les équipes directement pour cette phase",
+      "teamsSelected": "Équipes sélectionnées",
+      "teamsFromPreviousPhase": "Les équipes avanceront de la phase précédente",
+      "fromPreviousPhase": "De la Phase Précédente",
+      "directSelection": "Sélection Directe",
+      "advancementRules": "Règles d'Avancement",
+      "firstPlace": "1ère Place",
+      "secondPlace": "2ème Place",
+      "bracketsUseAdvancing": "Les brackets utilisent automatiquement les équipes qualifiées des phases précédentes",
+      "selectTwoTeams": "Sélectionnez exactement 2 équipes pour ce match",
+      "standaloneFromPrevious": "Les équipes seront déterminées par les résultats de la phase précédente",
+      "standaloneExample": "ex., 1er du Groupe A contre 2ème du Groupe B"
+    },
+    "bracket": {
+      "single": "Élimination Simple",
+      "double": "Élimination Double"
+    },
+    "match": {
+      "final": "Finale",
+      "thirdPlace": "Match pour la 3ème Place",
+      "friendly": "Match Amical",
+      "custom": "Match Personnalisé"
+    },
+    "settings": {
+      "title": "Paramètres du Tournoi",
+      "name": "Nom du Tournoi",
+      "namePlaceholder": "Entrez le nom du tournoi",
+      "startDate": "Date de Début",
+      "description": "Description",
+      "descriptionPlaceholder": "Entrez la description du tournoi",
+      "matchConfig": "Configuration des Matchs",
+      "quarters": "Quart-temps",
+      "halves": "Mi-temps",
+      "quarterDuration": "Durée du Quart (min)",
+      "breakDuration": "Durée de la Pause (min)",
+      "halftimeDuration": "Durée de la Mi-temps (min)"
+    },
+    "actions": {
+      "preview": "Aperçu du Tournoi",
+      "create": "Créer le Tournoi"
+    },
+    "preview": {
+      "title": "Aperçu du Tournoi",
+      "startDate": "Date de Début",
+      "unnamed": "Phase Sans Nom",
+      "poule": "{groups} groupes avec {teams} équipes chacun, {advancing} équipes se qualifient",
+      "bracket": "Bracket {type} avec {participants} participants",
+      "standalone": "Match {type}"
+    },
+    "validation": {
+      "required": "Veuillez remplir tous les champs requis",
+      "phases": "Le tournoi doit avoir au moins une phase",
+      "phaseType": "Toutes les phases doivent avoir un type sélectionné"
+    },
+    "errors": {
+      "create": "Échec de la création du tournoi. Veuillez réessayer.",
+      "unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer."
+    },
+    "success": {
+      "created": "Tournoi créé avec succès !"
+    }
+  },
   "footer": {
     "subtitle": "Gestion de tournoi en temps réel pour les championnats de hockey",
     "poweredBy": "Propulsé par",

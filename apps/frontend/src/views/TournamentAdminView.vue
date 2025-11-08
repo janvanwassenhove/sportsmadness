@@ -11,12 +11,20 @@
       <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 mb-8">
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-2xl font-bold text-white">Tournaments</h2>
-          <button 
-            @click="showCreateTournament = true" 
-            class="btn btn-primary"
-          >
-            Create Tournament
-          </button>
+          <div class="flex space-x-3">
+            <RouterLink 
+              to="/admin/tournaments/builder"
+              class="btn btn-secondary"
+            >
+              🏗️ Tournament Builder
+            </RouterLink>
+            <button 
+              @click="showCreateTournament = true" 
+              class="btn btn-primary"
+            >
+              Create Tournament
+            </button>
+          </div>
         </div>
 
         <!-- Tournament List -->
@@ -69,7 +77,7 @@
             <h2 class="text-2xl font-bold text-white">{{ selectedTournament.name }}</h2>
             <div class="flex space-x-2">
               <button 
-                @click="editingTournament = true" 
+                @click="openEditTournament()" 
                 class="btn btn-secondary"
               >
                 Edit Info
@@ -1316,8 +1324,105 @@ async function updateTournament() {
     }
 
     editingTournament.value = false
+    
+    // Ask user if they want to update match schedules when tournament timing settings changed
+    const shouldUpdateSchedules = confirm(
+      'Tournament timing settings have been updated. Do you want to recalculate all match start times?\n\n' +
+      'This will update the scheduled start times for all matches based on the new settings.\n' +
+      'Choose "OK" to update schedules or "Cancel" to keep existing times.'
+    )
+    
+    if (shouldUpdateSchedules) {
+      await updateMatchSchedules()
+    }
   } catch (error) {
     console.error('Error:', error)
+  }
+}
+
+// Function to update all match schedules when tournament settings change
+async function updateMatchSchedules() {
+  if (!selectedTournament.value) return
+  
+  try {
+    console.log('Updating match schedules for tournament:', selectedTournament.value.name)
+    
+    // Get all existing matches for this tournament
+    const { data: matches, error: fetchError } = await supabase
+      .from('matches')
+      .select('id, division_id, tournament_id')
+      .eq('tournament_id', selectedTournament.value.id)
+      .order('division_id')
+      .order('id')
+    
+    if (fetchError) {
+      console.error('Error fetching matches for schedule update:', fetchError)
+      alert('Failed to load matches for schedule update. Please try again.')
+      return
+    }
+    
+    if (!matches || matches.length === 0) {
+      // No matches to update
+      console.log('No matches found to update')
+      return
+    }
+    
+    console.log(`Found ${matches.length} matches to update`)
+    
+    // Group matches by division
+    const matchesByDivision = new Map()
+    matches.forEach(match => {
+      if (!matchesByDivision.has(match.division_id)) {
+        matchesByDivision.set(match.division_id, [])
+      }
+      matchesByDivision.get(match.division_id).push(match)
+    })
+    
+    // Update start times for each division's matches
+    const updates: Array<{ id: string; start_time: string }> = []
+    for (const [divisionId, divisionMatches] of matchesByDivision) {
+      const division = divisions.value.find(d => d.id === divisionId)
+      if (!division) continue
+      
+      divisionMatches.forEach((match: any, index: number) => {
+        const newStartTime = calculateDivisionMatchStartTime(division, index)
+        updates.push({
+          id: match.id,
+          start_time: newStartTime
+        })
+      })
+    }
+    
+    // Batch update all match start times
+    if (updates.length > 0) {
+      let updateCount = 0
+      for (const update of updates) {
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update({ start_time: update.start_time })
+          .eq('id', update.id)
+        
+        if (updateError) {
+          console.error(`Error updating match ${update.id} start time:`, updateError)
+        } else {
+          updateCount++
+        }
+      }
+      
+      console.log(`Successfully updated start times for ${updateCount}/${updates.length} matches`)
+      
+      if (updateCount > 0) {
+        // Reload tournament data to reflect the changes
+        await loadTournamentData(selectedTournament.value.id)
+        alert(`Successfully updated start times for ${updateCount} matches!`)
+      } else {
+        alert('Failed to update match schedules. Please try again.')
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error updating match schedules:', error)
+    alert('An error occurred while updating match schedules. Please try again.')
   }
 }
 
@@ -1735,11 +1840,9 @@ async function generateDivisionSchedule(division: Division) {
             time_left: totalMatchDuration,
             maddie: false,
             boosters: {},
-            cards: {}
+            cards: {},
+            start_time: matchStartTime
           }
-          
-          // Only add start_time if the column exists (comment out temporarily if column doesn't exist)
-          // matchData.start_time = matchStartTime
           
           matches.push(matchData)
         }
@@ -1768,11 +1871,9 @@ async function generateDivisionSchedule(division: Division) {
           time_left: totalMatchDuration,
           maddie: false,
           boosters: {},
-          cards: {}
+          cards: {},
+          start_time: matchStartTime
         }
-        
-        // Only add start_time if the column exists (comment out temporarily if column doesn't exist)
-        // matchData.start_time = matchStartTime
         
         matches.push(matchData)
       }

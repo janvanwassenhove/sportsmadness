@@ -459,6 +459,101 @@
       "cancel": "Cancel"
     }
   },
+  "tournament": {
+    "builder": {
+      "title": "Tournament Builder",
+      "description": "Create advanced multi-phase tournaments with different formats",
+      "chooseType": "Choose Tournament Type",
+      "buildTournament": "Build Your Tournament",
+      "buildInstructions": "Build your tournament by combining different phases: pools, brackets, and standalone matches.",
+      "addPhase": "Add Phase",
+      "phase": "Phase"
+    },
+    "types": {
+      "groupOnly": "Group Phase Only",
+      "groupOnlyDesc": "Round-robin tournament with group play only",
+      "mixed": "Group + Knockout Phase",
+      "mixedDesc": "Groups followed by knockout elimination rounds",
+      "knockoutOnly": "Knockout Only",
+      "knockoutOnlyDesc": "Single or double elimination tournament"
+    },
+    "phaseTypes": {
+      "poule": "POULE",
+      "bracket": "BRACKET",
+      "standalone": "STANDALONE MATCH"
+    },
+    "phase": {
+      "name": "Phase Name",
+      "namePlaceholder": "Enter phase name",
+      "groups": "Number of Groups",
+      "teamsPerGroup": "Teams per Group",
+      "advancingTeams": "Advancing Teams per Group",
+      "bracketType": "Bracket Type",
+      "participants": "Number of Participants",
+      "matchType": "Match Type",
+      "teamSelection": "Team Selection",
+      "selectTeamsDirectly": "Select teams directly for this phase",
+      "teamsSelected": "Teams selected",
+      "teamsFromPreviousPhase": "Teams will advance from previous phase",
+      "fromPreviousPhase": "From Previous Phase",
+      "directSelection": "Direct Selection",
+      "advancementRules": "Advancement Rules",
+      "firstPlace": "1st Place",
+      "secondPlace": "2nd Place",
+      "bracketsUseAdvancing": "Brackets automatically use advancing teams from previous phases",
+      "selectTwoTeams": "Select exactly 2 teams for this match",
+      "standaloneFromPrevious": "Teams will be determined from previous phase results",
+      "standaloneExample": "e.g., 1st from Group A vs 2nd from Group B"
+    },
+    "bracket": {
+      "single": "Single Elimination",
+      "double": "Double Elimination"
+    },
+    "match": {
+      "final": "Final",
+      "thirdPlace": "3rd Place Match",
+      "friendly": "Friendly Match",
+      "custom": "Custom Match"
+    },
+    "settings": {
+      "title": "Tournament Settings",
+      "name": "Tournament Name",
+      "namePlaceholder": "Enter tournament name",
+      "startDate": "Start Date",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter tournament description",
+      "matchConfig": "Match Configuration",
+      "quarters": "Quarters",
+      "halves": "Halves",
+      "quarterDuration": "Quarter Duration (min)",
+      "breakDuration": "Break Duration (min)",
+      "halftimeDuration": "Halftime Duration (min)"
+    },
+    "actions": {
+      "preview": "Preview Tournament",
+      "create": "Create Tournament"
+    },
+    "preview": {
+      "title": "Tournament Preview",
+      "startDate": "Start Date",
+      "unnamed": "Unnamed Phase",
+      "poule": "{groups} groups with {teams} teams each, {advancing} teams advance",
+      "bracket": "{type} bracket with {participants} participants",
+      "standalone": "{type} match"
+    },
+    "validation": {
+      "required": "Please fill in all required fields",
+      "phases": "Tournament must have at least one phase",
+      "phaseType": "All phases must have a type selected"
+    },
+    "errors": {
+      "create": "Failed to create tournament. Please try again.",
+      "unexpected": "An unexpected error occurred. Please try again."
+    },
+    "success": {
+      "created": "Tournament created successfully!"
+    }
+  },
   "footer": {
     "subtitle": "Real-time tournament management for hockey championships",
     "poweredBy": "Powered by",

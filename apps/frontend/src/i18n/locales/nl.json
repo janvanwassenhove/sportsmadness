@@ -459,6 +459,101 @@
       "cancel": "Annuleren"
     }
   },
+  "tournament": {
+    "builder": {
+      "title": "Toernooi Indeling",
+      "description": "Maak geavanceerde meertraps toernooien met verschillende formaten",
+      "chooseType": "Kies een toernooi-indeling",
+      "buildTournament": "Bouw Je Toernooi",
+      "buildInstructions": "Bouw je toernooi door verschillende fasen te combineren: poules, brackets en losse wedstrijden.",
+      "addPhase": "Fase Toevoegen",
+      "phase": "Fase"
+    },
+    "types": {
+      "groupOnly": "Alleen groepsfase",
+      "groupOnlyDesc": "Round-robin toernooi met alleen groepsspel",
+      "mixed": "Groepsfase en knock-outfase",
+      "mixedDesc": "Groepen gevolgd door knock-out eliminatierondes",
+      "knockoutOnly": "Alleen knock-outfase",
+      "knockoutOnlyDesc": "Enkel of dubbel eliminatie toernooi"
+    },
+    "phaseTypes": {
+      "poule": "POULE",
+      "bracket": "BRACKET",
+      "standalone": "LOSSE WEDSTRIJD"
+    },
+    "phase": {
+      "name": "Fase Naam",
+      "namePlaceholder": "Voer fase naam in",
+      "groups": "Aantal Groepen",
+      "teamsPerGroup": "Teams per Groep",
+      "advancingTeams": "Doorgaande Teams per Groep",
+      "bracketType": "Bracket Type",
+      "participants": "Aantal Deelnemers",
+      "matchType": "Wedstrijd Type",
+      "teamSelection": "Team Selectie",
+      "selectTeamsDirectly": "Selecteer teams direct voor deze fase",
+      "teamsSelected": "Teams geselecteerd",
+      "teamsFromPreviousPhase": "Teams gaan door van vorige fase",
+      "fromPreviousPhase": "Van Vorige Fase",
+      "directSelection": "Directe Selectie",
+      "advancementRules": "Doorgang Regels",
+      "firstPlace": "1e Plaats",
+      "secondPlace": "2e Plaats",
+      "bracketsUseAdvancing": "Brackets gebruiken automatisch doorgaande teams van vorige fasen",
+      "selectTwoTeams": "Selecteer precies 2 teams voor deze wedstrijd",
+      "standaloneFromPrevious": "Teams worden bepaald door resultaten van vorige fase",
+      "standaloneExample": "bijv., 1e van Groep A tegen 2e van Groep B"
+    },
+    "bracket": {
+      "single": "Enkel Eliminatie",
+      "double": "Dubbel Eliminatie"
+    },
+    "match": {
+      "final": "Finale",
+      "thirdPlace": "3e Plaats Wedstrijd",
+      "friendly": "Vriendschappelijke Wedstrijd",
+      "custom": "Aangepaste Wedstrijd"
+    },
+    "settings": {
+      "title": "Toernooi Instellingen",
+      "name": "Toernooi Naam",
+      "namePlaceholder": "Voer toernooi naam in",
+      "startDate": "Start Datum",
+      "description": "Beschrijving",
+      "descriptionPlaceholder": "Voer toernooi beschrijving in",
+      "matchConfig": "Wedstrijd Configuratie",
+      "quarters": "Kwarten",
+      "halves": "Helften",
+      "quarterDuration": "Kwart Duur (min)",
+      "breakDuration": "Pauze Duur (min)",
+      "halftimeDuration": "Rust Duur (min)"
+    },
+    "actions": {
+      "preview": "Toernooi Voorbeeld",
+      "create": "Toernooi Aanmaken"
+    },
+    "preview": {
+      "title": "Toernooi Voorbeeld",
+      "startDate": "Start Datum",
+      "unnamed": "Naamloze Fase",
+      "poule": "{groups} groepen met {teams} teams elk, {advancing} teams gaan door",
+      "bracket": "{type} bracket met {participants} deelnemers",
+      "standalone": "{type} wedstrijd"
+    },
+    "validation": {
+      "required": "Vul alle verplichte velden in",
+      "phases": "Toernooi moet minstens één fase hebben",
+      "phaseType": "Alle fasen moeten een type geselecteerd hebben"
+    },
+    "errors": {
+      "create": "Toernooi aanmaken mislukt. Probeer opnieuw.",
+      "unexpected": "Een onverwachte fout opgetreden. Probeer opnieuw."
+    },
+    "success": {
+      "created": "Toernooi succesvol aangemaakt!"
+    }
+  },
   "footer": {
     "subtitle": "Real-time toernooibeheer voor hockeykampioenschappen",
     "poweredBy": "Aangedreven door",
