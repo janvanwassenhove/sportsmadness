@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hockey Madness Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f0f0f0;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status { 
+            background: #e7f3ff; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 20px 0;
+        }
+        .error { 
+            background: #ffe7e7; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>� Hockey Madness - Debug Page</h1>
+        
+        <div class="status">
+            <h3>✅ Static HTML Working</h3>
+            <p>This page loads correctly, which means:</p>
+            <ul>
+                <li>Vite development server is running</li>
+                <li>Browser can access localhost:5173</li>
+                <li>The issue is with Vue.js rendering</li>
+            </ul>
+        </div>
+
+        <div class="status">
+            <h3>🔍 Troubleshooting Steps</h3>
+            <ol>
+                <li>Check browser console (F12) for JavaScript errors</li>
+                <li>Verify Vue DevTools are showing</li>
+                <li>Check if main.ts is loading correctly</li>
+                <li>Verify router configuration</li>
+            </ol>
+        </div>
+
+        <div id="vue-test">
+            <p>Vue.js app should load here...</p>
+        </div>
+
+        <script>
+            console.log('🔍 Debug: Static HTML loaded successfully');
+            console.log('📍 Location:', window.location.href);
+            
+            // Check if Vue DevTools are available
+            if (window.__VUE_DEVTOOLS_GLOBAL_HOOK__) {
+                console.log('✅ Vue DevTools detected');
+            } else {
+                console.log('⚠️ Vue DevTools not found');
+            }
+            
+            // Try to load the main app
+            setTimeout(() => {
+                const vueApp = document.getElementById('app');
+                if (vueApp) {
+                    console.log('✅ Vue app div found:', vueApp);
+                } else {
+                    console.log('❌ Vue app div not found');
+                }
+            }, 1000);
+        </script>
+    </div>
+</body>
+</html>
