@@ -1,4 +1,5 @@
 import './assets/main.css'
+import '@fortawesome/fontawesome-free/css/all.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
@@ -23,7 +24,7 @@ async function initializeApp() {
   console.log('🎨 Theme system initialized')
   
   // Initialize auth store before mounting with timeout
-  console.log('🏒 Hockey Madness loaded - Initializing auth...')
+  console.log('� Hockey Madness loaded - Initializing auth...')
   const { useAuthStore } = await import('@/stores/auth')
   const authStore = useAuthStore()
   
@@ -35,15 +36,15 @@ async function initializeApp() {
         setTimeout(() => reject(new Error('Auth initialization timeout')), 10000)
       )
     ])
-    console.log('🏒 Auth initialization complete, setting up router')
+    console.log('🏑 Auth initialization complete, setting up router')
   } catch (error) {
-    console.error('🏒 Auth initialization failed or timed out:', error)
-    console.log('🏒 Continuing with app setup anyway...')
+    console.error('🏑 Auth initialization failed or timed out:', error)
+    console.log('🏑 Continuing with app setup anyway...')
   }
   
   app.use(router)
   app.mount('#app')
-  console.log('🏒 App mounted successfully!')
+  console.log('🏑 App mounted successfully!')
 }
 
 initializeApp().catch((error) => {

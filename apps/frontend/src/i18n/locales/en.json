@@ -34,7 +34,7 @@
     "dashboard": "Dashboard",
     "tournaments": "Tournaments",
     "teams": "Teams",
-    "boosters": "Boosters",
+    "boosters": "Boosters & Maddies",
     "userManagement": "User Management",
     "profile": "Profile",
     "login": "Login",
@@ -111,8 +111,11 @@
     "teamB": "Team B",
     "score": "Score",
     "timeLeft": "Time Left",
+    "time": "Time",
     "period": "Period",
     "status": "Status",
+    "selectMatch": "Select Match",
+    "multipleMatchesFound": "Multiple matches available. Please select which match to display:",
     "boosterSelection": "🎰 Booster Selection 🎰",
     "spinningFor": "🎰 Spinning for {team} 🎰",
     "hockeyCasino": "🎰 HOCKEY CASINO 🎰",
@@ -184,7 +187,8 @@
         "controlMatch": "Control Match",
         "viewMatch": "View Match",
         "editSettings": "Edit Match Settings",
-        "startMatch": "Start Match"
+        "startMatch": "Start Match",
+        "deleteMatch": "Delete Match"
       }
     },
     "teams": {
@@ -206,6 +210,25 @@
       },
       "actions": {
         "save": "Save Settings",
+        "cancel": "Cancel"
+      }
+    },
+    "createMatch": {
+      "title": "Create New Match",
+      "teamA": "Team A",
+      "teamB": "Team B",
+      "selectTeam": "Select a team",
+      "duration": {
+        "title": "Match Duration",
+        "quarters": "Quarters",
+        "halves": "Halves",
+        "quarterLength": "Quarter Length (min)",
+        "halfLength": "Half Length (min)",
+        "breakTime": "Break Time (min)",
+        "halftimeBreak": "Halftime (min)"
+      },
+      "actions": {
+        "create": "Create Match",
         "cancel": "Cancel"
       }
     }
@@ -317,7 +340,7 @@
     "setup": {
       "title": "Match Ready for Setup",
       "description": "Initialize the match to make teams available on the scoreboard and begin booster selection",
-      "initializeButton": "🏒 Initialize Match"
+      "initializeButton": "Initialize Match"
     },
     "score": {
       "controls": "Score Control"
@@ -435,5 +458,11 @@
       "save": "Save",
       "cancel": "Cancel"
     }
+  },
+  "footer": {
+    "subtitle": "Real-time tournament management for hockey championships",
+    "poweredBy": "Powered by",
+    "officialSite": "Official Site",
+    "copyright": "Hockey Madness. All rights reserved."
   }
 }

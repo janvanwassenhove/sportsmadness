@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import { supabase } from '@/lib/supabase'
 import { SoundManager } from '@/lib/soundManager'
+
+// Props for match ID
+interface Props {
+  id?: string
+}
+
+const props = defineProps<Props>()
 
 interface Match {
   id: string
@@ -45,12 +53,15 @@ interface Team {
 }
 
 const { t } = useI18n()
+const router = useRouter()
 const themeStore = useThemeStore()
 
 const currentMatch = ref<Match | null>(null)
 const teams = ref<Record<string, Team>>({})
 const loading = ref(true)
 const maddieFlash = ref(false)
+const showMatchSelector = ref(false)
+const availableMatches = ref<Match[]>([])
 const boosterActivation = ref<{
   active: boolean
   teamName: string
@@ -492,30 +503,55 @@ async function loadCurrentMatch() {
   try {
     console.log('📡 Loading current match...')
     
-    // First priority: Active or paused matches
-    const { data: activeMatches, error: activeError } = await supabase
+    // If a specific match ID is provided, load that match
+    if (props.id) {
+      console.log('📡 Loading specific match:', props.id)
+      const { data: specificMatch, error: specificError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', props.id)
+        .single()
+
+      if (specificError) {
+        console.error('Error loading specific match:', specificError)
+        // If specific match fails, show match selector
+        await loadAvailableMatches()
+        return
+      }
+
+      if (specificMatch) {
+        currentMatch.value = specificMatch
+        console.log('📡 Specific match loaded:', specificMatch.id)
+        console.log('🚨 SCOREBOARD - Now watching match:', specificMatch.id)
+        initializeMatchPhase()
+        return
+      }
+    }
+
+    // Check if there are multiple active/paused matches - if so, show selector
+    const { data: runningMatches, error: runningError } = await supabase
       .from('matches')
       .select('*')
       .in('status', ['active', 'paused'])
-      .limit(1)
 
-    if (activeError) {
-      console.error('Error loading active matches:', activeError)
-    } else if (activeMatches && activeMatches.length > 0) {
-      currentMatch.value = activeMatches[0]
-      console.log('📡 Active/paused match loaded:', activeMatches[0].id)
-      console.log('🚨 SCOREBOARD - Now watching match:', activeMatches[0].id)
-      console.log('🚨 SCOREBOARD MATCH DETAILS:', {
-        id: activeMatches[0].id,
-        status: activeMatches[0].status,
-        teamA: activeMatches[0].team_a,
-        teamB: activeMatches[0].team_b
-      })
+    if (runningError) {
+      console.error('Error loading running matches:', runningError)
+    } else if (runningMatches && runningMatches.length > 1) {
+      // Multiple running matches - show selector
+      console.log('📡 Multiple running matches found, showing selector')
+      availableMatches.value = runningMatches
+      showMatchSelector.value = true
+      return
+    } else if (runningMatches && runningMatches.length === 1) {
+      // Single running match - load it directly
+      currentMatch.value = runningMatches[0]
+      console.log('📡 Single running match loaded:', runningMatches[0].id)
+      console.log('🚨 SCOREBOARD - Now watching match:', runningMatches[0].id)
       initializeMatchPhase()
       return
     }
 
-    // Second priority: Initialized pending matches (have boosters, cards, or non-default scores/time)
+    // No running matches, check for initialized pending matches
     const { data: pendingMatches, error: pendingError } = await supabase
       .from('matches')
       .select('*')
@@ -525,9 +561,8 @@ async function loadCurrentMatch() {
     if (pendingError) {
       console.error('Error loading pending matches:', pendingError)
     } else if (pendingMatches && pendingMatches.length > 0) {
-      // Find the first initialized match (has been modified from defaults)
-      const initializedMatch = pendingMatches.find(match => {
-        // Check for actual meaningful modifications (not just cleared booster state)
+      // Filter initialized matches
+      const initializedMatches = pendingMatches.filter(match => {
         const hasConfirmedBoosters = (
           match.boosters?.teamA?.length > 0 || 
           match.boosters?.teamB?.length > 0
@@ -536,48 +571,90 @@ async function loadCurrentMatch() {
         const hasScores = match.score_a > 0 || match.score_b > 0
         const hasModifiedTime = match.time_left !== 1800
         
-        const hasBeenModified = hasConfirmedBoosters || hasCards || hasScores || hasModifiedTime
-        
-        console.log('📡 Checking match initialization:', {
-          id: match.id,
-          hasConfirmedBoosters,
-          hasCards,
-          hasScores,
-          hasModifiedTime,
-          hasBeenModified,
-          boosters: match.boosters
-        })
-        
-        return hasBeenModified
+        return hasConfirmedBoosters || hasCards || hasScores || hasModifiedTime
       })
 
-      if (initializedMatch) {
-        currentMatch.value = initializedMatch
+      if (initializedMatches.length > 1) {
+        // Multiple initialized matches - show selector
+        console.log('📡 Multiple initialized matches found, showing selector')
+        availableMatches.value = initializedMatches
+        showMatchSelector.value = true
+        return
+      } else if (initializedMatches.length === 1) {
+        // Single initialized match - load it
+        currentMatch.value = initializedMatches[0]
         initializeMatchPhase()
-        console.log('📡 Initialized pending match loaded:', {
-          id: initializedMatch.id,
-          team_a: initializedMatch.team_a,
-          team_b: initializedMatch.team_b,
-          status: initializedMatch.status,
-          boosters: initializedMatch.boosters
-        })
-        console.log('🚨 SCOREBOARD - Now watching match:', initializedMatch.id)
+        console.log('📡 Single initialized match loaded:', initializedMatches[0].id)
+        console.log('🚨 SCOREBOARD - Now watching match:', initializedMatches[0].id)
         return
       }
 
-      // Fallback to newest pending match if none are initialized
-      currentMatch.value = pendingMatches[0]
-      initializeMatchPhase()
-      console.log('📡 Latest pending match loaded:', pendingMatches[0].id)
-      console.log('🚨 SCOREBOARD - Now watching match:', pendingMatches[0].id)
-    } else {
-      console.log('📡 No matches found in database')
-      currentMatch.value = null
+      // No initialized matches, check if we should show selector for all pending
+      if (pendingMatches.length > 1) {
+        console.log('� Multiple pending matches found, showing selector')
+        availableMatches.value = pendingMatches
+        showMatchSelector.value = true
+        return
+      } else {
+        // Single pending match - load it as fallback
+        currentMatch.value = pendingMatches[0]
+        initializeMatchPhase()
+        console.log('📡 Fallback to single pending match:', pendingMatches[0].id)
+        return
+      }
     }
+
+    console.log('📡 No matches found to display')
+    currentMatch.value = null
   } catch (error) {
     console.error('Error loading current match:', error)
     currentMatch.value = null
   }
+}
+
+async function loadAvailableMatches() {
+  try {
+    const { data: matches, error } = await supabase
+      .from('matches')
+      .select('*')
+      .in('status', ['active', 'paused', 'pending'])
+      .order('status', { ascending: false }) // Active first, then paused, then pending
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error loading available matches:', error)
+      return
+    }
+
+    availableMatches.value = matches || []
+    
+    if (matches && matches.length > 1) {
+      showMatchSelector.value = true
+    } else if (matches && matches.length === 1) {
+      selectMatch(matches[0])
+    }
+  } catch (error) {
+    console.error('Error loading available matches:', error)
+  }
+}
+
+function selectMatch(match: Match) {
+  currentMatch.value = match
+  showMatchSelector.value = false
+  initializeMatchPhase()
+  console.log('📡 Match selected:', match.id)
+  console.log('🚨 SCOREBOARD - Now watching match:', match.id)
+  
+  // Update URL to include match ID
+  if (props.id !== match.id) {
+    router.replace(`/scoreboard/${match.id}`)
+  }
+}
+
+function getMatchDisplayName(match: Match): string {
+  const teamA = teams.value[match.team_a]
+  const teamB = teams.value[match.team_b]
+  return `${teamA?.name || 'Team A'} vs ${teamB?.name || 'Team B'}`
 }
 
 async function loadTeams() {
@@ -1440,7 +1517,7 @@ onUnmounted(() => {
               class="w-24 h-24 animate-pulse"
             />
           </div>
-          <div v-else class="text-6xl mb-4">🏒</div>
+          <div v-else class="text-6xl mb-4">�</div>
         </div>
         <h2 class="hc-title mb-4">
           {{ $t('scoreboard.noActiveMatch') }}
@@ -1554,7 +1631,7 @@ onUnmounted(() => {
               class="w-16 h-16"
             />
           </div>
-          <div v-else class="text-4xl mr-4">🏒</div>
+          <div v-else class="text-4xl mr-4">�</div>
           
           <!-- Title with clean HC Lokeren styling -->
           <h1 class="hc-title">
@@ -2048,7 +2125,7 @@ onUnmounted(() => {
             :alt="themeStore.currentTheme.name"
             class="w-6 h-6"
           />
-          <span v-else class="text-xl">🏒</span>
+          <span v-else class="text-xl">�</span>
           <p class="font-theme-text"
              :style="{ color: themeStore.currentTheme?.colors.textSecondary }">
             Live Tournament Coverage
@@ -2209,6 +2286,55 @@ onUnmounted(() => {
           >
             {{ formatBoosterTime(timer.remainingTime) }}
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Match Selector Modal -->
+    <div 
+      v-if="showMatchSelector"
+      class="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50"
+    >
+      <div class="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 max-w-2xl w-full mx-4">
+        <div class="text-center mb-6">
+          <h2 class="text-3xl font-bold text-white mb-2">{{ $t('scoreboard.selectMatch') }}</h2>
+          <p class="text-blue-200">{{ $t('scoreboard.multipleMatchesFound') }}</p>
+        </div>
+        
+        <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
+          <div 
+            v-for="match in availableMatches" 
+            :key="match.id"
+            @click="selectMatch(match)"
+            class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 cursor-pointer hover:bg-white/20 transition-all duration-300"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <h3 class="text-xl font-bold text-white mb-2">{{ getMatchDisplayName(match) }}</h3>
+                <div class="flex items-center space-x-4 text-sm text-blue-200">
+                  <span>{{ $t('scoreboard.score') }}: {{ match.score_a }} - {{ match.score_b }}</span>
+                  <span>{{ $t('scoreboard.time') }}: {{ formatTime(match.time_left) }}</span>
+                </div>
+              </div>
+              <div class="ml-4">
+                <span 
+                  class="px-4 py-2 rounded-full text-white font-bold text-sm"
+                  :class="getStatusColor(match.status)"
+                >
+                  {{ getStatusText(match.status) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-6 text-center">
+          <button 
+            @click="showMatchSelector = false"
+            class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
         </div>
       </div>
     </div>

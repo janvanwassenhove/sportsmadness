@@ -40,6 +40,12 @@ const router = createRouter({
       component: () => import('../views/ScoreboardView.vue'),
     },
     {
+      path: '/scoreboard/:id',
+      name: 'scoreboard-match',
+      component: () => import('../views/ScoreboardView.vue'),
+      props: true,
+    },
+    {
       path: '/admin',
       name: 'admin',
       component: () => import('../views/AdminView.vue'),

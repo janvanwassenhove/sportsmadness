@@ -1,6 +1,6 @@
 <template>
   <div style="padding: 20px; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
-    <h1 style="color: #2563eb; margin-bottom: 20px;">🏒 Hockey Madness</h1>
+    <h1 style="color: #2563eb; margin-bottom: 20px;">� Hockey Madness</h1>
     
     <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
       <h2 style="color: #374151; margin: 0 0 15px 0;">Application Status</h2>

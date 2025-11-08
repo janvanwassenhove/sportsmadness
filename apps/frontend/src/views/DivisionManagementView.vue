@@ -64,7 +64,7 @@
                 'assigned': isTeamAssigned(team.id),
                 'dragging': draggedTeam?.id === team.id
               }"
-              :draggable="tournament?.status === 'setup' && !isTeamAssigned(team.id)"
+              :draggable="tournament?.status === 'setup'"
               @dragstart="handleDragStart(team, $event)"
               @dragend="handleDragEnd"
             >
@@ -230,7 +230,7 @@
                 @click="generateMatches"
                 class="btn btn-primary"
               >
-                🏒 Generate Schedule
+                � Generate Schedule
               </button>
               <button 
                 v-if="matches.length > 0"
@@ -576,6 +576,7 @@ const canGenerateMatches = computed(() => {
 function handleDragStart(team: Team | undefined, event: DragEvent) {
   if (!team || !event.dataTransfer) return
   
+  console.log('Drag started for team:', team.name)
   draggedTeam.value = team
   event.dataTransfer.effectAllowed = 'move'
   event.dataTransfer.setData('text/plain', team.id)
@@ -587,30 +588,52 @@ function handleDragEnd() {
 }
 
 function handleDragOver(groupId: string) {
-  if (draggedTeam.value && getGroupTeams(groupId).length < maxTeamsPerGroup.value) {
+  if (!draggedTeam.value) return
+  
+  const currentTeamsInGroup = getGroupTeams(groupId)
+  if (currentTeamsInGroup.length < maxTeamsPerGroup.value) {
     dragOverGroup.value = groupId
   }
 }
 
-function handleDragLeave() {
-  dragOverGroup.value = null
+function handleDragLeave(event: DragEvent) {
+  // Only clear if we're really leaving the drop zone
+  if (event.relatedTarget && !(event.currentTarget as Element).contains(event.relatedTarget as Node)) {
+    dragOverGroup.value = null
+  }
 }
 
 async function handleDrop(groupId: string, event: DragEvent) {
+  event.preventDefault()
   dragOverGroup.value = null
   
-  if (!draggedTeam.value || !tournament.value) return
+  if (!draggedTeam.value || !tournament.value) {
+    console.log('No dragged team or tournament')
+    return
+  }
   
   const team = draggedTeam.value
+  console.log('Dropping team:', team.name, 'into group:', groupId)
+  
+  // Check if group is full
+  const currentTeamsInGroup = getGroupTeams(groupId)
+  if (currentTeamsInGroup.length >= maxTeamsPerGroup.value) {
+    console.log('Group is full')
+    alert(`Group is full (${maxTeamsPerGroup.value} teams maximum)`)
+    draggedTeam.value = null
+    return
+  }
   
   try {
-    const newPosition = getGroupTeams(groupId).length + 1
+    const newPosition = currentTeamsInGroup.length + 1
+    console.log('Assigning team to position:', newPosition)
     
     // Use upsert to handle both new assignments and moves
     await upsertTeamInGroup(team.id, groupId, newPosition)
     
     // Reload data to update UI
     await loadData()
+    console.log('Team assignment successful')
   } catch (error) {
     console.error('Error in drag and drop:', error)
     alert('Failed to move team')
@@ -673,24 +696,63 @@ async function assignTeamToGroupAtPosition(teamId: string, groupId: string, posi
 }
 
 async function upsertTeamInGroup(teamId: string, groupId: string, position: number) {
-  try {
-    // Use Supabase upsert to handle both insert and update
-    const { data, error } = await supabase
-      .from('tournament_team_participations')
-      .upsert({
-        tournament_id: tournament.value!.id,
-        team_id: teamId,
-        group_id: groupId,
-        position_in_group: position
-      }, {
-        onConflict: 'tournament_id,team_id'
-      })
-      .select()
-      .single()
+  if (!tournament.value) {
+    throw new Error('No tournament loaded')
+  }
 
-    if (error) {
-      console.error('Error upserting team:', error)
-      throw error
+  try {
+    console.log('Upserting team:', teamId, 'to group:', groupId, 'at position:', position)
+    
+    // First check if team is already assigned to this tournament
+    const { data: existingParticipation, error: checkError } = await supabase
+      .from('tournament_team_participations')
+      .select('*')
+      .eq('tournament_id', tournament.value.id)
+      .eq('team_id', teamId)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing participation:', checkError)
+      throw checkError
+    }
+
+    if (existingParticipation) {
+      // Update existing participation
+      const { data, error } = await supabase
+        .from('tournament_team_participations')
+        .update({
+          group_id: groupId,
+          position_in_group: position
+        })
+        .eq('id', existingParticipation.id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating team participation:', error)
+        throw error
+      }
+      
+      console.log('Updated existing participation:', data)
+    } else {
+      // Create new participation
+      const { data, error } = await supabase
+        .from('tournament_team_participations')
+        .insert({
+          tournament_id: tournament.value.id,
+          team_id: teamId,
+          group_id: groupId,
+          position_in_group: position
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating team participation:', error)
+        throw error
+      }
+      
+      console.log('Created new participation:', data)
     }
   } catch (error) {
     console.error('Error in upsertTeamInGroup:', error)
@@ -719,19 +781,70 @@ async function removeTeamFromKnockout(participationId: string) {
 }
 
 async function autoFillTeams() {
-  const unassignedTeams = availableTeams.value.filter(team => !isTeamAssigned(team.id))
-  let groupIndex = 0
-  
-  for (const team of unassignedTeams) {
-    const groupId = groups.value[groupIndex]?.id
-    if (groupId && getGroupTeams(groupId).length < maxTeamsPerGroup.value) {
-      const position = getGroupTeams(groupId).length + 1
-      await assignTeamToGroupAtPosition(team.id, groupId, position)
-    }
-    groupIndex = (groupIndex + 1) % groups.value.length
+  if (!tournament.value || tournament.value.status !== 'setup') {
+    alert('Auto-fill is only available during tournament setup')
+    return
   }
+
+  const unassignedTeams = availableTeams.value.filter(team => !isTeamAssigned(team.id))
+  console.log('Unassigned teams:', unassignedTeams.length)
   
-  await loadData()
+  if (unassignedTeams.length === 0) {
+    alert('All teams are already assigned')
+    return
+  }
+
+  if (groups.value.length === 0) {
+    alert('No groups available for assignment')
+    return
+  }
+
+  const confirmed = confirm(`Auto-fill ${unassignedTeams.length} unassigned teams into available group slots?`)
+  if (!confirmed) return
+
+  try {
+    let groupIndex = 0
+    let assignedCount = 0
+    
+    for (const team of unassignedTeams) {
+      let attempts = 0
+      let assigned = false
+      
+      // Try to find a group with space, starting from current groupIndex
+      while (attempts < groups.value.length && !assigned) {
+        const currentGroup = groups.value[groupIndex]
+        if (currentGroup && getGroupTeams(currentGroup.id).length < maxTeamsPerGroup.value) {
+          const position = getGroupTeams(currentGroup.id).length + 1
+          console.log(`Assigning ${team.name} to ${currentGroup.name} at position ${position}`)
+          
+          await assignTeamToGroupAtPosition(team.id, currentGroup.id, position)
+          assignedCount++
+          assigned = true
+        }
+        
+        groupIndex = (groupIndex + 1) % groups.value.length
+        attempts++
+      }
+      
+      if (!assigned) {
+        console.log(`Could not assign ${team.name} - all groups are full`)
+        break
+      }
+    }
+    
+    // Reload data to update UI
+    await loadData()
+    
+    if (assignedCount > 0) {
+      alert(`Successfully assigned ${assignedCount} teams to groups!`)
+    } else {
+      alert('No teams could be assigned - all groups may be full')
+    }
+    
+  } catch (error) {
+    console.error('Error in auto-fill teams:', error)
+    alert('Failed to auto-fill teams. Please try again.')
+  }
 }
 
 async function generateMatches() {

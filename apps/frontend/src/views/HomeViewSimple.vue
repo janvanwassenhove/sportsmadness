@@ -2,7 +2,7 @@
   <div style="min-height: 100vh; background: linear-gradient(135deg, #1e40af, #3730a3); color: white; padding: 2rem;">
     <div style="max-width: 1200px; margin: 0 auto; text-align: center;">
       <h1 style="font-size: 4rem; font-weight: bold; margin-bottom: 2rem;">
-        🏒 Hockey Madness
+        � Hockey Madness
       </h1>
       <p style="font-size: 1.25rem; margin-bottom: 3rem;">
         Real-time tournament management for hockey championships

@@ -34,7 +34,7 @@
     "dashboard": "Dashboard",
     "tournaments": "Toernooien",
     "teams": "Teams",
-    "boosters": "Boosters",
+    "boosters": "Boosters & Maddies",
     "userManagement": "Gebruikersbeheer",
     "profile": "Profiel",
     "login": "Inloggen",
@@ -111,8 +111,11 @@
     "teamB": "Team B",
     "score": "Score",
     "timeLeft": "Resterende Tijd",
+    "time": "Tijd",
     "period": "Periode",
     "status": "Status",
+    "selectMatch": "Selecteer Wedstrijd",
+    "multipleMatchesFound": "Meerdere wedstrijden beschikbaar. Selecteer welke wedstrijd weer te geven:",
     "boosterSelection": "🎰 Booster Selectie 🎰",
     "spinningFor": "🎰 Draait voor {team} 🎰",
     "hockeyCasino": "🎰 HOCKEY CASINO 🎰",
@@ -184,7 +187,8 @@
         "controlMatch": "Wedstrijd Besturen",
         "viewMatch": "Wedstrijd Bekijken",
         "editSettings": "Wedstrijd Instellingen Bewerken",
-        "startMatch": "Wedstrijd Starten"
+        "startMatch": "Wedstrijd Starten",
+        "deleteMatch": "Wedstrijd Verwijderen"
       }
     },
     "teams": {
@@ -206,6 +210,25 @@
       },
       "actions": {
         "save": "Instellingen Opslaan",
+        "cancel": "Annuleren"
+      }
+    },
+    "createMatch": {
+      "title": "Nieuwe Wedstrijd Aanmaken",
+      "teamA": "Team A",
+      "teamB": "Team B",
+      "selectTeam": "Selecteer een team",
+      "duration": {
+        "title": "Wedstrijd Duur",
+        "quarters": "Kwarten",
+        "halves": "Helften",
+        "quarterLength": "Kwart Lengte (min)",
+        "halfLength": "Helft Lengte (min)",
+        "breakTime": "Pauze Tijd (min)",
+        "halftimeBreak": "Rust (min)"
+      },
+      "actions": {
+        "create": "Wedstrijd Aanmaken",
         "cancel": "Annuleren"
       }
     }
@@ -317,7 +340,7 @@
     "setup": {
       "title": "Wedstrijd Klaar voor Instelling",
       "description": "Initialiseer de wedstrijd om teams beschikbaar te maken op het scorebord en booster selectie te beginnen",
-      "initializeButton": "🏒 Wedstrijd Initialiseren"
+      "initializeButton": "Wedstrijd Initialiseren"
     },
     "score": {
       "controls": "Score Controle"
@@ -435,5 +458,11 @@
       "save": "Opslaan",
       "cancel": "Annuleren"
     }
+  },
+  "footer": {
+    "subtitle": "Real-time toernooibeheer voor hockeykampioenschappen",
+    "poweredBy": "Aangedreven door",
+    "officialSite": "Officiële Site",
+    "copyright": "Hockey Madness. Alle rechten voorbehouden."
   }
 }

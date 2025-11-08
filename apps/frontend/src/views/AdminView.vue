@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 
@@ -30,6 +30,7 @@ interface Team {
 }
 
 const authStore = useAuthStore()
+const router = useRouter()
 const matches = ref<Match[]>([])
 const tournamentMatches = ref<Match[]>([])
 const standaloneMatches = ref<Match[]>([])
@@ -41,6 +42,17 @@ const showMatchType = ref<'tournament' | 'standalone' | 'all'>('all')
 const showEditMatchModal = ref(false)
 const editMatchData = ref({
   id: '',
+  quarters_count: 4,
+  quarter_duration_minutes: 15,
+  break_duration_minutes: 2,
+  halftime_duration_minutes: 10
+})
+
+// Create match modal state
+const showCreateMatchModal = ref(false)
+const newMatchData = ref({
+  team_a: '',
+  team_b: '',
   quarters_count: 4,
   quarter_duration_minutes: 15,
   break_duration_minutes: 2,
@@ -241,6 +253,115 @@ async function startMatch(matchId: string) {
   }
 }
 
+async function deleteMatch(matchId: string) {
+  // Find the match to get its status for better confirmation message
+  const match = matches.value.find(m => m.id === matchId)
+  const matchType = match?.tournament_id ? 'tournament' : 'standalone'
+  const matchStatus = match?.status || 'unknown'
+  
+  let confirmMessage = `Are you sure you want to delete this ${matchStatus} ${matchType} match?`
+  if (matchStatus === 'finished') {
+    confirmMessage += '\n\nThis will permanently remove the match and all its results from the database.'
+  }
+  confirmMessage += '\n\nThis action cannot be undone.'
+  
+  if (!confirm(confirmMessage)) {
+    return
+  }
+
+  try {
+    const { error } = await supabase
+      .from('matches')
+      .delete()
+      .eq('id', matchId)
+
+    if (error) {
+      console.error('Error deleting match:', error)
+      alert('Failed to delete match. Please try again.')
+      return
+    }
+
+    // Remove match from local state arrays
+    matches.value = matches.value.filter(m => m.id !== matchId)
+    tournamentMatches.value = tournamentMatches.value.filter(m => m.id !== matchId)
+    standaloneMatches.value = standaloneMatches.value.filter(m => m.id !== matchId)
+    
+    console.log('✅ Match deleted successfully')
+  } catch (error) {
+    console.error('Error:', error)
+    alert('Failed to delete match. Please try again.')
+  }
+}
+
+function createNewMatch() {
+  // Reset form data
+  newMatchData.value = {
+    team_a: '',
+    team_b: '',
+    quarters_count: 4,
+    quarter_duration_minutes: 15,
+    break_duration_minutes: 2,
+    halftime_duration_minutes: 10
+  }
+  showCreateMatchModal.value = true
+}
+
+async function saveNewMatch() {
+  try {
+    // Validate that teams are selected and different
+    if (!newMatchData.value.team_a || !newMatchData.value.team_b) {
+      alert('Please select both teams')
+      return
+    }
+    
+    if (newMatchData.value.team_a === newMatchData.value.team_b) {
+      alert('Please select different teams')
+      return
+    }
+
+    // Calculate total match duration in seconds
+    const totalDuration = newMatchData.value.quarters_count * newMatchData.value.quarter_duration_minutes * 60
+
+    const matchData = {
+      team_a: newMatchData.value.team_a,
+      team_b: newMatchData.value.team_b,
+      score_a: 0,
+      score_b: 0,
+      status: 'pending',
+      time_left: totalDuration,
+      maddie: false,
+      boosters: {},
+      cards: {},
+      quarters_count: newMatchData.value.quarters_count,
+      quarter_duration_minutes: newMatchData.value.quarter_duration_minutes,
+      break_duration_minutes: newMatchData.value.break_duration_minutes,
+      halftime_duration_minutes: newMatchData.value.halftime_duration_minutes
+    }
+
+    const { data, error } = await supabase
+      .from('matches')
+      .insert([matchData])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating match:', error)
+      alert('Failed to create match. Please try again.')
+      return
+    }
+
+    // Add new match to local state
+    matches.value.unshift(data)
+    standaloneMatches.value.unshift(data)
+    
+    showCreateMatchModal.value = false
+    console.log('✅ Match created successfully')
+  } catch (error) {
+    console.error('Error:', error)
+    alert('Failed to create match. Please try again.')
+  }
+}
+
 onMounted(() => {
   loadData()
 })
@@ -330,7 +451,10 @@ onMounted(() => {
               </button>
             </div>
           </div>
-          <button class="btn btn-primary">
+          <button 
+            @click="createNewMatch"
+            class="btn btn-primary"
+          >
             {{ $t('admin.matches.newMatch') }}
           </button>
         </div>
@@ -340,7 +464,7 @@ onMounted(() => {
         </div>
 
         <div v-else-if="matches.length === 0" class="text-center py-8">
-          <div class="text-4xl mb-4">🏒</div>
+          <div class="text-4xl mb-4">�</div>
           <h3 class="text-xl text-white mb-2">{{ $t('admin.matches.noMatches.title') }}</h3>
           <p class="text-blue-200">{{ $t('admin.matches.noMatches.description') }}</p>
         </div>
@@ -424,6 +548,15 @@ onMounted(() => {
                   class="btn btn-success"
                 >
                   {{ $t('admin.matches.actions.startMatch') }}
+                </button>
+                
+                <button 
+                  v-if="match.status === 'pending' || match.status === 'finished'"
+                  @click="deleteMatch(match.id)"
+                  class="btn btn-xs bg-red-600 hover:bg-red-700 text-white"
+                  :title="$t('admin.matches.actions.deleteMatch')"
+                >
+                  🗑️
                 </button>
               </div>
             </div>
@@ -540,6 +673,128 @@ onMounted(() => {
               class="flex-1 btn btn-secondary"
             >
               {{ $t('admin.editMatch.actions.cancel') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Create New Match Modal -->
+    <div v-if="showCreateMatchModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div class="bg-gray-900 rounded-xl p-6 border border-white/20 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-white mb-4">{{ $t('admin.createMatch.title') }}</h3>
+        
+        <form @submit.prevent="saveNewMatch" class="space-y-4">
+          <!-- Team Selection -->
+          <div class="space-y-3">
+            <div>
+              <label class="block text-blue-200 text-sm font-semibold mb-2">{{ $t('admin.createMatch.teamA') }}</label>
+              <select 
+                v-model="newMatchData.team_a"
+                class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+                required
+              >
+                <option value="">{{ $t('admin.createMatch.selectTeam') }}</option>
+                <option 
+                  v-for="team in Object.values(teams)" 
+                  :key="team.id" 
+                  :value="team.id"
+                  :disabled="team.id === newMatchData.team_b"
+                >
+                  {{ team.name }}
+                </option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-blue-200 text-sm font-semibold mb-2">{{ $t('admin.createMatch.teamB') }}</label>
+              <select 
+                v-model="newMatchData.team_b"
+                class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+                required
+              >
+                <option value="">{{ $t('admin.createMatch.selectTeam') }}</option>
+                <option 
+                  v-for="team in Object.values(teams)" 
+                  :key="team.id" 
+                  :value="team.id"
+                  :disabled="team.id === newMatchData.team_a"
+                >
+                  {{ team.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Match Duration Settings -->
+          <div class="border border-white/20 rounded-lg p-4">
+            <h4 class="text-blue-200 font-semibold mb-3">{{ $t('admin.createMatch.duration.title') }}</h4>
+            
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-blue-200 text-xs font-semibold mb-1">
+                  {{ newMatchData.quarters_count === 2 ? $t('admin.createMatch.duration.halves') : $t('admin.createMatch.duration.quarters') }}
+                </label>
+                <input 
+                  v-model.number="newMatchData.quarters_count"
+                  type="number" 
+                  min="1" 
+                  max="6"
+                  class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label class="block text-blue-200 text-xs font-semibold mb-1">
+                  {{ newMatchData.quarters_count === 2 ? $t('admin.createMatch.duration.halfLength') : $t('admin.createMatch.duration.quarterLength') }}
+                </label>
+                <input 
+                  v-model.number="newMatchData.quarter_duration_minutes"
+                  type="number" 
+                  min="5" 
+                  max="30"
+                  class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                  required
+                />
+              </div>
+              
+              <div v-if="newMatchData.quarters_count > 2">
+                <label class="block text-blue-200 text-xs font-semibold mb-1">{{ $t('admin.createMatch.duration.breakTime') }}</label>
+                <input 
+                  v-model.number="newMatchData.break_duration_minutes"
+                  type="number" 
+                  min="1" 
+                  max="10"
+                  class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                  required
+                />
+              </div>
+              
+              <div v-if="newMatchData.quarters_count > 2">
+                <label class="block text-blue-200 text-xs font-semibold mb-1">{{ $t('admin.createMatch.duration.halftimeBreak') }}</label>
+                <input 
+                  v-model.number="newMatchData.halftime_duration_minutes"
+                  type="number" 
+                  min="5" 
+                  max="20"
+                  class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="flex space-x-3 pt-4">
+            <button type="submit" class="flex-1 btn btn-primary">
+              {{ $t('admin.createMatch.actions.create') }}
+            </button>
+            <button 
+              type="button" 
+              @click="showCreateMatchModal = false"
+              class="flex-1 btn btn-secondary"
+            >
+              {{ $t('admin.createMatch.actions.cancel') }}
             </button>
           </div>
         </form>

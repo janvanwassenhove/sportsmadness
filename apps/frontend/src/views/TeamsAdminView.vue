@@ -195,7 +195,7 @@ onMounted(() => {
       </div>
 
       <div v-else-if="teams.length === 0" class="text-center py-16">
-        <div class="text-6xl mb-6">🏒</div>
+        <div class="text-6xl mb-6">�</div>
         <h2 class="text-3xl font-bold text-white mb-4">No Teams Yet</h2>
         <p class="text-blue-200 mb-8">Create your first team to get started</p>
         <button @click="startAddTeam" class="btn btn-primary">

@@ -1,5 +1,5 @@
 # Hockey Madness - Secure Development Start
-Write-Host "🏒 Hockey Madness - Secure Environment Setup" -ForegroundColor Green
+Write-Host "� Hockey Madness - Secure Environment Setup" -ForegroundColor Green
 Write-Host ""
 
 # Check if environment variables are already set

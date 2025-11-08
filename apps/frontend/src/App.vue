@@ -2,19 +2,23 @@
 import { RouterView, useRoute } from 'vue-router'
 import { computed } from 'vue'
 import AppNavigation from '@/components/AppNavigation.vue'
+import AppFooter from '@/components/AppFooter.vue'
 
 const route = useRoute()
 
-// Hide navigation on scoreboard view for full-screen display
-const showNavigation = computed(() => {
-  return route.name !== 'scoreboard'
+// Hide navigation and footer on scoreboard view for full-screen display
+const showNavigationAndFooter = computed(() => {
+  return route.name !== 'scoreboard' && route.name !== 'scoreboard-match'
 })
 </script>
 
 <template>
-  <div id="app" style="min-height: 100vh;">
-    <AppNavigation v-if="showNavigation" />
-    <RouterView />
+  <div id="app" class="min-h-screen flex flex-col">
+    <AppNavigation v-if="showNavigationAndFooter" />
+    <main class="flex-1">
+      <RouterView />
+    </main>
+    <AppFooter v-if="showNavigationAndFooter" />
   </div>
 </template>
 

@@ -19,7 +19,7 @@
     </div>
 
     <div style="margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px;">
-      <h2>🏒 Matches in Database</h2>
+      <h2>� Matches in Database</h2>
       <div v-if="loading">Loading matches...</div>
       <div v-else-if="matches.length === 0" style="color: orange;">No matches found in database</div>
       <div v-else>

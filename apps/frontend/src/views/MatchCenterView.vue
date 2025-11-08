@@ -358,8 +358,9 @@
         <!-- Quick Actions -->
         <div class="flex justify-center space-x-4">
           <RouterLink 
-            to="/scoreboard" 
+            :to="`/scoreboard/${match.id}`" 
             class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
+            target="_blank"
           >
             <span>📺</span>
             <span>Live Scoreboard</span>
@@ -794,15 +795,15 @@ async function updateMatch(updates: Partial<any>) {
   console.log('🔧 updateMatch function started (MatchCenterView)')
   
   try {
-    console.log('🏒 Updating match with:', updates)
-    console.log('🏒 Match ID:', match.value?.id)
+    console.log('� Updating match with:', updates)
+    console.log('� Match ID:', match.value?.id)
     
     // DETAILED DEBUGGING: Log the exact boosters structure being sent
     if (updates.boosters) {
       console.log('🔍 EXACT BOOSTERS BEING SENT TO DB:', JSON.stringify(updates.boosters, null, 2))
     }
     
-    console.log('🏒 About to call supabase update...')
+    console.log('� About to call supabase update...')
     
     // Try the simplest possible update
     const result = await supabase
@@ -810,7 +811,7 @@ async function updateMatch(updates: Partial<any>) {
       .update(updates)
       .eq('id', match.value?.id)
     
-    console.log('🏒 Supabase update result:', result)
+    console.log('� Supabase update result:', result)
     
     if (result.error) {
       console.error('❌ Error updating match:', result.error)
@@ -889,7 +890,7 @@ async function activateUserBooster(boosterIndex: number) {
       
       boosters[teamKey] = updatedTeamBoosters
       
-      console.log(`� User starting countdown for team ${userTeamSide.value.toUpperCase()} booster:`, {
+      console.log(`🏑 User starting countdown for team ${userTeamSide.value.toUpperCase()} booster:`, {
         boosterIndex,
         booster: updatedTeamBoosters[boosterIndex],
         fullBoosterState: boosters,
@@ -964,7 +965,7 @@ async function activateUserBooster(boosterIndex: number) {
         fullTeamBBoosters: boosters.teamB
       })
       
-      console.log('� MATCH CENTER - Booster countdown started for match:', match.value.id)
+      console.log('🏑 MATCH CENTER - Booster countdown started for match:', match.value.id)
 
       // Local state updated by updateMatch function
       

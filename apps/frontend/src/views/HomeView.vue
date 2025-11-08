@@ -14,13 +14,13 @@ const router = useRouter()
 function getRoleBadgeClass(role?: string) {
   switch (role) {
     case 'admin':
-      return 'bg-red-100 text-red-800'
+      return 'role-badge-admin'
     case 'team':
-      return 'bg-blue-100 text-blue-800'
+      return 'role-badge-team'
     case 'user':
-      return 'bg-green-100 text-green-800'
+      return 'role-badge-user'
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'role-badge-default'
   }
 }
 
@@ -83,24 +83,17 @@ watch(() => authStore.profile?.role, (newRole) => {
     <div class="container mx-auto px-4 py-16">
       <!-- Header -->
       <div class="text-center mb-16">
-        <h1 class="text-6xl font-bold mb-6 font-theme-title"
-            :style="{ 
-              color: themeStore.currentTheme?.colors.text,
-              background: `linear-gradient(45deg, ${themeStore.currentTheme?.colors.primary}, ${themeStore.currentTheme?.colors.accent})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }">
+        <h1 class="home-title font-theme-title">
           <img 
             v-if="themeStore.currentTheme?.logo" 
             :src="themeStore.currentTheme.logo" 
             :alt="themeStore.currentTheme.name"
             class="inline w-16 h-16 mr-4"
           />
-          <span v-else>🏒</span>
+          <span v-else class="text-6xl">🏑</span>
           {{ $t('home.title') }}
         </h1>
-        <p class="text-xl max-w-2xl mx-auto font-theme-subtitle"
-           :style="{ color: themeStore.currentTheme?.colors.textSecondary }">
+        <p class="home-subtitle font-theme-subtitle">
           {{ $t('home.subtitle') }}
         </p>
       </div>
@@ -110,16 +103,11 @@ watch(() => authStore.profile?.role, (newRole) => {
         <!-- Public Scoreboard -->
         <RouterLink 
           to="/scoreboard" 
-          class="backdrop-blur-sm rounded-xl p-8 text-center hover:scale-105 transition-all duration-300 transform border-2"
-          :style="{ 
-            backgroundColor: themeStore.currentTheme?.colors.surface + '40',
-            borderColor: themeStore.currentTheme?.colors.primary + '40',
-            color: themeStore.currentTheme?.colors.text
-          }"
+          class="nav-card"
         >
           <div class="text-4xl mb-4">📺</div>
-          <h2 class="text-2xl font-bold text-white mb-3">{{ $t('home.liveScoreboard.title') }}</h2>
-          <p class="text-blue-100">
+          <h2 class="nav-card-title">{{ $t('home.liveScoreboard.title') }}</h2>
+          <p class="nav-card-description">
             {{ $t('home.liveScoreboard.description') }}
           </p>
         </RouterLink>
@@ -128,11 +116,11 @@ watch(() => authStore.profile?.role, (newRole) => {
         <RouterLink 
           v-if="authStore.isAdmin"
           to="/admin" 
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all duration-300 transform hover:scale-105 border border-white/20"
+          class="nav-card"
         >
           <div class="text-4xl mb-4">⚙️</div>
-          <h2 class="text-2xl font-bold text-white mb-3">{{ $t('home.tournamentAdmin.title') }}</h2>
-          <p class="text-blue-100">
+          <h2 class="nav-card-title">{{ $t('home.tournamentAdmin.title') }}</h2>
+          <p class="nav-card-description">
             {{ $t('home.tournamentAdmin.description') }}
           </p>
         </RouterLink>
@@ -141,11 +129,11 @@ watch(() => authStore.profile?.role, (newRole) => {
         <RouterLink 
           v-if="authStore.isUser"
           to="/dashboard" 
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all duration-300 transform hover:scale-105 border border-white/20"
+          class="nav-card"
         >
           <div class="text-4xl mb-4">📈</div>
-          <h2 class="text-2xl font-bold text-white mb-3">{{ $t('home.myDashboard.title') }}</h2>
-          <p class="text-blue-100">
+          <h2 class="nav-card-title">{{ $t('home.myDashboard.title') }}</h2>
+          <p class="nav-card-description">
             {{ $t('home.myDashboard.description') }}
           </p>
         </RouterLink>
@@ -154,11 +142,11 @@ watch(() => authStore.profile?.role, (newRole) => {
         <RouterLink 
           v-if="authStore.isTeam"
           to="/profile" 
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all duration-300 transform hover:scale-105 border border-white/20"
+          class="nav-card"
         >
           <div class="text-4xl mb-4">👥</div>
-          <h2 class="text-2xl font-bold text-white mb-3">{{ $t('home.myTeamProfile.title') }}</h2>
-          <p class="text-blue-100">
+          <h2 class="nav-card-title">{{ $t('home.myTeamProfile.title') }}</h2>
+          <p class="nav-card-description">
             {{ $t('home.myTeamProfile.description') }}
           </p>
         </RouterLink>
@@ -166,11 +154,11 @@ watch(() => authStore.profile?.role, (newRole) => {
         <!-- Theme Demo -->
         <RouterLink 
           to="/theme-demo" 
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all duration-300 transform hover:scale-105 border border-white/20"
+          class="nav-card"
         >
           <div class="text-4xl mb-4">🎨</div>
-          <h2 class="text-2xl font-bold text-white mb-3">Theme Demo</h2>
-          <p class="text-blue-100">
+          <h2 class="nav-card-title">Theme Demo</h2>
+          <p class="nav-card-description">
             Experience different themes and color schemes
           </p>
         </RouterLink>
@@ -179,11 +167,11 @@ watch(() => authStore.profile?.role, (newRole) => {
         <RouterLink 
           v-if="!authStore.isAuthenticated"
           to="/login" 
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all duration-300 transform hover:scale-105 border border-white/20"
+          class="nav-card"
         >
           <div class="text-4xl mb-4">🔑</div>
-          <h2 class="text-2xl font-bold text-white mb-3">{{ $t('home.login.title') }}</h2>
-          <p class="text-blue-100">
+          <h2 class="nav-card-title">{{ $t('home.login.title') }}</h2>
+          <p class="nav-card-description">
             {{ $t('home.login.description') }}
           </p>
         </RouterLink>
@@ -192,15 +180,15 @@ watch(() => authStore.profile?.role, (newRole) => {
         <RouterLink 
           v-else-if="authStore.isUser || authStore.isAdmin"
           to="/profile" 
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center hover:bg-white/20 transition-all duration-300 transform hover:scale-105 border border-white/20"
+          class="nav-card"
         >
           <div class="text-4xl mb-4">👤</div>
-          <h2 class="text-2xl font-bold text-white mb-3">{{ $t('home.profile.title') }}</h2>
-          <p class="text-blue-100 mb-2">
+          <h2 class="nav-card-title">{{ $t('home.profile.title') }}</h2>
+          <p class="nav-card-description mb-2">
             {{ authStore.profile?.email }}
           </p>
           <span 
-            class="inline-flex px-3 py-1 text-xs font-semibold rounded-full"
+            class="role-badge"
             :class="getRoleBadgeClass(authStore.profile?.role)"
           >
             {{ authStore.profile?.role }}
@@ -210,22 +198,22 @@ watch(() => authStore.profile?.role, (newRole) => {
 
       <!-- Features -->
       <div class="mt-20 text-center">
-        <h3 class="text-3xl font-bold text-white mb-12">{{ $t('features.title') }}</h3>
+        <h3 class="features-title">{{ $t('features.title') }}</h3>
         <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          <div class="text-center">
+          <div class="feature-item text-center">
             <div class="text-3xl mb-4">⏱️</div>
-            <h4 class="text-lg font-semibold text-white mb-2">{{ $t('features.liveTimer.title') }}</h4>
-            <p class="text-blue-200">{{ $t('features.liveTimer.description') }}</p>
+            <h4>{{ $t('features.liveTimer.title') }}</h4>
+            <p>{{ $t('features.liveTimer.description') }}</p>
           </div>
-          <div class="text-center">
+          <div class="feature-item text-center">
             <div class="text-3xl mb-4">🎯</div>
-            <h4 class="text-lg font-semibold text-white mb-2">{{ $t('features.scoreTracking.title') }}</h4>
-            <p class="text-blue-200">{{ $t('features.scoreTracking.description') }}</p>
+            <h4>{{ $t('features.scoreTracking.title') }}</h4>
+            <p>{{ $t('features.scoreTracking.description') }}</p>
           </div>
-          <div class="text-center">
+          <div class="feature-item text-center">
             <div class="text-3xl mb-4">🎪</div>
-            <h4 class="text-lg font-semibold text-white mb-2">{{ $t('features.specialEffects.title') }}</h4>
-            <p class="text-blue-200">{{ $t('features.specialEffects.description') }}</p>
+            <h4>{{ $t('features.specialEffects.title') }}</h4>
+            <p>{{ $t('features.specialEffects.description') }}</p>
           </div>
         </div>
       </div>

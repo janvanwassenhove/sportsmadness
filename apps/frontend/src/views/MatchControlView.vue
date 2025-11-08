@@ -289,7 +289,7 @@ const formatTime = (seconds: number) => {
 
 async function loadMatch() {
   try {
-    console.log('🏒 Loading match with id:', props.id)
+    console.log('� Loading match with id:', props.id)
     const { data, error } = await supabase
       .from('matches')
       .select('*')
@@ -303,7 +303,7 @@ async function loadMatch() {
     }
 
     match.value = data
-    console.log('🏒 Match loaded:', { status: data.status, data })
+    console.log('� Match loaded:', { status: data.status, data })
     console.log('🚨 MATCH CONTROL - Now watching match:', data.id)
     
     // Check if match is already initialized
@@ -320,7 +320,7 @@ async function loadMatch() {
     const hasBeenModified = isNotPending || hasConfirmedBoosters || hasCards || hasScores || hasModifiedTime
     
     initialized.value = hasBeenModified
-    console.log('🏒 Match initialization status:', { initialized: initialized.value, hasBeenModified })
+    console.log('� Match initialization status:', { initialized: initialized.value, hasBeenModified })
     
     // Initialize match phase system
     initializeMatchPhase()
@@ -463,7 +463,7 @@ function handlePhaseTransition() {
       phaseTimeLeft.value = settings.quarter_duration_minutes * 60
     }
     
-    console.log('🏒 Phase transition:', { 
+    console.log('� Phase transition:', { 
       phase: currentPhase.value, 
       period: currentPeriod.value, 
       timeLeft: phaseTimeLeft.value 
@@ -498,9 +498,9 @@ async function updateMatch(updates: Partial<any>) {
   console.log('🔧 updateMatch function started')
   
   try {
-    console.log('🏒 Updating match with:', updates)
-    console.log('🏒 Match ID:', props.id)
-    console.log('🏒 About to call supabase update...')
+    console.log('� Updating match with:', updates)
+    console.log('� Match ID:', props.id)
+    console.log('� About to call supabase update...')
     
     // Try the simplest possible update
     const result = await supabase
@@ -508,7 +508,7 @@ async function updateMatch(updates: Partial<any>) {
       .update(updates)
       .eq('id', props.id)
     
-    console.log('🏒 Supabase update result:', result)
+    console.log('� Supabase update result:', result)
     
     if (result.error) {
       console.error('❌ Error updating match:', result.error)
@@ -1244,7 +1244,7 @@ async function resumeAfterBooster() {
 }
 
 async function initializeMatch() {
-  console.log('🏒 Initialize match clicked', { match: match.value, status: match.value?.status })
+  console.log('� Initialize match clicked', { match: match.value, status: match.value?.status })
   
   if (match.value?.status !== 'pending') {
     console.warn('⚠️ Cannot initialize - match status is not pending:', match.value?.status)
@@ -1252,10 +1252,10 @@ async function initializeMatch() {
   }
   
   try {
-    console.log('🏒 Initializing match...')
+    console.log('� Initializing match...')
     // Initialize match - set to pending status to show Play button
     // Reset scores, clear any existing cards/boosters  
-    console.log('🏒 About to call updateMatch...')
+    console.log('� About to call updateMatch...')
     const result = await updateMatch({ 
       status: 'pending',
       score_a: 0,
@@ -1274,7 +1274,7 @@ async function initializeMatch() {
       },
       time_left: getCalculatedMatchTime()
     })
-    console.log('🏒 updateMatch completed with result:', result)
+    console.log('� updateMatch completed with result:', result)
     console.log('✅ Match initialized successfully')
     
     // Mark as initialized to show control panel
@@ -1543,9 +1543,9 @@ function setupRealtimeSubscription() {
       filter: `id=eq.${match.value.id}`
     }, (payload) => {
       console.log('🔄 Admin received match update:', payload.new)
-      console.log('� MATCH CONTROL - Received update for match:', (payload.new as any).id)
+      console.log('🏑 MATCH CONTROL - Received update for match:', (payload.new as any).id)
       
-      console.log('�🔄 Admin payload details:', {
+      console.log('🏑🔄 Admin payload details:', {
         eventType: payload.eventType,
         hasOldBoosters: !!match.value?.boosters,
         hasNewBoosters: !!(payload.new as any).boosters,
@@ -1760,6 +1760,7 @@ onUnmounted(() => {
             class="btn bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold px-8 py-4 text-xl"
             :disabled="!match || match.status !== 'pending'"
           >
+            <span class="mr-2">🏑</span>
             {{ $t('matchControl.setup.initializeButton') }}
             <span v-if="match?.status !== 'pending'" class="text-xs block">
               (Status: {{ match?.status || 'loading...' }})
@@ -1981,7 +1982,7 @@ onUnmounted(() => {
                 @click="initializeMatch" 
                 class="btn btn-primary col-span-2"
               >
-                🏒 Initialize Match
+                � Initialize Match
               </button>
               
               <button 
@@ -2217,7 +2218,7 @@ onUnmounted(() => {
         <div class="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
           <div class="flex justify-center space-x-4 flex-wrap gap-2">
             <RouterLink 
-              to="/scoreboard" 
+              :to="`/scoreboard/${match.id}`" 
               target="_blank"
               class="btn btn-primary"
             >

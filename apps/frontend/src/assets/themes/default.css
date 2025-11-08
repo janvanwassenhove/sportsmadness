@@ -1,0 +1,111 @@
+/* Default Hockey Madness Theme */
+.theme-default {
+  /* Navigation Cards */
+  .nav-card {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    transform: scale(1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--theme-text);
+  }
+  
+  .nav-card:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+  }
+  
+  .nav-card-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--theme-text);
+  }
+  
+  .nav-card-description {
+    color: #bfdbfe; /* blue-200 equivalent for dark theme */
+  }
+  
+  /* Features Section */
+  .feature-item h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--theme-text);
+  }
+  
+  .feature-item p {
+    color: #bfdbfe; /* blue-200 equivalent for dark theme */
+  }
+  
+  /* Header Text */
+  .home-title {
+    font-size: 3.75rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--theme-text);
+    background: linear-gradient(45deg, var(--theme-primary), var(--theme-accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .home-subtitle {
+    font-size: 1.25rem;
+    max-width: 42rem;
+    margin: 0 auto;
+    color: var(--theme-text-secondary);
+  }
+  
+  /* Features Title */
+  .features-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+    color: var(--theme-text);
+  }
+  
+  /* Role Badge Styles */
+  .role-badge-admin {
+    background-color: #fef2f2;
+    color: #991b1b;
+    display: inline-flex;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+  }
+  
+  .role-badge-team {
+    background-color: #dbeafe;
+    color: #1e40af;
+    display: inline-flex;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+  }
+  
+  .role-badge-user {
+    background-color: #dcfce7;
+    color: #166534;
+    display: inline-flex;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+  }
+  
+  .role-badge-default {
+    background-color: #f3f4f6;
+    color: #374151;
+    display: inline-flex;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+  }
+}

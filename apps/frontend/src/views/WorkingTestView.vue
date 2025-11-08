@@ -1,6 +1,6 @@
 <template>
   <div style="padding: 20px; font-family: Arial, sans-serif;">
-    <h1 style="color: blue;">🏒 Hockey Madness - Working!</h1>
+    <h1 style="color: blue;">� Hockey Madness - Working!</h1>
     <p>Vue.js is rendering correctly ✅</p>
     
     <div style="background: lightgreen; padding: 15px; margin: 15px 0; border-radius: 5px;">

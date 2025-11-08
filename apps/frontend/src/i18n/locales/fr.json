@@ -34,7 +34,7 @@
     "dashboard": "Tableau de Bord",
     "tournaments": "Tournois",
     "teams": "Équipes",
-    "boosters": "Boosters",
+    "boosters": "Boosters et Maddies",
     "userManagement": "Gestion des Utilisateurs",
     "profile": "Profiel",
     "login": "Connexion",
@@ -111,8 +111,11 @@
     "teamB": "Équipe B",
     "score": "Score",
     "timeLeft": "Temps Restant",
+    "time": "Temps",
     "period": "Période",
     "status": "Statut",
+    "selectMatch": "Sélectionner le Match",
+    "multipleMatchesFound": "Plusieurs matchs disponibles. Veuillez sélectionner quel match afficher:",
     "boosterSelection": "🎰 Sélection de Booster 🎰",
     "spinningFor": "🎰 Tourne pour {team} 🎰",
     "hockeyCasino": "🎰 HOCKEY CASINO 🎰",
@@ -184,7 +187,8 @@
         "controlMatch": "Contrôler le Match",
         "viewMatch": "Voir le Match",
         "editSettings": "Modifier les Paramètres du Match",
-        "startMatch": "Commencer le Match"
+        "startMatch": "Commencer le Match",
+        "deleteMatch": "Supprimer le Match"
       }
     },
     "teams": {
@@ -206,6 +210,25 @@
       },
       "actions": {
         "save": "Sauvegarder les Paramètres",
+        "cancel": "Annuler"
+      }
+    },
+    "createMatch": {
+      "title": "Créer un Nouveau Match",
+      "teamA": "Équipe A",
+      "teamB": "Équipe B",
+      "selectTeam": "Sélectionner une équipe",
+      "duration": {
+        "title": "Durée du Match",
+        "quarters": "Quarts",
+        "halves": "Mi-temps",
+        "quarterLength": "Durée du Quart (min)",
+        "halfLength": "Durée de la Mi-temps (min)",
+        "breakTime": "Temps de Pause (min)",
+        "halftimeBreak": "Mi-temps (min)"
+      },
+      "actions": {
+        "create": "Créer le Match",
         "cancel": "Annuler"
       }
     }
@@ -317,7 +340,7 @@
     "setup": {
       "title": "Match Prêt pour la Configuration",
       "description": "Initialisez le match pour rendre les équipes disponibles sur le tableau de score et commencer la sélection de boosters",
-      "initializeButton": "🏒 Initialiser le Match"
+      "initializeButton": "Initialiser le Match"
     },
     "score": {
       "controls": "Contrôle du Score"
@@ -435,5 +458,11 @@
       "save": "Sauvegarder",
       "cancel": "Annuler"
     }
+  },
+  "footer": {
+    "subtitle": "Gestion de tournoi en temps réel pour les championnats de hockey",
+    "poweredBy": "Propulsé par",
+    "officialSite": "Site Officiel",
+    "copyright": "Hockey Madness. Tous droits réservés."
   }
 }

@@ -146,15 +146,6 @@ function toggleMode() {
           </RouterLink>
         </div>
       </form>
-
-      <div class="mt-8 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
-        <p class="text-yellow-100 text-sm">
-          <strong>{{ $t('auth.demoCredentials') }}</strong><br>
-          Email: admin@hockeymadness.com<br>
-          Password: admin123<br>
-          <em>{{ $t('auth.demoNote') }}</em>
-        </p>
-      </div>
     </div>
   </div>
 </template>

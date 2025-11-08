@@ -11,7 +11,7 @@
               :alt="themeStore.currentTheme.name"
               class="w-8 h-8"
             />
-            <div v-else class="text-2xl">🏒</div>
+            <div v-else class="text-2xl">🏑</div>
             <span class="text-xl font-bold text-white font-theme-title">
               {{ themeStore.currentTheme?.name || 'Hockey Madness' }}
             </span>
@@ -28,13 +28,13 @@
           >
             {{ $t('navigation.home') }}
           </RouterLink>
-          <RouterLink 
-            to="/scoreboard" 
+          <button
+            @click="navigateToScoreboard" 
             class="nav-link"
-            :class="{ 'nav-link-active': $route.name === 'scoreboard' }"
+            :class="{ 'nav-link-active': $route.name === 'scoreboard' || $route.name === 'scoreboard-match' }"
           >
             {{ $t('navigation.scoreboard') }}
-          </RouterLink>
+          </button>
 
           <!-- Admin Links (when authenticated) -->
           <template v-if="authStore.isAuthenticated && authStore.isAdmin">
@@ -274,15 +274,14 @@
           <span class="text-lg mr-2">🏠</span>
           {{ $t('navigation.home') }}
         </RouterLink>
-        <RouterLink 
-          to="/scoreboard" 
-          class="mobile-nav-link"
-          :class="{ 'mobile-nav-link-active': $route.name === 'scoreboard' }"
-          @click="showMobileMenu = false"
+        <button
+          @click="navigateToScoreboard(); showMobileMenu = false" 
+          class="mobile-nav-link text-left w-full"
+          :class="{ 'mobile-nav-link-active': $route.name === 'scoreboard' || $route.name === 'scoreboard-match' }"
         >
           <span class="text-lg mr-2">📊</span>
           {{ $t('navigation.scoreboard') }}
-        </RouterLink>
+        </button>
 
         <!-- Admin Links (when authenticated) -->
         <template v-if="authStore.isAuthenticated && authStore.isAdmin">
@@ -423,13 +422,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLanguageStore } from '@/stores/language'
 import { useThemeStore } from '@/stores/theme'
+import { supabase } from '@/lib/supabase'
 import ThemeSwitcher from './ThemeSwitcher.vue'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const languageStore = useLanguageStore()
 const themeStore = useThemeStore()
@@ -468,6 +469,81 @@ function handleClickOutside(event: MouseEvent) {
   }
   if (languageDropdownRef.value && !languageDropdownRef.value.contains(event.target as Node)) {
     showLanguageDropdown.value = false
+  }
+}
+
+// Navigate to scoreboard with match selection logic
+async function navigateToScoreboard() {
+  try {
+    // Check for multiple active/paused matches
+    const { data: activeMatches, error } = await supabase
+      .from('matches')
+      .select('*')
+      .in('status', ['active', 'paused'])
+
+    if (error) {
+      console.error('Error loading active matches:', error)
+      // Fallback to normal navigation
+      router.push('/scoreboard')
+      return
+    }
+
+    if (activeMatches && activeMatches.length > 1) {
+      // Multiple active matches - go to scoreboard without ID to show selector
+      router.push('/scoreboard')
+    } else if (activeMatches && activeMatches.length === 1) {
+      // Single active match - go directly to that match
+      router.push(`/scoreboard/${activeMatches[0].id}`)
+    } else {
+      // No active matches - check for initialized pending matches
+      const { data: pendingMatches, error: pendingError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+
+      if (pendingError) {
+        console.error('Error loading pending matches:', pendingError)
+        router.push('/scoreboard')
+        return
+      }
+
+      if (pendingMatches && pendingMatches.length > 0) {
+        // Filter initialized matches
+        const initializedMatches = pendingMatches.filter(match => {
+          const hasConfirmedBoosters = (
+            match.boosters?.teamA?.length > 0 || 
+            match.boosters?.teamB?.length > 0
+          )
+          const hasCards = Object.keys(match.cards || {}).length > 0
+          const hasScores = match.score_a > 0 || match.score_b > 0
+          const hasModifiedTime = match.time_left !== 1800
+          
+          return hasConfirmedBoosters || hasCards || hasScores || hasModifiedTime
+        })
+
+        if (initializedMatches.length > 1) {
+          // Multiple initialized matches - show selector
+          router.push('/scoreboard')
+        } else if (initializedMatches.length === 1) {
+          // Single initialized match - go directly to it
+          router.push(`/scoreboard/${initializedMatches[0].id}`)
+        } else if (pendingMatches.length > 1) {
+          // Multiple pending matches - show selector
+          router.push('/scoreboard')
+        } else {
+          // Single or no matches - go to general scoreboard
+          router.push('/scoreboard')
+        }
+      } else {
+        // No matches at all
+        router.push('/scoreboard')
+      }
+    }
+  } catch (error) {
+    console.error('Error in navigateToScoreboard:', error)
+    // Fallback to normal navigation
+    router.push('/scoreboard')
   }
 }
 
