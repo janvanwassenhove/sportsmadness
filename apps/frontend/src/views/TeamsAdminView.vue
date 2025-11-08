@@ -10,8 +10,9 @@ interface Team {
 
 interface Player {
   name: string
-  number: number
-  position: 'Forward' | 'Defense' | 'Goalie'
+  number?: number
+  position?: 'Forward' | 'Defense' | 'Goalie'
+  type: 'Coach' | 'Keeper' | 'Player'
 }
 
 const teams = ref<Team[]>([])
@@ -28,7 +29,8 @@ const teamForm = ref({
 const newPlayer = ref({
   name: '',
   number: 1,
-  position: 'Forward' as Player['position']
+  position: 'Forward' as Player['position'],
+  type: 'Player' as Player['type']
 })
 
 async function loadTeams() {
@@ -70,20 +72,35 @@ function cancelForm() {
   showAddTeam.value = false
   editingTeam.value = null
   teamForm.value = { name: '', players: [] }
-  newPlayer.value = { name: '', number: 1, position: 'Forward' }
+  newPlayer.value = { name: '', number: 1, position: 'Forward', type: 'Player' }
 }
 
 function addPlayer() {
   if (!newPlayer.value.name) return
   
-  // Check if number is already used
-  if (teamForm.value.players.some(p => p.number === newPlayer.value.number)) {
-    alert('Player number already exists')
-    return
+  // For coaches, we don't need to check jersey numbers since they don't have them
+  if (newPlayer.value.type !== 'Coach') {
+    // Check if number is already used (only for non-coach players)
+    if (teamForm.value.players.some(p => p.number === newPlayer.value.number)) {
+      alert('Player number already exists')
+      return
+    }
   }
   
-  teamForm.value.players.push({ ...newPlayer.value })
-  newPlayer.value = { name: '', number: getNextNumber(), position: 'Forward' }
+  // Create player object based on type
+  const playerToAdd: Player = { 
+    name: newPlayer.value.name,
+    type: newPlayer.value.type
+  }
+  
+  // Only add number and position for non-coach players
+  if (newPlayer.value.type !== 'Coach') {
+    playerToAdd.number = newPlayer.value.number
+    playerToAdd.position = newPlayer.value.position
+  }
+  
+  teamForm.value.players.push(playerToAdd)
+  newPlayer.value = { name: '', number: getNextNumber(), position: 'Forward', type: 'Player' }
 }
 
 function removePlayer(index: number) {
@@ -231,10 +248,18 @@ onMounted(() => {
               :key="player.name"
               class="flex justify-between items-center bg-white/5 rounded p-2 text-sm"
             >
-              <span class="text-white font-medium">{{ player.name }}</span>
-              <div class="text-right">
+              <div class="flex items-center space-x-2">
+                <span class="text-white font-medium">{{ player.name }}</span>
+                <span class="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-300">
+                  {{ player.type }}
+                </span>
+              </div>
+              <div v-if="player.type !== 'Coach'" class="text-right">
                 <div class="text-yellow-400">#{{ player.number }}</div>
                 <div class="text-blue-300 text-xs">{{ player.position }}</div>
+              </div>
+              <div v-else class="text-right">
+                <div class="text-blue-400 text-xs">👔 Coach</div>
               </div>
             </div>
           </div>
@@ -275,7 +300,7 @@ onMounted(() => {
         <div class="mb-6 bg-white/5 rounded-lg p-4">
           <h3 class="text-lg font-semibold text-white mb-4">Add Player</h3>
           
-          <div class="grid md:grid-cols-3 gap-4 mb-4">
+          <div class="grid gap-4 mb-4" :class="newPlayer.type === 'Coach' ? 'md:grid-cols-2' : 'md:grid-cols-4'">
             <div>
               <label class="block text-sm font-medium text-white mb-2">
                 Player Name
@@ -290,6 +315,20 @@ onMounted(() => {
             
             <div>
               <label class="block text-sm font-medium text-white mb-2">
+                Type
+              </label>
+              <select
+                v-model="newPlayer.type"
+                class="input bg-white/10 text-white border-white/20"
+              >
+                <option value="Player">Player</option>
+                <option value="Coach">Coach</option>
+                <option value="Keeper">Keeper</option>
+              </select>
+            </div>
+            
+            <div v-if="newPlayer.type !== 'Coach'">
+              <label class="block text-sm font-medium text-white mb-2">
                 Jersey Number
               </label>
               <input
@@ -301,7 +340,7 @@ onMounted(() => {
               />
             </div>
             
-            <div>
+            <div v-if="newPlayer.type !== 'Coach'">
               <label class="block text-sm font-medium text-white mb-2">
                 Position
               </label>
@@ -338,10 +377,16 @@ onMounted(() => {
               class="flex justify-between items-center bg-white/5 rounded p-3"
             >
               <div class="flex items-center space-x-4">
-                <div class="text-yellow-400 font-bold">#{{ player.number }}</div>
+                <div v-if="player.type !== 'Coach'" class="text-yellow-400 font-bold">#{{ player.number }}</div>
+                <div v-else class="text-blue-400 font-bold">👔</div>
                 <div>
                   <div class="text-white font-medium">{{ player.name }}</div>
-                  <div class="text-blue-300 text-sm">{{ player.position }}</div>
+                  <div class="flex items-center space-x-2 text-sm">
+                    <span v-if="player.type !== 'Coach'" class="text-blue-300">{{ player.position }}</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-300">
+                      {{ player.type }}
+                    </span>
+                  </div>
                 </div>
               </div>
               <button 

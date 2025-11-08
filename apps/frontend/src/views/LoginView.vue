@@ -45,14 +45,19 @@ async function handleSubmit() {
     console.log('🔐 Login form: isAuthenticated:', authStore.isAuthenticated)
     console.log('🔐 Login form: isAdmin:', authStore.isAdmin)
 
-    // Wait a moment for the auth state to update
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // The signIn function now handles setting user and loading profile
+    // So we should already have the auth state updated
+    if (!authStore.isAuthenticated) {
+      console.warn('🔐 Login form: Still not authenticated after sign in, waiting a bit more...')
+      // Wait a moment for the auth state to update
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
 
-    console.log('🔐 Login form: After delay - isAuthenticated:', authStore.isAuthenticated)
-    console.log('🔐 Login form: After delay - isAdmin:', authStore.isAdmin)
+    console.log('🔐 Login form: Final auth state - isAuthenticated:', authStore.isAuthenticated)
+    console.log('🔐 Login form: Final auth state - isAdmin:', authStore.isAdmin)
 
     // Redirect to intended page or admin dashboard
-    const redirectTo = route.query.redirect as string || '/admin'
+    const redirectTo = route.query.redirect as string || (authStore.isAdmin ? '/admin' : '/home')
     console.log('🔐 Login form: Redirecting to:', redirectTo)
     router.push(redirectTo)
   } catch (err: any) {

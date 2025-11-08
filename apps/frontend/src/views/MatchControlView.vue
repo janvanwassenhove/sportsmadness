@@ -753,12 +753,12 @@ async function spinCurrentPhase() {
   isSpinning.value = true
   spinningSlot.value = 0
   
-  // Backup timeout to ensure spinning never gets stuck longer than 5 seconds
+  // Backup timeout to ensure spinning never gets stuck longer than 3 seconds
   const backupTimeout = setTimeout(() => {
-    console.warn('⚠️ Backup timeout triggered - force resetting spin state')
+    console.warn('⚠️ Backup timeout triggered - force resetting spin state after 3 seconds')
     isSpinning.value = false
     currentTeamSpinning.value = null
-  }, 5000)
+  }, 3000)
   
   // Play spinning sound effect
   try {
@@ -958,20 +958,7 @@ async function spinCurrentPhase() {
     isSpinning.value = false
     currentTeamSpinning.value = null
     
-    // Check if we should auto-confirm after this spin completes
-    if (boosterPhase.value === 'complete' && !autoConfirmationPending.value) {
-      autoConfirmationPending.value = true
-      console.log('🎯 Spin completed and selection is complete - triggering auto-confirmation')
-      setTimeout(async () => {
-        console.log('🎯 Auto-confirming boosters after selection complete (post-spin)')
-        try {
-          await confirmBoosters()
-          console.log('✅ Auto-confirmation completed successfully (post-spin)')
-        } catch (error) {
-          console.error('❌ Auto-confirmation failed (post-spin):', error)
-        }
-      }, 500)
-    }
+    console.log('🎯 Spin completed successfully. Phase:', boosterPhase.value)
     
     } catch (error) {
       console.error('❌ Error in spin timeout:', error)
@@ -1103,6 +1090,26 @@ function logBoosterState() {
     matchBoosters: match.value?.boosters,
     showBoosterSelection: showBoosterSelection.value
   })
+}
+
+// Debug function to manually complete selection
+function forceCompleteSelection() {
+  console.log('🔧 Forcing selection completion...')
+  
+  // Mock selection of 2 boosters for each team
+  if (availableBoosters.value.length >= 4) {
+    selectedBoosters.value = {
+      teamA: availableBoosters.value.slice(0, 2),
+      teamB: availableBoosters.value.slice(2, 4)
+    }
+    boosterPhase.value = 'complete'
+    isSpinning.value = false
+    currentTeamSpinning.value = null
+    
+    console.log('🔧 Selection forced to complete with mock boosters')
+  } else {
+    console.error('❌ Not enough available boosters for mock selection')
+  }
 }
 
 async function useBooster(team: 'a' | 'b', boosterIndex: number) {
@@ -2387,6 +2394,10 @@ onUnmounted(() => {
           <div class="text-xl font-bold text-yellow-400">
             {{ getPhaseDescription() }}
           </div>
+          <!-- Debug Info -->
+          <div class="text-sm text-gray-400 mt-2">
+            Phase: {{ boosterPhase }} | Spinning: {{ isSpinning }} | Available: {{ availableBoosters.length }}
+          </div>
         </div>
 
         <!-- Slot Machine -->
@@ -2501,9 +2512,28 @@ onUnmounted(() => {
             🔧 Reset Spin
           </button>
           
+          <!-- Debug Log Button -->
+          <button 
+            @click="logBoosterState"
+            class="btn bg-gray-600 hover:bg-gray-700 text-white text-sm"
+            title="Debug: Log current state to console"
+          >
+            🔍 Debug
+          </button>
+          
+          <!-- Debug Force Complete Button -->
           <button 
             v-if="boosterPhase !== 'complete'"
-            @click="spinCurrentPhase"
+            @click="forceCompleteSelection"
+            class="btn bg-yellow-600 hover:bg-yellow-700 text-white text-sm"
+            title="Debug: Force complete selection with mock boosters"
+          >
+            ⚡ Force Complete
+          </button>
+          
+          <button 
+            v-if="boosterPhase !== 'complete'"
+            @click="() => { if (!isSpinning) spinCurrentPhase() }"
             :disabled="isSpinning"
             class="btn bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold px-8"
             :class="{ 'opacity-50 cursor-not-allowed': isSpinning }"

@@ -91,7 +91,13 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (error) {
         console.error('🔍 Error loading profile:', error)
-        // Don't throw - just continue without profile
+        console.warn('🔍 Continuing without profile - user will have basic access only')
+        // Set a minimal profile to ensure user has some role
+        profile.value = {
+          id: user.value.id,
+          email: user.value.email || '',
+          role: 'user' // Default role
+        }
         return
       }
 
@@ -119,7 +125,23 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('🔐 Sign in successful:', data.user ? 'User data received' : 'No user data')
       console.log('🔐 Session:', data.session ? 'Session created' : 'No session')
       
-      // The auth state change listener will handle updating user/profile
+      // Explicitly set user and load profile (don't just rely on auth state change listener)
+      if (data.user) {
+        console.log('🔐 Explicitly setting user after sign in')
+        user.value = data.user
+        console.log('🔐 User value set to:', user.value.id, user.value.email)
+        
+        await loadProfile()
+        
+        console.log('🔐 After loading profile:')
+        console.log('🔐 - user.value:', !!user.value, user.value?.id)
+        console.log('🔐 - profile.value:', !!profile.value, profile.value?.role)
+        console.log('🔐 - isAuthenticated:', !!user.value)
+        console.log('🔐 - isAdmin:', profile.value?.role === 'admin')
+      } else {
+        console.error('🔐 No user data in sign in response!')
+      }
+      
       return { data, error: null }
     } catch (error: any) {
       console.error('🔐 Sign in exception:', error)
