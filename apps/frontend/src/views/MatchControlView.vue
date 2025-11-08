@@ -713,20 +713,59 @@ async function startBoosterSelection() {
     boosters: {
       ...currentBoosters,
       selection_active: true,
-      selection_phase: 'ready'
+      selection_phase: 'ready',
+      is_spinning: false,
+      current_team: null,
+      spinning_slot: 0,
+      current_boosters: {
+        teamA: [],
+        teamB: []
+      }
     }
   })
   console.log('🎰 Booster selection state updated in database')
 }
 
 async function spinCurrentPhase() {
-  if (isSpinning.value || availableBoosters.value.length === 0) return
+  console.log('🎰 spinCurrentPhase called:', { 
+    isSpinning: isSpinning.value, 
+    availableBoosters: availableBoosters.value.length,
+    currentPhase: boosterPhase.value 
+  })
   
+  // Stronger guards
+  if (isSpinning.value) {
+    console.log('⚠️ Already spinning, ignoring call')
+    return
+  }
+  
+  if (availableBoosters.value.length === 0) {
+    console.log('⚠️ No available boosters, cannot spin')
+    return
+  }
+  
+  if (boosterPhase.value === 'complete') {
+    console.log('⚠️ Selection already complete, cannot spin')
+    return
+  }
+  
+  // Set spinning immediately to prevent race conditions
   isSpinning.value = true
   spinningSlot.value = 0
   
+  // Backup timeout to ensure spinning never gets stuck longer than 5 seconds
+  const backupTimeout = setTimeout(() => {
+    console.warn('⚠️ Backup timeout triggered - force resetting spin state')
+    isSpinning.value = false
+    currentTeamSpinning.value = null
+  }, 5000)
+  
   // Play spinning sound effect
-  await playSpinningSound()
+  try {
+    await playSpinningSound()
+  } catch (error) {
+    console.warn('🔊 Failed to play spinning sound:', error)
+  }
   
   // Determine current phase
   let targetTeam: 'A' | 'B'
@@ -753,25 +792,53 @@ async function spinCurrentPhase() {
       targetTeam = 'B'
       boosterIndex = 1
       break
-    default:
+    case 'team-b-second':
+      // This should not happen - team-b-second should be completed in the timeout
+      console.warn('⚠️ team-b-second phase called again - selection should be complete')
+      boosterPhase.value = 'complete'
       isSpinning.value = false
+      clearTimeout(backupTimeout)
+      return
+    case 'complete':
+      console.warn('⚠️ Spin called but selection is already complete')
+      isSpinning.value = false
+      clearTimeout(backupTimeout)
+      return
+    default:
+      console.error('❌ Unknown booster phase:', boosterPhase.value)
+      isSpinning.value = false
+      clearTimeout(backupTimeout)
       return
   }
+  
+  console.log('🎯 Phase transition:', { 
+    newPhase: boosterPhase.value, 
+    targetTeam, 
+    boosterIndex 
+  })
   
   currentTeamSpinning.value = targetTeam
   
   // Update database to show spinning state on scoreboard
   const currentBoosters = match.value?.boosters || {}
-  await updateMatch({
-    boosters: {
-      ...currentBoosters,
-      selection_active: true,
-      selection_phase: boosterPhase.value,
-      is_spinning: true,
-      current_team: targetTeam,
-      spinning_slot: 0
-    }
-  })
+  try {
+    await updateMatch({
+      boosters: {
+        ...currentBoosters,
+        selection_active: true,
+        selection_phase: boosterPhase.value,
+        is_spinning: true,
+        current_team: targetTeam,
+        spinning_slot: 0
+      }
+    })
+    console.log('✅ Database updated with spinning state')
+  } catch (error) {
+    console.error('❌ Failed to update database with spinning state:', error)
+    // Reset spinning state on database error
+    isSpinning.value = false
+    return
+  }
   
   // Animate slot spinning with real-time updates to scoreboard
   const spinInterval = setInterval(async () => {
@@ -780,83 +847,105 @@ async function spinCurrentPhase() {
     
     // Update scoreboard with current spinning slot every few iterations for smoother animation
     if (Math.random() < 0.3) { // Update 30% of the time to avoid too many DB calls
-      await updateMatch({
-        boosters: {
-          ...currentBoosters,
-          selection_active: true,
-          selection_phase: boosterPhase.value,
-          is_spinning: true,
-          current_team: targetTeam,
-          spinning_slot: newSlot
-        }
-      })
+      try {
+        // Get fresh boosters data to avoid overwriting
+        const latestBoosters = match.value?.boosters || {}
+        await updateMatch({
+          boosters: {
+            ...latestBoosters,
+            selection_active: true,
+            selection_phase: boosterPhase.value,
+            is_spinning: true,
+            current_team: targetTeam,
+            spinning_slot: newSlot
+          }
+        })
+      } catch (error) {
+        console.warn('⚠️ Failed to update spinning slot in interval:', error)
+        // Don't break the interval for minor update failures
+      }
     }
   }, 100)
   
   // Stop spinning after 2 seconds and assign booster
   setTimeout(async () => {
-    clearInterval(spinInterval)
-    
-    // Get available boosters (excluding already selected ones)
-    const excludeIds = [...selectedBoosters.value.teamA, ...selectedBoosters.value.teamB].map(b => b.id)
-    const availableForSelection = availableBoosters.value.filter(b => !excludeIds.includes(b.id))
-    
-    if (availableForSelection.length > 0) {
-      const randomIndex = Math.floor(Math.random() * availableForSelection.length)
-      const selectedBooster = availableForSelection[randomIndex]
+    try {
+      console.log('🎰 Timeout triggered - stopping spin...')
+      clearInterval(spinInterval)
       
-      if (selectedBooster) {
-        spinningSlot.value = availableBoosters.value.findIndex(b => b.id === selectedBooster.id)
+      // Get available boosters (excluding already selected ones)
+      const excludeIds = [...selectedBoosters.value.teamA, ...selectedBoosters.value.teamB].map(b => b.id)
+      const availableForSelection = availableBoosters.value.filter(b => !excludeIds.includes(b.id))
+      
+      console.log('🎰 Available boosters for selection:', {
+        total: availableBoosters.value.length,
+        available: availableForSelection.length,
+        excluded: excludeIds.length,
+        targetTeam
+      })
+      
+      if (availableForSelection.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableForSelection.length)
+        const selectedBooster = availableForSelection[randomIndex]
         
-        // Add to appropriate team
-        if (targetTeam === 'A') {
-          selectedBoosters.value.teamA.push(selectedBooster)
-        } else {
-          selectedBoosters.value.teamB.push(selectedBooster)
+        if (selectedBooster) {
+          spinningSlot.value = availableBoosters.value.findIndex(b => b.id === selectedBooster.id)
+          
+          // Add to appropriate team
+          if (targetTeam === 'A') {
+            selectedBoosters.value.teamA.push(selectedBooster)
+          } else {
+            selectedBoosters.value.teamB.push(selectedBooster)
+          }
+          
+          console.log('🎯 Booster selected:', {
+            booster: selectedBooster.name,
+            team: targetTeam,
+            teamA_count: selectedBoosters.value.teamA.length,
+            teamB_count: selectedBoosters.value.teamB.length
+          })
+          
+          // Play selection sound effect
+          try {
+            await playBoosterSelectionSound()
+          } catch (error) {
+            console.warn('🔊 Failed to play selection sound:', error)
+          }
         }
-        
-        // Play selection sound effect
-        await playBoosterSelectionSound()
+      } else {
+        console.warn('⚠️ No available boosters for selection!')
       }
-    }
     
     // Check if we're done
     if (boosterPhase.value === 'team-b-second') {
       console.log('🎯 All teams finished spinning, setting phase to complete')
       boosterPhase.value = 'complete'
       
-      // Auto-confirm boosters after a short delay
-      if (!autoConfirmationPending.value) {
-        autoConfirmationPending.value = true
-        console.log('🎯 Setting up auto-confirmation timer...')
-        setTimeout(async () => {
-          console.log('🎯 Auto-confirming boosters after selection complete')
-          try {
-            await confirmBoosters()
-            console.log('✅ Auto-confirmation completed successfully')
-          } catch (error) {
-            console.error('❌ Auto-confirmation failed:', error)
-          }
-        }, 1000)
-      }
+      // Don't auto-confirm in manual mode - let user confirm manually
+      // Only auto-confirm if this was triggered programmatically
+      console.log('🎯 Selection complete - user can now confirm boosters manually')
     }
     
     // Update scoreboard with final result - spinning stopped
     const currentBoosters = match.value?.boosters || {}
-    updateMatch({
-      boosters: {
-        ...currentBoosters,
-        selection_active: true,
-        selection_phase: boosterPhase.value,
-        is_spinning: false,
-        current_team: targetTeam,
-        spinning_slot: spinningSlot.value,
-        current_boosters: {
-          teamA: selectedBoosters.value.teamA,
-          teamB: selectedBoosters.value.teamB
+    try {
+      await updateMatch({
+        boosters: {
+          ...currentBoosters,
+          selection_active: true,
+          selection_phase: boosterPhase.value,
+          is_spinning: false,
+          current_team: targetTeam,
+          spinning_slot: spinningSlot.value,
+          current_boosters: {
+            teamA: selectedBoosters.value.teamA,
+            teamB: selectedBoosters.value.teamB
+          }
         }
-      }
-    }).catch(console.error)
+      })
+    } catch (updateError) {
+      console.error('❌ Failed to update match after spin:', updateError)
+    }
     
     console.log('🎰 Updated database after spin completion:', {
       phase: boosterPhase.value,
@@ -882,6 +971,16 @@ async function spinCurrentPhase() {
           console.error('❌ Auto-confirmation failed (post-spin):', error)
         }
       }, 500)
+    }
+    
+    } catch (error) {
+      console.error('❌ Error in spin timeout:', error)
+      // Always reset spinning state on error
+      isSpinning.value = false
+      currentTeamSpinning.value = null
+    } finally {
+      // Always clear the backup timeout
+      clearTimeout(backupTimeout)
     }
   }, 2000)
 }
@@ -971,12 +1070,39 @@ async function confirmBoosters() {
 }
 
 function cancelBoosterSelection() {
+  console.log('🚫 Canceling booster selection')
   showBoosterSelection.value = false
   selectedBoosters.value = { teamA: [], teamB: [] }
   isSpinning.value = false
   boosterPhase.value = 'ready'
   autoConfirmationPending.value = false
   currentTeamSpinning.value = null
+  
+  // Clear booster selection state in database so scoreboard hides overlay
+  if (match.value?.boosters) {
+    const currentBoosters = { ...match.value.boosters }
+    delete currentBoosters.selection_active
+    delete currentBoosters.selection_phase
+    delete currentBoosters.is_spinning
+    delete currentBoosters.current_team
+    delete currentBoosters.spinning_slot
+    delete currentBoosters.current_boosters
+    
+    updateMatch({ boosters: currentBoosters }).catch(console.error)
+  }
+}
+
+// Debug function to log current state
+function logBoosterState() {
+  console.log('🔍 Current Booster State:', {
+    isSpinning: isSpinning.value,
+    boosterPhase: boosterPhase.value,
+    currentTeamSpinning: currentTeamSpinning.value,
+    selectedBoosters: selectedBoosters.value,
+    availableBoosters: availableBoosters.value.length,
+    matchBoosters: match.value?.boosters,
+    showBoosterSelection: showBoosterSelection.value
+  })
 }
 
 async function useBooster(team: 'a' | 'b', boosterIndex: number) {
@@ -2363,6 +2489,16 @@ onUnmounted(() => {
             class="btn btn-secondary"
           >
             ❌ Cancel
+          </button>
+          
+          <!-- Debug Reset Button (only show when spinning) -->
+          <button 
+            v-if="isSpinning"
+            @click="isSpinning = false; currentTeamSpinning = null"
+            class="btn bg-orange-600 hover:bg-orange-700 text-white"
+            title="Debug: Force reset spinning state"
+          >
+            🔧 Reset Spin
           </button>
           
           <button 

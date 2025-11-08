@@ -15,11 +15,6 @@ const router = createRouter({
       component: () => import('@/views/ThemeDemoView.vue')
     },
     {
-      path: '/debug',
-      name: 'debug',
-      component: () => import('@/views/DebugView.vue')
-    },
-    {
       path: '/auth-diagnostic',
       name: 'auth-diagnostic',
       component: () => import('@/views/AuthDiagnosticView.vue')
