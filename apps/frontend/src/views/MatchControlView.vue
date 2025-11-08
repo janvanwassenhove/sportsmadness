@@ -789,7 +789,8 @@ async function spinCurrentPhase() {
   let targetTeam: 'A' | 'B'
   let boosterIndex: number
   
-  switch (boosterPhase.value) {
+  const currentPhase = boosterPhase.value as BoosterPhase
+  switch (currentPhase) {
     case 'ready':
       boosterPhase.value = 'team-a-first'
       targetTeam = 'A'
