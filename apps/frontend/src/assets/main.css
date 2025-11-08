@@ -179,63 +179,90 @@ body {
 }
 
 /* Fix for dropdown select contrast issues */
-/* Dark themed selects */
-select.text-white {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  /* Ensure good contrast for the dropdown arrow */
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 0.5rem center;
-  background-repeat: no-repeat;
-  background-size: 1.5em 1.5em;
-  padding-right: 2.5rem;
+/* Dark themed selects - covers both .text-white class and .input.text-white combinations */
+select.text-white,
+select.input.text-white,
+select[class*="text-white"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  /* Custom dropdown arrow for better visibility */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 0.5rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.5em 1.5em !important;
+  padding-right: 2.5rem !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
 }
 
-/* For WebKit browsers (Chrome, Safari) */
-select.text-white option {
+/* High specificity for option elements */
+select.text-white option,
+select.input.text-white option,
+select[class*="text-white"] option {
   background-color: #1f2937 !important; /* Dark gray background */
   color: white !important;
-  padding: 8px 12px;
+  padding: 8px 12px !important;
+  border: none !important;
 }
 
-/* For Firefox */
+/* Hover and focus states for options */
+select.text-white option:hover,
+select.input.text-white option:hover,
+select[class*="text-white"] option:hover {
+  background-color: #374151 !important;
+  color: white !important;
+}
+
+select.text-white option:checked,
+select.input.text-white option:checked,
+select[class*="text-white"] option:checked,
+select.text-white option:focus,
+select.input.text-white option:focus,
+select[class*="text-white"] option:focus {
+  background-color: #4f46e5 !important;
+  color: white !important;
+}
+
+/* Firefox specific fixes */
 @-moz-document url-prefix() {
-  select.text-white {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.1);
+  select.text-white,
+  select.input.text-white,
+  select[class*="text-white"] {
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
   }
   
-  select.text-white option {
-    background-color: #1f2937;
-    color: white;
+  select.text-white option,
+  select.input.text-white option,
+  select[class*="text-white"] option {
+    background-color: #1f2937 !important;
+    color: white !important;
   }
 }
 
-/* Enhanced styling for better cross-browser support */
-select.text-white {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
+/* Focus styling for select elements */
+select.text-white:focus,
+select.input.text-white:focus,
+select[class*="text-white"]:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5) !important;
+  outline-offset: 2px !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
 }
 
-select.text-white:focus {
-  outline: 2px solid rgba(59, 130, 246, 0.5);
-  outline-offset: 2px;
+/* Light themed selects (fallback) - ensure these work well too */
+select:not([class*="text-white"]) option {
+  background-color: white !important;
+  color: #1f2937 !important;
 }
 
-/* Light themed selects (fallback) */
-select:not(.text-white) option {
-  background-color: white;
-  color: #1f2937;
+select:not([class*="text-white"]) option:hover {
+  background-color: #f9fafb !important;
 }
 
-select:not(.text-white) option:hover {
-  background-color: #f9fafb;
-}
-
-select:not(.text-white) option:checked,
-select:not(.text-white) option:focus {
-  background-color: #dbeafe;
-  color: #1e40af;
+select:not([class*="text-white"]) option:checked,
+select:not([class*="text-white"]) option:focus {
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
 }
