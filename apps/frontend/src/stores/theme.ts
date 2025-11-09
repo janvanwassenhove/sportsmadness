@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
+import hcLokerenLogo from '@/assets/Logo Hockey Club Lokeren transparant.png'
 
 export interface Theme {
   id: string
@@ -45,7 +46,7 @@ export const themes: Theme[] = [
   {
     id: 'hclokeren',
     name: 'HC Lokeren',
-    logo: '/hc-lokeren-logo.svg',
+    logo: hcLokerenLogo,
     colors: {
       primary: '#121238',     // Primary dark navy blue from brand
       secondary: '#478dcb',   // Accent blue for highlights and CTAs  
