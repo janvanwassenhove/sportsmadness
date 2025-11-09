@@ -277,6 +277,13 @@
                       Generate Schedule
                     </button>
                     <button 
+                      v-if="hasPlaceholderTeams(division)"
+                      @click="resolvePlaceholderTeams(division.id)" 
+                      class="btn btn-xs btn-accent"
+                    >
+                      Update Teams
+                    </button>
+                    <button 
                       @click="showDivisionMatches(division)" 
                       class="btn btn-xs btn-secondary"
                     >
@@ -839,17 +846,17 @@
       <div class="space-y-6">
         <!-- Previous Phase Results -->
         <div v-if="previousPhaseResults.length > 0">
-          <h4 class="text-lg font-semibold text-white mb-4">Previous Phase Results</h4>
+          <h4 class="text-lg font-semibold text-white mb-4">Team Positions from Previous Phase</h4>
           <div class="grid gap-4">
             <div v-for="group in previousPhaseResults" :key="group.groupId" class="bg-white/5 rounded-lg p-4">
               <h5 class="text-white font-semibold mb-3">{{ group.groupName }}</h5>
               <div class="space-y-2">
-                <div v-for="(team, index) in group.teams" :key="team.id" 
+                <div v-for="(position, index) in group.teams" :key="position.id" 
                      class="flex justify-between items-center p-2 bg-white/5 rounded"
-                     :class="index < 2 ? 'border-l-4 border-green-400' : 'border-l-4 border-gray-400'">
-                  <span class="text-white">{{ index + 1 }}. {{ team.name }}</span>
+                     :class="index < 2 ? 'border-l-4 border-green-400' : 'border-l-4 border-yellow-400'">
+                  <span class="text-white">{{ position.name }}</span>
                   <div class="flex space-x-2">
-                    <button @click="selectTeamForPhase(team, `${group.groupName} - Position ${index + 1}`)"
+                    <button @click="selectTeamForPhase(position, position.name)"
                             class="btn btn-xs btn-primary">
                       Select
                     </button>
@@ -857,6 +864,9 @@
                 </div>
               </div>
             </div>
+          </div>
+          <div class="text-sm text-blue-300 mt-2">
+            💡 These are placeholder positions. When group matches are finished, they will be replaced with actual team names.
           </div>
         </div>
 
@@ -979,6 +989,7 @@ interface Match {
   quarter_duration_minutes?: number
   break_duration_minutes?: number
   halftime_duration_minutes?: number
+  boosters?: any
 }
 
 const router = useRouter()
@@ -2042,33 +2053,38 @@ async function loadPreviousPhaseResults(division: Division) {
     const results = []
     
     for (const group of previousGroups) {
-      // Get team standings for this group
-      const { data: standings } = await supabase
-        .rpc('get_group_standings', {
-          group_uuid: group.id
-        })
-      
-      if (standings && standings.length > 0) {
-        results.push({
+      // Create placeholder positions for each group
+      const groupPositions = []
+      for (let position = 1; position <= 4; position++) {
+        groupPositions.push({
+          id: `${group.id}_position_${position}`,
+          name: `${position}${getPositionSuffix(position)} from ${group.name}`,
+          position: position,
           groupId: group.id,
           groupName: group.name,
-          teams: standings.map((s: any) => ({
-            id: s.team_id,
-            name: s.team_name,
-            points: s.points,
-            wins: s.wins,
-            draws: s.draws,
-            losses: s.losses,
-            goals_for: s.goals_for,
-            goals_against: s.goals_against
-          }))
+          isPlaceholder: true
         })
       }
+      
+      results.push({
+        groupId: group.id,
+        groupName: group.name,
+        teams: groupPositions
+      })
     }
     
     previousPhaseResults.value = results
   } catch (error) {
     console.error('Error loading previous phase results:', error)
+  }
+}
+
+function getPositionSuffix(position: number): string {
+  switch (position) {
+    case 1: return 'st'
+    case 2: return 'nd'
+    case 3: return 'rd'
+    default: return 'th'
   }
 }
 
@@ -2112,39 +2128,172 @@ async function confirmTeamSelection() {
   }
   
   const division = selectedDivisionForTeamSelection.value
-  const teams = selectedTeamsForPhase.value
+  const selectedTeams = selectedTeamsForPhase.value
   
-  // Assign teams to the division
-  const teamParticipations = teams.map(team => ({
-    tournament_id: selectedTournament.value!.id,
-    team_id: team.id,
-    group_id: null,
-    position_in_group: null
-  }))
+  console.log('🏒 confirmTeamSelection called with:', {
+    division: division.name,
+    divisionType: division.type,
+    selectedTeamsCount: selectedTeams.length,
+    selectedTeams: selectedTeams
+  })
+  
+  // Separate placeholder teams from actual teams
+  const placeholderTeams = selectedTeams.filter(team => team.id.includes('_position_'))
+  const actualTeams = selectedTeams.filter(team => !team.id.includes('_position_'))
   
   try {
-    // Save team participations
-    const { error } = await supabase
-      .from('tournament_team_participations')
-      .upsert(teamParticipations, {
-        onConflict: 'tournament_id,team_id'
-      })
-    
-    if (error) {
-      console.error('Error saving team assignments:', error)
-      alert('Failed to assign teams. Please try again.')
-      return
+    // Save actual team participations
+    if (actualTeams.length > 0) {
+      const teamParticipations = actualTeams.map(team => ({
+        tournament_id: selectedTournament.value!.id,
+        team_id: team.id,
+        group_id: null,
+        position_in_group: null
+      }))
+      
+      const { error } = await supabase
+        .from('tournament_team_participations')
+        .upsert(teamParticipations, {
+          onConflict: 'tournament_id,team_id'
+        })
+      
+      if (error) {
+        console.error('Error saving team assignments:', error)
+        alert('Failed to assign teams. Please try again.')
+        return
+      }
     }
+    
+    // Generate matches with placeholder teams
+    await generateMatchesWithPlaceholders(division, selectedTeams)
     
     // Close modal
     closeTeamSelectionModal()
     
-    // Generate matches with selected teams
-    await generateMatchesForDivision(division, teams)
-    
   } catch (error) {
     console.error('Error confirming team selection:', error)
     alert('An error occurred. Please try again.')
+  }
+}
+
+async function generateMatchesWithPlaceholders(division: Division, selectedTeams: any[]) {
+  if (!selectedTournament.value) return
+
+  console.log('🏒 generateMatchesWithPlaceholders called with:', {
+    division: division.name,
+    divisionType: division.type,
+    selectedTeamsCount: selectedTeams.length,
+    selectedTeams: selectedTeams
+  })
+
+  // Check if matches already exist for this division
+  const { data: existingMatches } = await supabase
+    .from('matches')
+    .select('id')
+    .eq('division_id', division.id)
+    .eq('tournament_id', selectedTournament.value.id)
+
+  if (existingMatches && existingMatches.length > 0) {
+    const confirmed = confirm(`This division already has ${existingMatches.length} matches. Do you want to delete them and generate new ones?`)
+    if (!confirmed) return
+    
+    // Delete existing matches
+    const { error: deleteError } = await supabase
+      .from('matches')
+      .delete()
+      .eq('division_id', division.id)
+      .eq('tournament_id', selectedTournament.value.id)
+      
+    if (deleteError) {
+      console.error('Error deleting existing matches:', deleteError)
+      alert('Failed to delete existing matches. Please try again.')
+      return
+    }
+  }
+
+  // Generate matches with placeholders
+  const matches: any[] = []
+  const quarterDuration = selectedTournament.value.quarter_duration_minutes || 15
+  const quartersCount = selectedTournament.value.quarters_count || 4
+  const totalMatchDuration = quarterDuration * quartersCount * 60 // in seconds
+  
+  if (division.type === 'knockout') {
+    // Generate matches for knockout phases
+    for (let i = 0; i < selectedTeams.length; i += 2) {
+      const teamA = selectedTeams[i]
+      const teamB = selectedTeams[i + 1]
+      if (!teamA || !teamB) continue
+      
+      const matchStartTime = calculateDivisionMatchStartTime(division, matches.length)
+      
+      const matchData: any = {
+        // Use actual team IDs for real teams, null for placeholders  
+        team_a: teamA.id.includes('_position_') ? null : teamA.id,
+        team_b: teamB.id.includes('_position_') ? null : teamB.id,
+        status: 'pending',
+        division_id: division.id,
+        tournament_id: selectedTournament.value.id,
+        match_type: division.type,
+        round_number: 1,
+        match_order: matches.length,
+        score_a: 0,
+        score_b: 0,
+        time_left: totalMatchDuration,
+        maddie: false,
+        boosters: {
+          // Store placeholder information in boosters field (temporary solution)
+          team_a_placeholder: teamA.id.includes('_position_') ? teamA.name : null,
+          team_b_placeholder: teamB.id.includes('_position_') ? teamB.name : null,
+          team_a_config: teamA.id.includes('_position_') ? {
+            groupId: teamA.groupId,
+            position: teamA.position,
+            placeholderId: teamA.id
+          } : null,
+          team_b_config: teamB.id.includes('_position_') ? {
+            groupId: teamB.groupId,
+            position: teamB.position,
+            placeholderId: teamB.id
+          } : null
+        },
+        cards: {},
+        start_time: matchStartTime
+      }
+      
+      matches.push(matchData)
+    }
+  }
+
+  console.log('🏒 Final matches array for generateMatchesWithPlaceholders:', {
+    matchesCount: matches.length,
+    matches: matches
+  })
+
+  if (matches.length === 0) {
+    alert('No matches could be generated. Check division configuration and team assignments.')
+    return
+  }
+
+  // Save matches to database
+  const { data, error } = await supabase
+    .from('matches')
+    .insert(matches)
+    .select()
+
+  if (error) {
+    console.error('Error saving matches:', error)
+    alert('Failed to save matches to database. Please try again.')
+    return
+  }
+
+  if (data) {
+    // Update local state with new matches
+    if (!divisionMatches.value[division.id]) {
+      divisionMatches.value[division.id] = []
+    }
+    divisionMatches.value[division.id] = data
+    
+    console.log(`Generated and saved ${data.length} matches for division: ${division.name}`)
+    alert(`Successfully generated ${data.length} matches for ${division.name} with placeholder teams!`)
   }
 }
 
@@ -2270,6 +2419,113 @@ async function generateMatchesForDivision(division: Division, divisionTeams: any
     console.log(`Generated and saved ${data.length} matches for division: ${division.name}`)
     alert(`Successfully generated ${data.length} matches for ${division.name}!`)
   }
+}
+
+// Function to resolve placeholder teams to actual teams after group phase is complete
+async function resolvePlaceholderTeams(divisionId: string) {
+  if (!selectedTournament.value) return
+  
+  try {
+    // Get matches with placeholder teams for this division
+    const { data: matches, error: matchesError } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('division_id', divisionId)
+      .eq('tournament_id', selectedTournament.value.id)
+    
+    if (matchesError) {
+      console.error('Error fetching matches:', matchesError)
+      return
+    }
+    
+    for (const match of matches || []) {
+      let needsUpdate = false
+      const updates: any = {}
+      
+      // Check if team_a is a placeholder
+      if (!match.team_a && match.boosters?.team_a_placeholder) {
+        const config = match.boosters.team_a_config
+        if (config) {
+          const actualTeam = await getTeamByGroupPosition(config.groupId, config.position)
+          if (actualTeam) {
+            updates.team_a = actualTeam.id
+            needsUpdate = true
+          }
+        }
+      }
+      
+      // Check if team_b is a placeholder
+      if (!match.team_b && match.boosters?.team_b_placeholder) {
+        const config = match.boosters.team_b_config
+        if (config) {
+          const actualTeam = await getTeamByGroupPosition(config.groupId, config.position)
+          if (actualTeam) {
+            updates.team_b = actualTeam.id
+            needsUpdate = true
+          }
+        }
+      }
+      
+      // Update the match if we found actual teams
+      if (needsUpdate) {
+        // Clear placeholder info from boosters
+        const updatedBoosters = { ...match.boosters }
+        delete updatedBoosters.team_a_placeholder
+        delete updatedBoosters.team_b_placeholder
+        delete updatedBoosters.team_a_config
+        delete updatedBoosters.team_b_config
+        
+        updates.boosters = updatedBoosters
+        
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update(updates)
+          .eq('id', match.id)
+        
+        if (updateError) {
+          console.error('Error updating match:', updateError)
+        } else {
+          console.log(`Updated match ${match.id} with actual teams`)
+        }
+      }
+    }
+    
+    // Refresh the division data
+    await loadTournamentData(selectedTournament.value.id)
+    
+  } catch (error) {
+    console.error('Error resolving placeholder teams:', error)
+  }
+}
+
+async function getTeamByGroupPosition(groupId: string, position: number) {
+  try {
+    // Get team standings for this group
+    const { data: standings } = await supabase
+      .rpc('get_group_standings', {
+        group_uuid: groupId
+      })
+    
+    if (standings && standings.length >= position) {
+      return {
+        id: standings[position - 1].team_id,
+        name: standings[position - 1].team_name
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error getting team by position:', error)
+    return null
+  }
+}
+
+function hasPlaceholderTeams(division: Division): boolean {
+  const matches = divisionMatches.value[division.id] || []
+  return matches.some(match => 
+    (!match.team_a && match.boosters?.team_a_placeholder) ||
+    (!match.team_b && match.boosters?.team_b_placeholder)
+  )
 }
 
 async function showDivisionMatches(division: Division) {
