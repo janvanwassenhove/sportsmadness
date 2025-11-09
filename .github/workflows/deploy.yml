@@ -39,4 +39,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: apps/frontend/dist
           publish_branch: gh-pages
-          cname: hockeymadness.com  # Optional custom domain
