@@ -110,9 +110,11 @@ const router = createRouter({
 // Route guards
 router.beforeEach(async (to, from, next) => {
   try {
-    console.log('🚏 Router guard triggered for:', to.path)
+    console.log('🚏 Router guard triggered for:', to.path, 'from:', from.path)
     const authStore = useAuthStore()
     console.log('🚏 Auth loading state:', authStore.loading)
+    console.log('🚏 Auth authenticated state:', authStore.isAuthenticated)
+    console.log('🚏 Auth admin state:', authStore.isAdmin)
     
     // Check if route requires authentication or admin access
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
@@ -133,7 +135,7 @@ router.beforeEach(async (to, from, next) => {
           new Promise(resolve => {
             const unwatch = authStore.$subscribe(() => {
               if (!authStore.loading) {
-                console.log('🚏 Auth loading completed!')
+                console.log('🚏 Auth loading completed via subscription!')
                 unwatch()
                 resolve(undefined)
               }
@@ -150,14 +152,19 @@ router.beforeEach(async (to, from, next) => {
       }
     }
 
+    // Double-check auth state after waiting
+    console.log('🚏 Auth state after waiting - isAuthenticated:', authStore.isAuthenticated, 'isAdmin:', authStore.isAdmin)
+
     // Check if route requires authentication
     if (requiresAuth && !authStore.isAuthenticated) {
+      console.log('🚏 Route requires auth but user not authenticated, redirecting to login')
       next({ name: 'login', query: { redirect: to.fullPath } })
       return
     }
 
     // Check if route requires admin access
     if (requiresAdmin && !authStore.isAdmin) {
+      console.log('🚏 Route requires admin but user is not admin, redirecting to home')
       next({ name: 'home' })
       return
     }
@@ -166,6 +173,7 @@ router.beforeEach(async (to, from, next) => {
     if (authStore.isTeam) {
       const allowedRoutesForTeam = ['home', 'scoreboard', 'profile', 'user-dashboard', 'match-center']
       if (!allowedRoutesForTeam.includes(to.name as string)) {
+        console.log('🚏 Team user trying to access restricted route, redirecting to home')
         next({ name: 'home' })
         return
       }
@@ -174,14 +182,15 @@ router.beforeEach(async (to, from, next) => {
     // Check if route requires user role (not admin or team)
     const requiresUserRole = to.matched.some(record => record.meta.requiresUserRole)
     if (requiresUserRole && !authStore.isUser) {
+      console.log('🚏 Route requires user role but user has different role, redirecting to home')
       next({ name: 'home' })
       return
     }
 
-    console.log('🚏 Route guard completed, proceeding to:', to.path)
+    console.log('🚏 Route guard completed successfully, proceeding to:', to.path)
     next()
   } catch (error) {
-    console.warn('Route guard error:', error)
+    console.warn('🚏 Route guard error:', error)
     next() // Continue navigation even if auth fails
   }
 })

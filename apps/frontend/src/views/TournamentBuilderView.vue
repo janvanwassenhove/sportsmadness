@@ -829,16 +829,100 @@ async function saveTournament() {
         tournament_id: tournament.id,
         name: phase.name,
         type: phase.type === 'poule' ? 'group' : phase.type === 'bracket' ? 'knockout' : 'standalone',
+        order_index: phase.order,
         phase_order: phase.order,
         phase_config: phase.config
       }
 
-      const { error: divisionError } = await supabase
-        .from('divisions')
+      const { data: division, error: divisionError } = await supabase
+        .from('tournament_divisions')
         .insert([divisionData])
+        .select()
+        .single()
 
       if (divisionError) {
         console.error('Error creating division:', divisionError)
+        continue
+      }
+
+      // Create groups for group phases
+      let groupIds: string[] = []
+      if (phase.type === 'poule' && phase.config.groups) {
+        const groups = []
+        for (let i = 0; i < phase.config.groups; i++) {
+          const groupName = String.fromCharCode(65 + i) // A, B, C, etc.
+          groups.push({
+            division_id: division.id,
+            name: `Group ${groupName}`,
+            order_index: i
+          })
+        }
+
+        const { data: groupsData, error: groupsError } = await supabase
+          .from('tournament_groups')
+          .insert(groups)
+          .select()
+
+        if (groupsError) {
+          console.error('Error creating groups:', groupsError)
+        } else if (groupsData) {
+          groupIds = groupsData.map(g => g.id)
+        }
+      }
+
+      // Save team assignments if teams are selected for this phase
+      if (phase.config.selectedTeams && phase.config.selectedTeams.length > 0) {
+        console.log(`Saving ${phase.config.selectedTeams.length} teams for phase: ${phase.name}`, phase.config.selectedTeams)
+        
+        const teamParticipations = []
+        
+        if (phase.type === 'poule' && groupIds.length > 0) {
+          // For group phases, distribute teams across groups
+          const teamsPerGroup = phase.config.teamsPerGroup || 4
+          let teamIndex = 0
+          
+          for (const teamId of phase.config.selectedTeams) {
+            const groupIndex = Math.floor(teamIndex / teamsPerGroup) % groupIds.length
+            const positionInGroup = (teamIndex % teamsPerGroup) + 1
+            
+            teamParticipations.push({
+              tournament_id: tournament.id,
+              team_id: teamId,
+              group_id: groupIds[groupIndex],
+              position_in_group: positionInGroup
+            })
+            teamIndex++
+          }
+        } else {
+          // For knockout/standalone phases, just assign teams to tournament
+          for (const teamId of phase.config.selectedTeams) {
+            teamParticipations.push({
+              tournament_id: tournament.id,
+              team_id: teamId,
+              group_id: null,
+              position_in_group: null
+            })
+          }
+        }
+
+        if (teamParticipations.length > 0) {
+          console.log('Inserting team participations:', teamParticipations)
+          
+          // Use upsert to handle potential conflicts with existing team assignments
+          const { error: participationError } = await supabase
+            .from('tournament_team_participations')
+            .upsert(teamParticipations, {
+              onConflict: 'tournament_id,team_id'
+            })
+
+          if (participationError) {
+            console.error('Error saving team participations:', participationError)
+          } else {
+            console.log(`Successfully saved ${teamParticipations.length} team participations`)
+          }
+        }
+      } else {
+        console.log(`No teams selected for phase: ${phase.name}`)
       }
     }
 

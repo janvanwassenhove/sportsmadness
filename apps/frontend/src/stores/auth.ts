@@ -133,11 +133,19 @@ export const useAuthStore = defineStore('auth', () => {
         
         await loadProfile()
         
+        // Force reactivity update by triggering computed properties
+        const authState = isAuthenticated.value
+        const adminState = isAdmin.value
+        
         console.log('🔐 After loading profile:')
         console.log('🔐 - user.value:', !!user.value, user.value?.id)
         console.log('🔐 - profile.value:', !!profile.value, profile.value?.role)
-        console.log('🔐 - isAuthenticated:', !!user.value)
-        console.log('🔐 - isAdmin:', profile.value?.role === 'admin')
+        console.log('🔐 - isAuthenticated:', authState)
+        console.log('🔐 - isAdmin:', adminState)
+        
+        // Ensure the values are actually computed
+        await new Promise(resolve => setTimeout(resolve, 50))
+        console.log('🔐 Final verification - isAuthenticated:', isAuthenticated.value, 'isAdmin:', isAdmin.value)
       } else {
         console.error('🔐 No user data in sign in response!')
       }

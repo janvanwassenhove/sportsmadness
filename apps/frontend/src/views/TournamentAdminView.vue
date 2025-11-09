@@ -823,6 +823,90 @@
       </div>
     </div>
   </div>
+
+  <!-- Team Selection Modal for Subsequent Phases -->
+  <div v-if="showTeamSelectionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-white">Select Teams for {{ selectedDivisionForTeamSelection?.name }}</h3>
+        <button @click="closeTeamSelectionModal" class="text-white hover:text-red-300">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-6">
+        <!-- Previous Phase Results -->
+        <div v-if="previousPhaseResults.length > 0">
+          <h4 class="text-lg font-semibold text-white mb-4">Previous Phase Results</h4>
+          <div class="grid gap-4">
+            <div v-for="group in previousPhaseResults" :key="group.groupId" class="bg-white/5 rounded-lg p-4">
+              <h5 class="text-white font-semibold mb-3">{{ group.groupName }}</h5>
+              <div class="space-y-2">
+                <div v-for="(team, index) in group.teams" :key="team.id" 
+                     class="flex justify-between items-center p-2 bg-white/5 rounded"
+                     :class="index < 2 ? 'border-l-4 border-green-400' : 'border-l-4 border-gray-400'">
+                  <span class="text-white">{{ index + 1 }}. {{ team.name }}</span>
+                  <div class="flex space-x-2">
+                    <button @click="selectTeamForPhase(team, `${group.groupName} - Position ${index + 1}`)"
+                            class="btn btn-xs btn-primary">
+                      Select
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Teams for This Phase -->
+        <div>
+          <h4 class="text-lg font-semibold text-white mb-4">Selected Teams ({{ selectedTeamsForPhase.length }})</h4>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div v-for="(team, index) in selectedTeamsForPhase" :key="team.id" 
+                 class="bg-white/5 rounded-lg p-3 flex justify-between items-center">
+              <div>
+                <div class="text-white font-semibold">{{ team.name }}</div>
+                <div class="text-blue-200 text-sm">{{ team.source }}</div>
+              </div>
+              <button @click="removeTeamFromSelection(index)" class="text-red-400 hover:text-red-300">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direct Team Selection -->
+        <div>
+          <h4 class="text-lg font-semibold text-white mb-4">All Available Teams</h4>
+          <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto bg-white/5 rounded p-3">
+            <label v-for="team in teams" :key="team.id" 
+                   class="flex items-center space-x-2 text-sm text-white cursor-pointer">
+              <input type="checkbox" 
+                     :value="team.id"
+                     :checked="selectedTeamsForPhase.some(t => t.id === team.id)"
+                     @change="toggleTeamSelection(team, 'Direct selection')"
+                     class="rounded border-white/20" />
+              <span>{{ team.name }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-4 mt-6">
+        <button @click="closeTeamSelectionModal" class="btn btn-secondary">
+          Cancel
+        </button>
+        <button @click="confirmTeamSelection" class="btn btn-primary" 
+                :disabled="selectedTeamsForPhase.length < 2">
+          Generate Schedule ({{ selectedTeamsForPhase.length }} teams)
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -853,6 +937,7 @@ interface Division {
   name: string
   type: 'group' | 'knockout'
   order_index: number
+  phase_order: number
   settings: any
   created_at: string
 }
@@ -912,6 +997,18 @@ const showCreateTournament = ref(false)
 const showCreateDivision = ref(false)
 const editingTournament = ref(false)
 const showEditMatchModal = ref(false)
+const showTeamSelectionModal = ref(false)
+
+// Team selection for subsequent phases
+const selectedDivisionForTeamSelection = ref<Division | null>(null)
+const previousPhaseResults = ref<any[]>([])
+const selectedTeamsForPhase = ref<any[]>([])
+
+interface TeamForPhase {
+  id: string
+  name: string
+  source: string
+}
 
 // Form data
 const newTournament = reactive({
@@ -1230,6 +1327,7 @@ async function createDivision() {
       name: newDivision.name,
       type: newDivision.type,
       order_index: divisions.value.length,
+      phase_order: divisions.value.length,
       settings: newDivision.type === 'group' ? {
         num_groups: newDivision.numGroups,
         teams_per_group: newDivision.teamsPerGroup
@@ -1761,6 +1859,16 @@ async function generateDivisionSchedule(division: Division) {
       return
     }
 
+    // Check if this is a subsequent phase that needs team selection from previous phases
+    const divisionIndex = divisions.value.findIndex(d => d.id === division.id)
+    const isSubsequentPhase = divisionIndex > 0
+    
+    if (isSubsequentPhase && division.type !== 'group') {
+      // For subsequent phases, show team selection modal
+      await showTeamSelectionModalForDivision(division)
+      return
+    }
+
     // Get teams assigned to this tournament and division
     const { data: participations, error: participationsError } = await supabase
       .from('tournament_team_participations')
@@ -1906,6 +2014,261 @@ async function generateDivisionSchedule(division: Division) {
   } catch (error) {
     console.error('Error generating schedule:', error)
     alert('An error occurred while generating the schedule. Please try again.')
+  }
+}
+
+// Team selection functions for subsequent phases
+async function showTeamSelectionModalForDivision(division: Division) {
+  selectedDivisionForTeamSelection.value = division
+  selectedTeamsForPhase.value = []
+  await loadPreviousPhaseResults(division)
+  showTeamSelectionModal.value = true
+}
+
+async function loadPreviousPhaseResults(division: Division) {
+  try {
+    if (!selectedTournament.value) return
+    
+    // Find the previous division (group phase)
+    const divisionIndex = divisions.value.findIndex(d => d.id === division.id)
+    if (divisionIndex <= 0) return
+    
+    const previousDivision = divisions.value[divisionIndex - 1]
+    if (!previousDivision || previousDivision.type !== 'group') return
+    
+    // Get groups from previous division
+    const previousGroups = divisionGroups.value[previousDivision.id] || []
+    
+    const results = []
+    
+    for (const group of previousGroups) {
+      // Get team standings for this group
+      const { data: standings } = await supabase
+        .rpc('get_group_standings', {
+          group_uuid: group.id
+        })
+      
+      if (standings && standings.length > 0) {
+        results.push({
+          groupId: group.id,
+          groupName: group.name,
+          teams: standings.map((s: any) => ({
+            id: s.team_id,
+            name: s.team_name,
+            points: s.points,
+            wins: s.wins,
+            draws: s.draws,
+            losses: s.losses,
+            goals_for: s.goals_for,
+            goals_against: s.goals_against
+          }))
+        })
+      }
+    }
+    
+    previousPhaseResults.value = results
+  } catch (error) {
+    console.error('Error loading previous phase results:', error)
+  }
+}
+
+function selectTeamForPhase(team: any, source: string) {
+  if (!selectedTeamsForPhase.value.some(t => t.id === team.id)) {
+    selectedTeamsForPhase.value.push({
+      id: team.id,
+      name: team.name,
+      source: source
+    })
+  }
+}
+
+function removeTeamFromSelection(index: number) {
+  selectedTeamsForPhase.value.splice(index, 1)
+}
+
+function toggleTeamSelection(team: any, source: string) {
+  const existingIndex = selectedTeamsForPhase.value.findIndex(t => t.id === team.id)
+  if (existingIndex >= 0) {
+    selectedTeamsForPhase.value.splice(existingIndex, 1)
+  } else {
+    selectedTeamsForPhase.value.push({
+      id: team.id,
+      name: team.name,
+      source: source
+    })
+  }
+}
+
+function closeTeamSelectionModal() {
+  showTeamSelectionModal.value = false
+  selectedDivisionForTeamSelection.value = null
+  selectedTeamsForPhase.value = []
+  previousPhaseResults.value = []
+}
+
+async function confirmTeamSelection() {
+  if (!selectedDivisionForTeamSelection.value || selectedTeamsForPhase.value.length < 2) {
+    return
+  }
+  
+  const division = selectedDivisionForTeamSelection.value
+  const teams = selectedTeamsForPhase.value
+  
+  // Assign teams to the division
+  const teamParticipations = teams.map(team => ({
+    tournament_id: selectedTournament.value!.id,
+    team_id: team.id,
+    group_id: null,
+    position_in_group: null
+  }))
+  
+  try {
+    // Save team participations
+    const { error } = await supabase
+      .from('tournament_team_participations')
+      .upsert(teamParticipations, {
+        onConflict: 'tournament_id,team_id'
+      })
+    
+    if (error) {
+      console.error('Error saving team assignments:', error)
+      alert('Failed to assign teams. Please try again.')
+      return
+    }
+    
+    // Close modal
+    closeTeamSelectionModal()
+    
+    // Generate matches with selected teams
+    await generateMatchesForDivision(division, teams)
+    
+  } catch (error) {
+    console.error('Error confirming team selection:', error)
+    alert('An error occurred. Please try again.')
+  }
+}
+
+async function generateMatchesForDivision(division: Division, divisionTeams: any[]) {
+  if (!selectedTournament.value) return
+
+  // Check if matches already exist for this division
+  const { data: existingMatches } = await supabase
+    .from('matches')
+    .select('id')
+    .eq('division_id', division.id)
+    .eq('tournament_id', selectedTournament.value.id)
+
+  if (existingMatches && existingMatches.length > 0) {
+    const confirmed = confirm(`This division already has ${existingMatches.length} matches. Do you want to delete them and generate new ones?`)
+    if (!confirmed) return
+    
+    // Delete existing matches
+    const { error: deleteError } = await supabase
+      .from('matches')
+      .delete()
+      .eq('division_id', division.id)
+      .eq('tournament_id', selectedTournament.value.id)
+      
+    if (deleteError) {
+      console.error('Error deleting existing matches:', deleteError)
+      alert('Failed to delete existing matches. Please try again.')
+      return
+    }
+  }
+
+  // Generate matches based on division type
+  const matches: any[] = []
+  const quarterDuration = selectedTournament.value.quarter_duration_minutes || 15
+  const quartersCount = selectedTournament.value.quarters_count || 4
+  const totalMatchDuration = quarterDuration * quartersCount * 60 // in seconds
+  
+  if (division.type === 'group') {
+    // Round-robin for group divisions - every team plays every other team
+    for (let i = 0; i < divisionTeams.length; i++) {
+      for (let j = i + 1; j < divisionTeams.length; j++) {
+        const teamA = divisionTeams[i]
+        const teamB = divisionTeams[j]
+        if (!teamA || !teamB) continue
+        
+        const matchStartTime = calculateDivisionMatchStartTime(division, matches.length)
+        
+        const matchData: any = {
+          team_a: teamA.id,
+          team_b: teamB.id,
+          status: 'pending',
+          division_id: division.id,
+          tournament_id: selectedTournament.value.id,
+          match_type: 'group',
+          score_a: 0,
+          score_b: 0,
+          time_left: totalMatchDuration,
+          maddie: false,
+          boosters: {},
+          cards: {},
+          start_time: matchStartTime
+        }
+        
+        matches.push(matchData)
+      }
+    }
+  } else if (division.type === 'knockout') {
+    // Single elimination for knockout divisions
+    // First round matches
+    for (let i = 0; i < divisionTeams.length - 1; i += 2) {
+      const teamA = divisionTeams[i]
+      const teamB = divisionTeams[i + 1]
+      if (!teamA || !teamB) continue
+      
+      const matchStartTime = calculateDivisionMatchStartTime(division, matches.length)
+      
+      const matchData: any = {
+        team_a: teamA.id,
+        team_b: teamB.id,
+        status: 'pending',
+        division_id: division.id,
+        tournament_id: selectedTournament.value.id,
+        match_type: 'knockout',
+        round_number: 1,
+        match_order: matches.length,
+        score_a: 0,
+        score_b: 0,
+        time_left: totalMatchDuration,
+        maddie: false,
+        boosters: {},
+        cards: {},
+        start_time: matchStartTime
+      }
+      
+      matches.push(matchData)
+    }
+  }
+
+  if (matches.length === 0) {
+    alert('No matches could be generated. Check division configuration and team assignments.')
+    return
+  }
+
+  // Save matches to database
+  const { data, error } = await supabase
+    .from('matches')
+    .insert(matches)
+    .select()
+
+  if (error) {
+    console.error('Error saving matches:', error)
+    alert('Failed to save matches to database. Please try again.')
+    return
+  }
+
+  if (data) {
+    // Update local state with new matches
+    if (!divisionMatches.value[division.id]) {
+      divisionMatches.value[division.id] = []
+    }
+    divisionMatches.value[division.id] = data
+    
+    console.log(`Generated and saved ${data.length} matches for division: ${division.name}`)
+    alert(`Successfully generated ${data.length} matches for ${division.name}!`)
   }
 }
 
