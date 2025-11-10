@@ -2,7 +2,7 @@
   <div class="relative" ref="themeSwitcherRef">
     <button
       @click="showDropdown = !showDropdown"
-      class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors hover:bg-white/10"
+      class="flex items-center justify-center w-10 h-10 rounded-lg transition-colors hover:bg-white/10"
       :title="$t('theme.switchTheme')"
     >
       <!-- Logo or Icon for current theme -->
@@ -13,20 +13,6 @@
         class="w-6 h-6 rounded-full"
       />
       <div v-else class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600"></div>
-      
-      <span class="text-sm font-medium text-white hidden sm:block">
-        {{ themeStore.currentTheme?.name }}
-      </span>
-      
-      <svg 
-        class="w-4 h-4 text-white transition-transform duration-200"
-        :class="{ 'rotate-180': showDropdown }"
-        fill="none" 
-        stroke="currentColor" 
-        viewBox="0 0 24 24"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-      </svg>
     </button>
     
     <!-- Theme Dropdown -->

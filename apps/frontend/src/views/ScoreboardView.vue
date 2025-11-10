@@ -19,6 +19,8 @@ interface Match {
   team_b: string
   score_a: number
   score_b: number
+  pc_a?: number // Penalty corners for team A
+  pc_b?: number // Penalty corners for team B
   status: 'pending' | 'active' | 'paused' | 'finished'
   time_left: number
   maddie: boolean | any // Extended to support structured maddie data
@@ -107,6 +109,199 @@ let maddieCountdownInterval: number | null = null
 // Track timer intervals for cleanup
 const activeTimerIntervals = ref<Record<string, number>>({})
 let realtimeSubscription: any = null
+let pollingInterval: number | null = null
+let realtimeWorking = false
+
+// Reactive variables for debug panel
+const subscriptionStatus = ref<string>('Not connected')
+const lastUpdateTime = ref<string>('Never')
+const showDebugPanel = ref<boolean>(false)
+
+// Fallback polling mechanism when real-time fails
+function startPolling() {
+  if (pollingInterval) clearInterval(pollingInterval)
+  
+  // Adjust polling frequency based on match status
+  const getPollingInterval = () => {
+    if (!currentMatch.value) return 3000
+    return currentMatch.value.status === 'active' ? 2000 : 4000 // 2s for active, 4s for inactive
+  }
+  
+  const poll = async () => {
+    if (!currentMatch.value) return
+    
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', currentMatch.value.id)
+        .single()
+      
+      if (error) {
+        console.error('❌ Polling error:', error)
+        return
+      }
+      
+      if (data) {
+        // Check for significant changes only - let local timer handle smooth countdown
+        const timeDiff = Math.abs(data.time_left - currentMatch.value.time_left)
+        const hasChanges = 
+          data.score_a !== currentMatch.value.score_a ||
+          data.score_b !== currentMatch.value.score_b ||
+          (data.pc_a || 0) !== (currentMatch.value.pc_a || 0) ||
+          (data.pc_b || 0) !== (currentMatch.value.pc_b || 0) ||
+          data.status !== currentMatch.value.status ||
+          timeDiff > 8 || // Only sync for major time differences (8+ seconds)
+          JSON.stringify(data.boosters) !== JSON.stringify(currentMatch.value.boosters)
+        
+        if (hasChanges) {
+          console.log('📊 Polling detected changes:', {
+            old_scores: `${currentMatch.value.score_a} - ${currentMatch.value.score_b}`,
+            new_scores: `${data.score_a} - ${data.score_b}`,
+            old_time: currentMatch.value.time_left,
+            new_time: data.time_left,
+            time_diff: timeDiff,
+            status: `${currentMatch.value.status} -> ${data.status}`,
+            boosters_changed: JSON.stringify(data.boosters) !== JSON.stringify(currentMatch.value.boosters)
+          })
+          
+          // Simulate the real-time update format
+          const payload = {
+            eventType: 'UPDATE',
+            new: data,
+            old: currentMatch.value
+          }
+          
+          // Call the same handler that real-time would call
+          handleRealtimeUpdate(payload)
+        }
+      }
+    } catch (error) {
+      console.error('❌ Polling failed:', error)
+    }
+    
+    // Schedule next poll with dynamic interval
+    if (pollingInterval) {
+      clearTimeout(pollingInterval)
+      pollingInterval = setTimeout(poll, getPollingInterval())
+    }
+  }
+  
+  console.log(`📊 Starting adaptive polling (${getPollingInterval()}ms interval)...`)
+  pollingInterval = setTimeout(poll, getPollingInterval())
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearTimeout(pollingInterval) // Use clearTimeout since we switched to timeout-based polling
+    pollingInterval = null
+    console.log('📊 Polling stopped')
+  }
+}
+
+// Centralized function to handle match updates (from real-time or polling)
+function handleRealtimeUpdate(payload: any) {
+  // Update last update time
+  lastUpdateTime.value = new Date().toLocaleTimeString()
+  
+  console.log('📡 *** SCOREBOARD RECEIVED UPDATE ***', payload)
+  console.log('📡 Scoreboard received real-time update:', payload)
+  console.log('📡 Payload details:', {
+    eventType: payload.eventType,
+    newId: (payload.new as any)?.id,
+    currentMatchId: currentMatch.value?.id,
+    willUpdate: payload.eventType === 'UPDATE' && currentMatch.value?.id === (payload.new as any)?.id
+  })
+  
+  // DETAILED BOOSTER COMPARISON DEBUG
+  console.log('🔍 DETAILED BOOSTER COMPARISON:')
+  console.log('🔍 Old boosters structure:', JSON.stringify(currentMatch.value?.boosters, null, 2))
+  console.log('🔍 New boosters structure:', JSON.stringify((payload.new as any).boosters, null, 2))
+
+  if (payload.eventType === 'UPDATE') {
+    console.log('🚨 SCOREBOARD - Received update for match:', payload.new.id)
+    
+    const oldMaddie = currentMatch.value?.maddie || false
+    const oldBoosters = currentMatch.value?.boosters
+    
+    // Track score changes
+    const oldScoreA = currentMatch.value?.score_a || 0
+    const oldScoreB = currentMatch.value?.score_b || 0
+    const newScoreA = (payload.new as any).score_a || 0
+    const newScoreB = (payload.new as any).score_b || 0
+    
+    // Track PC changes
+    const oldPCA = currentMatch.value?.pc_a || 0
+    const oldPCB = currentMatch.value?.pc_b || 0
+    const newPCA = (payload.new as any).pc_a || 0
+    const newPCB = (payload.new as any).pc_b || 0
+    
+    if (oldScoreA !== newScoreA || oldScoreB !== newScoreB) {
+      console.log('🔢 SCOREBOARD - Score changed!', {
+        old: `${oldScoreA} - ${oldScoreB}`,
+        new: `${newScoreA} - ${newScoreB}`,
+        teamA_change: newScoreA - oldScoreA,
+        teamB_change: newScoreB - oldScoreB
+      })
+    }
+    
+    if (oldPCA !== newPCA || oldPCB !== newPCB) {
+      console.log('🏒 SCOREBOARD - PC changed!', {
+        old: `${oldPCA} - ${oldPCB}`,
+        new: `${newPCA} - ${newPCB}`,
+        teamA_change: newPCA - oldPCA,
+        teamB_change: newPCB - oldPCB
+      })
+    }
+    
+    console.log('📡 Updating match state:', { 
+      boosters: payload.new.boosters,
+      selection_active: payload.new.boosters?.selection_active,
+      selection_phase: payload.new.boosters?.selection_phase,
+      teamA: payload.new.boosters?.teamA,
+      teamB: payload.new.boosters?.teamB,
+      oldBoosters: oldBoosters,
+      scores: {
+        old: `${oldScoreA} - ${oldScoreB}`,
+        new: `${newScoreA} - ${newScoreB}`
+      }
+    })
+    
+    // Detect booster activation before updating the match
+    detectBoosterActivation(oldBoosters, payload.new.boosters)
+    
+    // Store old values for sync comparison
+    const oldTimeLeft = currentMatch.value?.time_left || 0
+    const oldStatus = currentMatch.value?.status
+    
+    currentMatch.value = payload.new as Match
+    
+    // Sync timer if time changed OR status changed
+    if (currentMatch.value.time_left !== oldTimeLeft || currentMatch.value.status !== oldStatus) {
+      syncWithDatabaseUpdate(currentMatch.value.time_left)
+    } else {
+      initializeMatchPhase()
+    }
+    
+    const overlayShould = currentMatch.value?.boosters?.selection_active === true
+    console.log('📡 Match state updated, overlay should be:', overlayShould)
+    
+    // Enhanced debugging for booster state changes
+    if (payload.new.boosters) {
+      console.log('📡 Booster state change detected:', {
+        selection_active: payload.new.boosters.selection_active,
+        selection_phase: payload.new.boosters.selection_phase,
+        teamA_exists: !!payload.new.boosters.teamA,
+        teamB_exists: !!payload.new.boosters.teamB,
+        teamA_length: payload.new.boosters.teamA?.length || 0,
+        teamB_length: payload.new.boosters.teamB?.length || 0
+      })
+    }
+    
+    // Detect maddie activation
+    detectMaddieActivation(oldMaddie, currentMatch.value.maddie)
+  }
+}
 
 // Track active booster timers for countdown
 const activeBoosterTimers = ref<{[key: string]: {
@@ -142,6 +337,8 @@ const lastSyncTime = ref<number>(0) // Timestamp of last database sync
 // Load boosters and maddies from database
 async function loadBoostersAndMaddies() {
   try {
+    console.log('📡 Loading boosters and maddies...')
+    
     const [boostersResult, maddiesResult] = await Promise.all([
       supabase.from('boosters').select('*').order('title'),
       supabase.from('maddies').select('*').order('title')
@@ -149,6 +346,7 @@ async function loadBoostersAndMaddies() {
 
     if (boostersResult.error) {
       console.error('Error loading boosters:', boostersResult.error)
+      console.log('📡 Boosters loading failed - some features may not work properly')
     } else {
       availableBoosters.value = boostersResult.data.map(booster => ({
         id: booster.id,
@@ -157,15 +355,19 @@ async function loadBoostersAndMaddies() {
         description: booster.description,
         duration: booster.duration
       }))
+      console.log('📡 Boosters loaded:', availableBoosters.value.length)
     }
 
     if (maddiesResult.error) {
       console.error('Error loading maddies:', maddiesResult.error)
+      console.log('📡 Maddies loading failed - some features may not work properly')
     } else {
       availableMaddies.value = maddiesResult.data
+      console.log('📡 Maddies loaded:', availableMaddies.value.length)
     }
   } catch (error) {
-    console.error('Error loading boosters and maddies:', error)
+    console.error('Error loading boosters and maddies (auth-related):', error)
+    console.log('📡 Continuing without boosters/maddies - check RLS policies for public access')
   }
 }
 
@@ -188,14 +390,22 @@ const isHalfTimeGame = computed(() => {
   return matchSettings.value?.quarters_count === 2
 })
 
+const isSingleQuarterGame = computed(() => {
+  return matchSettings.value?.quarters_count === 1
+})
+
 const currentPhaseLabel = computed(() => {
   if (!matchSettings.value) return 'Game'
   
   switch (currentPhase.value) {
     case 'quarter':
-      return isHalfTimeGame.value 
-        ? `${currentPeriod.value}${currentPeriod.value === 1 ? 'st' : 'nd'} Half`
-        : `${currentPeriod.value}${getOrdinalSuffix(currentPeriod.value)} Quarter`
+      if (isSingleQuarterGame.value) {
+        return 'Match'
+      } else if (isHalfTimeGame.value) {
+        return `${currentPeriod.value}${currentPeriod.value === 1 ? 'st' : 'nd'} Half`
+      } else {
+        return `${currentPeriod.value}${getOrdinalSuffix(currentPeriod.value)} Quarter`
+      }
     case 'break':
       return isHalfTimeGame.value ? 'Halftime' : 'Break'
     case 'halftime':
@@ -272,7 +482,7 @@ function startLocalTimer() {
   
   localTimer = setInterval(() => {
     if (currentMatch.value && currentMatch.value.status === 'active' && currentMatch.value.time_left > 0) {
-      // Update local time
+      // Always decrement for smooth countdown - this is the PRIMARY timer
       currentMatch.value.time_left--
       
       // Update phase time
@@ -282,6 +492,9 @@ function startLocalTimer() {
       
       // Recalculate phase if needed
       calculateCurrentPhase()
+      
+      // Update last sync time to show timer is running
+      lastSyncTime.value = Date.now()
       
       // Stop timer if time reaches 0
       if (currentMatch.value.time_left <= 0) {
@@ -303,22 +516,42 @@ function stopLocalTimer() {
 // Synchronize with database update
 function syncWithDatabaseUpdate(newTimeLeft: number) {
   if (currentMatch.value) {
-    console.log('🔄 Syncing scoreboard timer with database update:', { 
-      oldTime: currentMatch.value.time_left, 
-      newTime: newTimeLeft 
-    })
+    const oldTime = currentMatch.value.time_left
+    const timeDiff = Math.abs(oldTime - newTimeLeft)
     
-    // Update local time to match database
-    currentMatch.value.time_left = newTimeLeft
-    lastSyncTime.value = Date.now()
+    // Only log and sync for significant differences to avoid interrupting smooth countdown
+    if (timeDiff > 3) {
+      console.log('🔄 Database sync detected significant time difference:', { 
+        oldTime: oldTime, 
+        newTime: newTimeLeft,
+        timeDiff: timeDiff,
+        threshold: 5,
+        willSync: timeDiff > 5
+      })
+    }
     
-    // Recalculate phase timing
-    calculateCurrentPhase()
+    // Only sync for major differences to preserve smooth countdown
+    const syncThreshold = 5 // Fixed threshold for all states
     
-    // Restart timer if match is active
-    if (currentMatch.value.status === 'active') {
-      startLocalTimer()
+    if (timeDiff > syncThreshold) {
+      console.log(`⚠️ Major timer correction needed - difference: ${timeDiff}s`)
+      
+      // Update local time to match database
+      currentMatch.value.time_left = newTimeLeft
+      lastSyncTime.value = Date.now()
+      
+      // Recalculate phase timing
+      calculateCurrentPhase()
     } else {
+      // For small differences, just update lastSyncTime to show we got an update
+      // but don't override the smooth countdown
+      lastSyncTime.value = Date.now()
+    }
+    
+    // Only restart timer if match status requires it, not for time sync
+    if (currentMatch.value.status === 'active' && !localTimer) {
+      startLocalTimer()
+    } else if (currentMatch.value.status !== 'active' && localTimer) {
       stopLocalTimer()
     }
   }
@@ -408,12 +641,23 @@ const shouldShowBoosterOverlay = computed(() => {
   return shouldShow
 })
 
+// Development mode check
+const isDevelopment = computed(() => {
+  return import.meta.env.DEV
+})
+
 // Force close booster overlay (debug function)
 function forceCloseBoosterOverlay() {
   console.log('🎰 Force closing booster overlay')
   if (currentMatch.value?.boosters) {
     currentMatch.value.boosters.selection_active = false
   }
+}
+
+// Toggle debug panel visibility
+function toggleDebugPanel() {
+  showDebugPanel.value = !showDebugPanel.value
+  console.log('🔧 Debug panel toggled:', showDebugPanel.value ? 'shown' : 'hidden')
 }
 
 // Match phase management functions
@@ -509,25 +753,33 @@ async function loadCurrentMatch() {
     // If a specific match ID is provided, load that match
     if (props.id) {
       console.log('📡 Loading specific match:', props.id)
-      const { data: specificMatch, error: specificError } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('id', props.id)
-        .single()
+      
+      try {
+        const { data: specificMatch, error: specificError } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('id', props.id)
+          .single()
 
-      if (specificError) {
-        console.error('Error loading specific match:', specificError)
-        // If specific match fails, show match selector
-        await loadAvailableMatches()
-        return
-      }
+        if (specificError) {
+          console.error('Error loading specific match:', specificError)
+          console.log('📡 Attempting to continue with auth-independent approach...')
+          // If specific match fails due to auth, show match selector
+          await loadAvailableMatches()
+          return
+        }
 
-      if (specificMatch) {
-        currentMatch.value = specificMatch
-        console.log('📡 Specific match loaded:', specificMatch.id)
-        console.log('🚨 SCOREBOARD - Now watching match:', specificMatch.id)
-        initializeMatchPhase()
-        return
+        if (specificMatch) {
+          currentMatch.value = specificMatch
+          console.log('📡 Specific match loaded:', specificMatch.id)
+          console.log('🚨 SCOREBOARD - Now watching match:', specificMatch.id)
+          initializeMatchPhase()
+          return
+        }
+      } catch (authError) {
+        console.error('📡 Authentication-related error when loading match:', authError)
+        console.log('📡 Scoreboard should work without authentication - this may be a RLS policy issue')
+        // Continue execution to show empty state rather than failing completely
       }
     }
 
@@ -617,6 +869,8 @@ async function loadCurrentMatch() {
 
 async function loadAvailableMatches() {
   try {
+    console.log('📡 Loading available matches...')
+    
     const { data: matches, error } = await supabase
       .from('matches')
       .select('*')
@@ -626,18 +880,23 @@ async function loadAvailableMatches() {
 
     if (error) {
       console.error('Error loading available matches:', error)
+      console.log('📡 This may be due to RLS policies requiring authentication for public scoreboard access')
       return
     }
 
     availableMatches.value = matches || []
+    console.log('📡 Loaded available matches:', matches?.length || 0)
     
     if (matches && matches.length > 1) {
       showMatchSelector.value = true
     } else if (matches && matches.length === 1) {
       selectMatch(matches[0])
+    } else {
+      console.log('📡 No active matches found')
     }
   } catch (error) {
-    console.error('Error loading available matches:', error)
+    console.error('Error loading available matches (auth-related):', error)
+    console.log('📡 Scoreboard should be publicly accessible - check RLS policies')
   }
 }
 
@@ -662,12 +921,15 @@ function getMatchDisplayName(match: Match): string {
 
 async function loadTeams() {
   try {
+    console.log('📡 Loading teams...')
+    
     const { data, error } = await supabase
       .from('teams')
       .select('*')
 
     if (error) {
       console.error('Error loading teams:', error)
+      console.log('📡 Teams loading failed - scoreboard may show team IDs instead of names')
       return
     }
 
@@ -676,8 +938,103 @@ async function loadTeams() {
       teamsMap[team.id] = team
     })
     teams.value = teamsMap
+    console.log('📡 Teams loaded:', Object.keys(teamsMap).length)
   } catch (error) {
-    console.error('Error loading teams:', error)
+    console.error('Error loading teams (auth-related):', error)
+    console.log('📡 Continuing without team names - check RLS policies for public access')
+  }
+}
+
+// Test function to manually check if real-time updates are working
+async function testRealtimeConnection() {
+  console.log('🧪 Testing real-time connection...')
+  
+  // Create a simple test channel
+  const testChannel = supabase
+    .channel('test-connection')
+    .on('broadcast', { event: 'test' }, (payload) => {
+      console.log('✅ Real-time is working! Received test broadcast:', payload)
+    })
+    .subscribe((status) => {
+      console.log('🧪 Test channel status:', status)
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ Test channel subscribed successfully')
+        // Send a test message
+        testChannel.send({
+          type: 'broadcast',
+          event: 'test',
+          payload: { message: 'Hello from scoreboard!' }
+        })
+        
+        // Clean up after 2 seconds
+        setTimeout(() => {
+          testChannel.unsubscribe()
+          console.log('🧪 Test channel cleaned up')
+        }, 2000)
+      }
+    })
+}
+
+// Add to mounted for testing
+function testDatabaseUpdate() {
+  console.log('🧪 Testing direct database update...')
+  if (currentMatch.value) {
+    supabase
+      .from('matches')
+      .update({ last_updated: new Date().toISOString() })
+      .eq('id', currentMatch.value.id)
+      .then(result => {
+        console.log('🧪 Test update result:', result)
+      })
+  }
+}
+
+// Force a single poll attempt for testing
+async function forcePollOnce() {
+  console.log('🔄 Manual poll triggered')
+  if (!currentMatch.value) {
+    console.log('❌ No current match to poll')
+    return
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('id', currentMatch.value.id)
+      .single()
+    
+    if (error) {
+      console.error('❌ Manual poll error:', error)
+      return
+    }
+    
+    if (data) {
+      console.log('📊 Manual poll data received:', data)
+      // Check if data has changed
+      const hasChanges = 
+        data.score_a !== currentMatch.value.score_a ||
+        data.score_b !== currentMatch.value.score_b ||
+        (data.pc_a || 0) !== (currentMatch.value.pc_a || 0) ||
+        (data.pc_b || 0) !== (currentMatch.value.pc_b || 0) ||
+        data.status !== currentMatch.value.status ||
+        data.time_left !== currentMatch.value.time_left ||
+        JSON.stringify(data.boosters) !== JSON.stringify(currentMatch.value.boosters)
+      
+      if (hasChanges) {
+        console.log('📊 Manual poll detected changes - updating!')
+        const payload = {
+          eventType: 'UPDATE',
+          new: data,
+          old: currentMatch.value
+        }
+        handleRealtimeUpdate(payload)
+      } else {
+        console.log('📊 Manual poll - no changes detected')
+      }
+    }
+  } catch (error) {
+    console.error('❌ Manual poll failed:', error)
   }
 }
 
@@ -695,91 +1052,48 @@ function setupRealtimeSubscription() {
   
   console.log('🔧 Setting up ScoreboardView real-time subscription for match:', currentMatch.value.id)
   
-  const channelName = `scoreboard_match_${currentMatch.value.id}`
+  const channelName = `match_${currentMatch.value.id}`
   console.log('📡 Creating channel:', channelName)
   
+  // Test connection first
   realtimeSubscription = supabase
     .channel(channelName)
     .on(
       'postgres_changes',
       {
-        event: 'UPDATE',
+        event: '*', // Listen to all events first for debugging
         schema: 'public',
         table: 'matches',
         filter: `id=eq.${currentMatch.value.id}`
       },
       (payload) => {
-        console.log('📡 *** SCOREBOARD RECEIVED UPDATE ***', payload)
-          console.log('📡 Scoreboard received real-time update:', payload)
-          console.log('📡 Payload details:', {
-            eventType: payload.eventType,
-            newId: (payload.new as any)?.id,
-            currentMatchId: currentMatch.value?.id,
-            willUpdate: payload.eventType === 'UPDATE' && currentMatch.value?.id === (payload.new as any)?.id
-          })
-          
-          // DETAILED BOOSTER COMPARISON DEBUG
-          console.log('🔍 DETAILED BOOSTER COMPARISON:')
-          console.log('🔍 Old boosters structure:', JSON.stringify(currentMatch.value?.boosters, null, 2))
-          console.log('🔍 New boosters structure:', JSON.stringify((payload.new as any).boosters, null, 2))
-        
-        if (payload.eventType === 'UPDATE') {
-          console.log('🚨 SCOREBOARD - Received update for match:', payload.new.id)
-          
-          const oldMaddie = currentMatch.value?.maddie || false
-          const oldBoosters = currentMatch.value?.boosters
-          
-          console.log('📡 Updating match state:', { 
-            boosters: payload.new.boosters,
-            selection_active: payload.new.boosters?.selection_active,
-            selection_phase: payload.new.boosters?.selection_phase,
-            teamA: payload.new.boosters?.teamA,
-            teamB: payload.new.boosters?.teamB,
-            oldBoosters: oldBoosters
-          })
-          
-          // Detect booster activation before updating the match
-          detectBoosterActivation(oldBoosters, payload.new.boosters)
-          
-          // Store old values for sync comparison
-          const oldTimeLeft = currentMatch.value?.time_left || 0
-          const oldStatus = currentMatch.value?.status
-          
-          currentMatch.value = payload.new as Match
-          
-          // Sync timer if time changed OR status changed
-          if (currentMatch.value.time_left !== oldTimeLeft || currentMatch.value.status !== oldStatus) {
-            syncWithDatabaseUpdate(currentMatch.value.time_left)
-          } else {
-            initializeMatchPhase()
-          }
-          
-          const overlayShould = currentMatch.value?.boosters?.selection_active === true
-          console.log('📡 Match state updated, overlay should be:', overlayShould)
-          
-          // Enhanced debugging for booster state changes
-          if (payload.new.boosters) {
-            console.log('📡 Booster state change detected:', {
-              selection_active: payload.new.boosters.selection_active,
-              selection_phase: payload.new.boosters.selection_phase,
-              teamA_exists: !!payload.new.boosters.teamA,
-              teamB_exists: !!payload.new.boosters.teamB,
-              teamA_length: payload.new.boosters.teamA?.length || 0,
-              teamB_length: payload.new.boosters.teamB?.length || 0
-            })
-          }
-          
-          // Detect maddie activation
-          detectMaddieActivation(oldMaddie, currentMatch.value.maddie)
-        }
+        console.log('🎯 ScoreboardView received real-time payload:', payload)
+        console.log('🎯 ScoreboardView FULL payload object:', JSON.stringify(payload, null, 2))
+        realtimeWorking = true
+        handleRealtimeUpdate(payload)
       }
     )
     .subscribe((status) => {
-      console.log('🔧 ScoreboardView subscription status:', status)
+      console.log('� ScoreboardView subscription status:', status)
       if (status === 'SUBSCRIBED') {
         console.log('✅ ScoreboardView successfully subscribed to real-time updates')
+        
+        // Start polling as backup immediately
+        console.log('🔄 Starting polling as backup')
+        startPolling()
+        
+        // Test if real-time is working by waiting 5 seconds and checking
+        setTimeout(() => {
+          if (!realtimeWorking) {
+            console.log('⚠️ Real-time not working after 5 seconds, keeping polling active')
+          } else {
+            console.log('✅ Real-time is working properly, stopping polling backup')
+            stopPolling()
+          }
+        }, 5000)
       } else if (status === 'CHANNEL_ERROR') {
         console.error('❌ ScoreboardView subscription error')
+        startPolling() // Start polling immediately on error
       }
     })
 }
@@ -796,6 +1110,9 @@ function triggerMaddieFlash() {
 
 function startBoosterCountdown(teamKey: 'teamA' | 'teamB', booster: any, teamName: string, boosterIndex: number) {
   console.log('🕐 Starting booster countdown...', { teamKey, booster, teamName, boosterIndex })
+  
+  // Play countdown start sound
+  playCountdownSound()
   
   // Clear any existing countdown
   if (countdownInterval) {
@@ -823,6 +1140,10 @@ function startBoosterCountdown(teamKey: 'teamA' | 'teamB', booster: any, teamNam
     } else {
       // Countdown finished - trigger actual activation
       console.log('🚀 Countdown finished - triggering booster activation!')
+      
+      // Play end sound when countdown finishes (but this is for activation, not ending)
+      playBoosterSound(booster)
+      
       clearInterval(countdownInterval!)
       countdownInterval = null
       
@@ -840,6 +1161,9 @@ function startBoosterCountdown(teamKey: 'teamA' | 'teamB', booster: any, teamNam
 
 function startMaddieCountdown(maddie: any) {
   console.log('🎪 Starting maddie countdown...', { maddie })
+  
+  // Play countdown start sound
+  playCountdownSound()
   
   // Clear any existing maddie countdown
   if (maddieCountdownInterval) {
@@ -865,6 +1189,10 @@ function startMaddieCountdown(maddie: any) {
     } else {
       // Countdown finished - trigger actual activation
       console.log('🚀 Maddie countdown finished - triggering maddie activation!')
+      
+      // Play sound when countdown ends
+      playMaddieSound()
+      
       clearInterval(maddieCountdownInterval!)
       maddieCountdownInterval = null
       
@@ -929,6 +1257,9 @@ function triggerBoosterActivation(teamKey: 'teamA' | 'teamB', booster: any, team
       
       if (timer.remainingTime <= 0) {
         console.log(`⏰ Timer expired for ${timer.booster.name}`)
+        
+        // Play end sound when booster timer expires
+        playBoosterEndSound()
         
         // Mark booster as expired in database
         await markBoosterAsExpired(timer.team, timer.booster.id)
@@ -1033,6 +1364,8 @@ function startMaddieTimer(maddie: any) {
       
       if (remaining <= 0) {
         console.log('🚫 Maddie timer expired')
+        // Play end sound when maddie timer expires
+        playMaddieEndSound()
         clearMaddieTimer()
       }
     } else {
@@ -1094,7 +1427,8 @@ function detectMaddieActivation(oldMaddie: any, newMaddie: any) {
 }
 
 function detectBoosterActivation(oldBoosters: any, newBoosters: any) {
-  console.log('🔍 detectBoosterActivation called:', { oldBoosters, newBoosters })
+  console.log('🔍 SCOREBOARD - detectBoosterActivation called:', { oldBoosters, newBoosters })
+  console.log('🔍 SCOREBOARD - detectBoosterActivation TRIGGERED')
   
   if (!oldBoosters || !newBoosters) {
     console.log('❌ Missing booster data for activation detection')
@@ -1421,6 +1755,45 @@ async function playTickSound() {
   }
 }
 
+async function playCountdownSound() {
+  try {
+    // Play countdown start sound when booster or maddie countdown begins
+    await SoundManager.playSound('/sounds/countdown.wav', 0.7)
+    console.log('🔊 Playing countdown start sound')
+  } catch (error) {
+    console.log('🔊 Countdown sound not available, trying fallback')
+    try {
+      // Fallback to a tick sound for countdown start
+      await SoundManager.playSound('/sounds/tick.mp3', 0.5)
+    } catch (fallbackError) {
+      console.warn('🔊 No countdown sound available')
+    }
+  }
+}
+
+// New functions for ending sounds
+async function playMaddieEndSound() {
+  try {
+    console.log('🔊 Playing maddie end sound')
+    await SoundManager.playSound('/sounds/end-maddie.wav')
+  } catch (error) {
+    console.warn('End maddie sound not available, using default')
+    // Fallback to regular maddie sound
+    playMaddieSound()
+  }
+}
+
+async function playBoosterEndSound() {
+  try {
+    console.log('🔊 Playing booster end sound')
+    await SoundManager.playSound('/sounds/end-booster.wav')
+  } catch (error) {
+    console.warn('End booster sound not available, using default')
+    // Fallback to regular booster sound
+    playBoosterSound()
+  }
+}
+
 // Watch for spinning state changes to play sounds
 let previousSpinningState = false
 let previousSpinningSlot = -1
@@ -1479,6 +1852,7 @@ onUnmounted(() => {
     realtimeSubscription.unsubscribe()
   }
   stopLocalTimer()
+  stopPolling() // Stop polling fallback
   
   // Clear countdown timer if active
   if (countdownInterval) {
@@ -1661,22 +2035,6 @@ onUnmounted(() => {
           <div>Selection Active: {{ currentMatch.boosters.selection_active }}</div>
           <div>Selection Phase: {{ currentMatch.boosters.selection_phase }}</div>
         </div>-->
-        <div class="flex items-center justify-center space-x-6">
-          <div 
-            class="px-4 py-2 rounded-full text-white font-bold animate-pulse-fast"
-            :class="currentMatch ? getStatusColor(currentMatch.status) : 'bg-gray-500'"
-          >
-            {{ currentMatch ? getStatusText(currentMatch.status) : 'LOADING' }}
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-semibold text-blue-200 mb-1">
-              {{ currentPhaseLabel }}
-            </div>
-            <div class="text-2xl font-mono">
-              {{ formatTime(phaseTimeLeft) }}
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Active Boosters Banner -->
@@ -1699,34 +2057,45 @@ onUnmounted(() => {
               <div class="space-y-2">
                 <template v-for="booster in currentMatch.boosters.teamA" :key="`banner-a-${booster.id}`">
                   <div v-if="booster.activated && !booster.expired" 
-                       class="bg-green-500/90 rounded-lg p-3 border border-green-300 animate-pulse relative overflow-hidden">
-                    <!-- Sparkle overlay -->
-                    <div class="absolute inset-0 bg-gradient-to-r from-green-400/30 to-emerald-400/30 animate-pulse rounded-lg"></div>
+                       class="bg-green-600/95 rounded-lg p-3 border-2 border-green-300 shadow-lg relative overflow-hidden">
+                    <!-- Enhanced sparkle overlay with better contrast -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 animate-pulse rounded-lg"></div>
+                    <!-- Dark backdrop for text readability -->
+                    <div class="absolute inset-0 bg-black/30 rounded-lg"></div>
                     
                     <div class="relative z-10 flex items-center justify-between text-white">
                       <div class="flex items-center space-x-3">
-                        <span class="text-3xl animate-bounce">{{ booster.icon }}</span>
+                        <span class="text-3xl animate-bounce drop-shadow-lg" 
+                              style="filter: drop-shadow(0 0 8px rgba(255,255,255,0.6))">
+                          {{ booster.icon }}
+                        </span>
                         <div>
-                          <div class="font-bold text-lg">{{ booster.name }}</div>
-                          <div class="text-sm opacity-90">{{ booster.description || 'Active boost effect' }}</div>
+                          <div class="font-bold text-lg drop-shadow-lg" 
+                               style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8)">
+                            {{ booster.name }}
+                          </div>
+                          <div class="text-sm opacity-90 drop-shadow-md" 
+                               style="text-shadow: 1px 1px 2px rgba(0,0,0,0.7)">
+                            {{ booster.description || 'Active boost effect' }}
+                          </div>
                         </div>
                       </div>
                       
-                      <!-- Timer or Status -->
+                      <!-- Timer or Status with enhanced contrast -->
                       <div class="text-right">
                         <div v-if="booster.duration && getBoosterTimer('teamA', booster.id)" 
-                             class="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold font-mono animate-pulse">
+                             class="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold font-mono animate-pulse shadow-md border border-yellow-400">
                           ⏰ {{ formatBoosterTime(getBoosterTimer('teamA', booster.id)?.remainingTime || 0) }}
                         </div>
                         <div v-else-if="!booster.duration" 
-                             class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce">
+                             class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce shadow-md border border-orange-400">
                           ⚡ INSTANT
                         </div>
                       </div>
                     </div>
                     
-                    <!-- Visual effects -->
-                    <div class="absolute top-1 right-1 text-yellow-300 animate-spin">✨</div>
+                    <!-- Enhanced visual effects -->
+                    <div class="absolute top-1 right-1 text-yellow-200 animate-spin drop-shadow-lg">✨</div>
                   </div>
                 </template>
               </div>
@@ -1741,34 +2110,45 @@ onUnmounted(() => {
               <div class="space-y-2">
                 <template v-for="booster in currentMatch.boosters.teamB" :key="`banner-b-${booster.id}`">
                   <div v-if="booster.activated && !booster.expired" 
-                       class="bg-green-500/90 rounded-lg p-3 border border-green-300 animate-pulse relative overflow-hidden">
-                    <!-- Sparkle overlay -->
-                    <div class="absolute inset-0 bg-gradient-to-r from-green-400/30 to-emerald-400/30 animate-pulse rounded-lg"></div>
+                       class="bg-green-600/95 rounded-lg p-3 border-2 border-green-300 shadow-lg relative overflow-hidden">
+                    <!-- Enhanced sparkle overlay with better contrast -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 animate-pulse rounded-lg"></div>
+                    <!-- Dark backdrop for text readability -->
+                    <div class="absolute inset-0 bg-black/30 rounded-lg"></div>
                     
                     <div class="relative z-10 flex items-center justify-between text-white">
                       <div class="flex items-center space-x-3">
-                        <span class="text-3xl animate-bounce">{{ booster.icon }}</span>
+                        <span class="text-3xl animate-bounce drop-shadow-lg" 
+                              style="filter: drop-shadow(0 0 8px rgba(255,255,255,0.6))">
+                          {{ booster.icon }}
+                        </span>
                         <div>
-                          <div class="font-bold text-lg">{{ booster.name }}</div>
-                          <div class="text-sm opacity-90">{{ booster.description || 'Active boost effect' }}</div>
+                          <div class="font-bold text-lg drop-shadow-lg" 
+                               style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8)">
+                            {{ booster.name }}
+                          </div>
+                          <div class="text-sm opacity-90 drop-shadow-md" 
+                               style="text-shadow: 1px 1px 2px rgba(0,0,0,0.7)">
+                            {{ booster.description || 'Active boost effect' }}
+                          </div>
                         </div>
                       </div>
                       
-                      <!-- Timer or Status -->
+                      <!-- Timer or Status with enhanced contrast -->
                       <div class="text-right">
                         <div v-if="booster.duration && getBoosterTimer('teamB', booster.id)" 
-                             class="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold font-mono animate-pulse">
+                             class="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold font-mono animate-pulse shadow-md border border-yellow-400">
                           ⏰ {{ formatBoosterTime(getBoosterTimer('teamB', booster.id)?.remainingTime || 0) }}
                         </div>
                         <div v-else-if="!booster.duration" 
-                             class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce">
+                             class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce shadow-md border border-orange-400">
                           ⚡ INSTANT
                         </div>
                       </div>
                     </div>
                     
-                    <!-- Visual effects -->
-                    <div class="absolute top-1 right-1 text-yellow-300 animate-spin">✨</div>
+                    <!-- Enhanced visual effects -->
+                    <div class="absolute top-1 right-1 text-yellow-200 animate-spin drop-shadow-lg">✨</div>
                   </div>
                 </template>
               </div>
@@ -1800,12 +2180,16 @@ onUnmounted(() => {
           </div>
           <div 
             v-if="activeMaddieTimer"
-            class="text-lg text-purple-200 font-semibold text-center bg-purple-800/50 rounded-lg px-4 py-2 border border-purple-400"
+            class="text-lg text-purple-100 font-semibold text-center bg-purple-800/90 rounded-lg px-4 py-2 border-2 border-purple-300 backdrop-blur-sm"
+            style="box-shadow: 0 4px 16px rgba(0,0,0,0.4)"
           >
             <div class="flex items-center justify-center space-x-2">
-              <span class="text-yellow-400 animate-pulse">⏰</span>
-              <span class="font-mono text-xl">{{ formatMaddieTime(activeMaddieTimer.remainingTime) }}</span>
-              <span class="text-sm">remaining</span>
+              <span class="text-yellow-300 animate-pulse drop-shadow-lg">⏰</span>
+              <span class="font-mono text-xl text-white drop-shadow-lg" 
+                    style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)">
+                {{ formatMaddieTime(activeMaddieTimer.remainingTime) }}
+              </span>
+              <span class="text-sm text-purple-200 drop-shadow-sm">remaining</span>
             </div>
           </div>
           <div 
@@ -1844,6 +2228,11 @@ onUnmounted(() => {
                 {{ currentMatch?.score_a || 0 }}
               </div>
               
+              <!-- Team A Penalty Corners -->
+              <div class="text-yellow-300 text-lg font-semibold mb-2">
+                PC: {{ currentMatch?.pc_a || 0 }}
+              </div>
+              
               <!-- Team A Boosters (Under Score) -->
               <div v-if="currentMatch?.boosters?.teamA?.length > 0" class="mb-4">
                 <div class="space-y-2">
@@ -1854,14 +2243,20 @@ onUnmounted(() => {
                     :class="[
                       booster.expired ? 'bg-gradient-to-r from-gray-600 to-gray-700 border-gray-500 text-gray-300 opacity-75' :
                       booster.activated ? 
-                      'bg-gradient-to-r from-green-600 to-emerald-600 border-green-400 text-white' : 
+                      'bg-gradient-to-r from-green-700 to-emerald-700 border-green-400 text-white shadow-lg shadow-green-500/50' : 
                       'bg-gradient-to-r from-[#121238] to-[#478dcb] border-[#478dcb] text-white'
                     ]"
                   >
-                    <!-- Animated background for activated boosters -->
+                    <!-- Enhanced animated background for activated boosters with better contrast -->
                     <div 
                       v-if="booster.activated && !booster.expired"
-                      class="absolute inset-0 bg-gradient-to-r from-green-400/30 to-emerald-400/30 animate-pulse"
+                      class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 animate-pulse"
+                    ></div>
+                    
+                    <!-- Stronger backdrop for better text readability -->
+                    <div 
+                      v-if="booster.activated && !booster.expired"
+                      class="absolute inset-0 bg-black/20"
                     ></div>
                     
                     <!-- Strikethrough overlay for expired boosters -->
@@ -1873,7 +2268,13 @@ onUnmounted(() => {
                       <div class="w-full h-0.5 bg-red-500 transform -rotate-12 absolute"></div>
                     </div>
                     
-                    <div class="font-bold text-center flex items-center justify-center space-x-1 relative z-10" :class="booster.expired ? 'line-through' : ''">
+                    <div class="font-bold text-center flex items-center justify-center space-x-1 relative z-10 drop-shadow-lg" 
+                         :class="[
+                           booster.expired ? 'line-through' : '',
+                           booster.activated ? 'text-white' : ''
+                         ]"
+                         :style="booster.activated ? 'text-shadow: 2px 2px 4px rgba(0,0,0,0.8)' : ''"
+                    >
                       <span>{{ booster.icon }}</span>
                       <span>{{ booster.name }}</span>
                       <span v-if="booster.activated && booster.duration && !booster.expired" class="text-yellow-300 animate-bounce">⏰</span>
@@ -1885,12 +2286,13 @@ onUnmounted(() => {
                       v-if="booster.activated && booster.duration && getBoosterTimer('teamA', booster.id)"
                       class="text-center mt-1 relative z-10"
                     >
-                      <div class="text-yellow-300 font-mono text-xs animate-pulse">
+                      <div class="text-yellow-200 font-mono text-xs animate-pulse font-bold drop-shadow-lg"
+                           style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
                         {{ formatBoosterTime(getBoosterTimer('teamA', booster.id)?.remainingTime || 0) }} remaining
                       </div>
                     </div>
                     
-                    <!-- Status indicator -->
+                    <!-- Status indicator with enhanced contrast -->
                     <div class="text-center mt-1 relative z-10">
                       <span 
                         v-if="booster.expired"
@@ -1900,7 +2302,8 @@ onUnmounted(() => {
                       </span>
                       <span 
                         v-else-if="booster.activated"
-                        class="status-active text-xs px-2 py-1 rounded-full font-semibold animate-pulse"
+                        class="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold animate-pulse drop-shadow-lg border border-green-400"
+                        style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)"
                       >
                         🟢 ACTIVE
                       </span>
@@ -1997,6 +2400,11 @@ onUnmounted(() => {
                 {{ currentMatch?.score_b || 0 }}
               </div>
               
+              <!-- Team B Penalty Corners -->
+              <div class="text-yellow-300 text-lg font-semibold mb-2">
+                PC: {{ currentMatch?.pc_b || 0 }}
+              </div>
+              
               <!-- Team B Boosters (Under Score) -->
               <div v-if="currentMatch?.boosters?.teamB?.length > 0" class="mb-4">
                 <div class="space-y-2">
@@ -2007,14 +2415,20 @@ onUnmounted(() => {
                     :class="[
                       booster.expired ? 'bg-gradient-to-r from-gray-600 to-gray-700 border-gray-500 text-gray-300 opacity-75' :
                       booster.activated ? 
-                      'bg-gradient-to-r from-green-600 to-emerald-600 border-green-400 text-white' : 
-                      'bg-gradient-to-r from-red-600 to-rose-600 border-red-300 text-red-100'
+                      'bg-gradient-to-r from-green-700 to-emerald-700 border-green-400 text-white shadow-lg shadow-green-500/50' : 
+                      'bg-gradient-to-r from-red-700 to-rose-700 border-red-300 text-red-100'
                     ]"
                   >
-                    <!-- Animated background for activated boosters -->
+                    <!-- Enhanced animated background for activated boosters with better contrast -->
                     <div 
                       v-if="booster.activated && !booster.expired"
-                      class="absolute inset-0 bg-gradient-to-r from-green-400/30 to-emerald-400/30 animate-pulse"
+                      class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 animate-pulse"
+                    ></div>
+                    
+                    <!-- Stronger backdrop for better text readability -->
+                    <div 
+                      v-if="booster.activated && !booster.expired"
+                      class="absolute inset-0 bg-black/20"
                     ></div>
                     
                     <!-- Strikethrough overlay for expired boosters -->
@@ -2026,7 +2440,13 @@ onUnmounted(() => {
                       <div class="w-full h-0.5 bg-red-500 transform -rotate-12 absolute"></div>
                     </div>
                     
-                    <div class="font-bold text-center flex items-center justify-center space-x-1 relative z-10" :class="booster.expired ? 'line-through' : ''">
+                    <div class="font-bold text-center flex items-center justify-center space-x-1 relative z-10 drop-shadow-lg" 
+                         :class="[
+                           booster.expired ? 'line-through' : '',
+                           booster.activated ? 'text-white' : ''
+                         ]"
+                         :style="booster.activated ? 'text-shadow: 2px 2px 4px rgba(0,0,0,0.8)' : ''"
+                    >
                       <span>{{ booster.icon }}</span>
                       <span>{{ booster.name }}</span>
                       <span v-if="booster.activated && booster.duration && !booster.expired" class="text-yellow-300 animate-bounce">⏰</span>
@@ -2038,12 +2458,13 @@ onUnmounted(() => {
                       v-if="booster.activated && booster.duration && getBoosterTimer('teamB', booster.id)"
                       class="text-center mt-1 relative z-10"
                     >
-                      <div class="text-yellow-300 font-mono text-xs animate-pulse">
+                      <div class="text-yellow-200 font-mono text-xs animate-pulse font-bold drop-shadow-lg"
+                           style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
                         {{ formatBoosterTime(getBoosterTimer('teamB', booster.id)?.remainingTime || 0) }} remaining
                       </div>
                     </div>
                     
-                    <!-- Status indicator -->
+                    <!-- Status indicator with enhanced contrast -->
                     <div class="text-center mt-1 relative z-10">
                       <span 
                         v-if="booster.expired"
@@ -2053,7 +2474,8 @@ onUnmounted(() => {
                       </span>
                       <span 
                         v-else-if="booster.activated"
-                        class="status-active text-xs px-2 py-1 rounded-full font-semibold animate-pulse"
+                        class="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold animate-pulse drop-shadow-lg border border-green-400"
+                        style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)"
                       >
                         🟢 ACTIVE
                       </span>
@@ -2128,9 +2550,11 @@ onUnmounted(() => {
             :alt="themeStore.currentTheme.name"
             class="w-6 h-6"
           />
-          <span v-else class="text-xl">�</span>
-          <p class="font-theme-text"
-             :style="{ color: themeStore.currentTheme?.colors.textSecondary }">
+          <span v-else class="text-xl">🏒</span>
+          <p class="font-theme-text cursor-pointer hover:opacity-80 transition-opacity"
+             :style="{ color: themeStore.currentTheme?.colors.textSecondary }"
+             @click="toggleDebugPanel"
+             :title="isDevelopment ? 'Toggle debug panel' : ''">
             Live Tournament Coverage
           </p>
         </div>
@@ -2142,58 +2566,88 @@ onUnmounted(() => {
       v-if="boosterCountdown?.active"
       class="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
     >
-      <div class="text-center transform animate-pulse">
-        <div class="text-9xl mb-4">{{ boosterCountdown.boosterIcon }}</div>
+      <!-- Enhanced backdrop for better visibility -->
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+      
+      <!-- Main content with improved contrast -->
+      <div class="relative text-center transform animate-pulse">
+        <div class="text-9xl mb-4 drop-shadow-2xl" 
+             style="filter: drop-shadow(0 0 30px rgba(255,255,255,0.9))">
+          {{ boosterCountdown.boosterIcon }}
+        </div>
         <div 
-          class="text-5xl font-bold mb-4"
+          class="text-5xl font-bold mb-4 drop-shadow-lg"
           :class="{
-            'text-blue-400': boosterCountdown.teamColor === 'blue',
-            'text-red-400': boosterCountdown.teamColor === 'red'
+            'text-blue-300': boosterCountdown.teamColor === 'blue',
+            'text-red-300': boosterCountdown.teamColor === 'red'
           }"
+          style="text-shadow: 3px 3px 6px rgba(0,0,0,0.9)"
         >
           {{ boosterCountdown.teamName }}
         </div>
-        <div class="text-4xl font-bold text-white mb-4">BOOSTER INCOMING!</div>
+        <div class="text-4xl font-bold text-white mb-4 drop-shadow-lg" 
+             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
+          BOOSTER INCOMING!
+        </div>
         <div 
-          class="text-3xl font-bold px-8 py-4 rounded-2xl border-4 mb-4"
+          class="text-3xl font-bold px-8 py-4 rounded-2xl border-4 mb-4 backdrop-blur-sm"
           :class="{
-            'bg-blue-600/80 border-blue-300 text-blue-100': boosterCountdown.teamColor === 'blue',
-            'bg-red-600/80 border-red-300 text-red-100': boosterCountdown.teamColor === 'red'
+            'bg-blue-600/90 border-blue-200 text-blue-50': boosterCountdown.teamColor === 'blue',
+            'bg-red-600/90 border-red-200 text-red-50': boosterCountdown.teamColor === 'red'
           }"
+          style="box-shadow: 0 8px 32px rgba(0,0,0,0.5)"
         >
           {{ boosterCountdown.boosterName }}
         </div>
-        <div class="text-8xl font-bold text-yellow-400 animate-bounce">
+        <div class="text-8xl font-bold text-yellow-300 animate-bounce drop-shadow-2xl"
+             style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9); filter: drop-shadow(0 0 20px rgba(255,255,0,0.8))">
           {{ boosterCountdown.countdown }}
         </div>
-        <div class="text-2xl text-white mt-2">seconds until activation</div>
+        <div class="text-2xl text-white mt-2 drop-shadow-lg"
+             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
+          seconds until activation
+        </div>
       </div>
     </div>
 
-    <!-- Maddie Countdown Overlay (Bottom Banner) -->
+    <!-- Maddie Countdown Overlay -->
     <div 
       v-if="maddieCountdown?.active"
-      class="fixed bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none z-50"
+      class="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
     >
-      <div class="text-center bg-purple-600/95 backdrop-blur-lg rounded-2xl border-4 border-purple-300 p-6 shadow-2xl max-w-lg mx-auto animate-pulse">
-        <div class="flex items-center justify-center mb-3">
-          <div class="text-4xl mr-3">{{ maddieCountdown.maddieIcon }}</div>
-          <div class="text-2xl font-bold text-purple-100">MADDIE INCOMING!</div>
+      <!-- Enhanced backdrop for better visibility -->
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+      
+      <!-- Main content with improved contrast -->
+      <div class="relative text-center transform animate-pulse">
+        <div class="text-9xl mb-4 drop-shadow-2xl" 
+             style="filter: drop-shadow(0 0 30px rgba(255,255,255,0.9))">
+          {{ maddieCountdown.maddieIcon }}
         </div>
-        <div class="text-xl font-bold text-white mb-2">
+        <div class="text-4xl font-bold text-white mb-4 drop-shadow-lg" 
+             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
+          MADDIE INCOMING!
+        </div>
+        <div 
+          class="text-3xl font-bold px-8 py-4 rounded-2xl border-4 mb-4 backdrop-blur-sm bg-purple-600/90 border-purple-200 text-purple-50"
+          style="box-shadow: 0 8px 32px rgba(0,0,0,0.5)"
+        >
           {{ maddieCountdown.maddieName }}
         </div>
         <div 
           v-if="maddieCountdown.maddieDescription"
-          class="text-sm text-purple-200 leading-relaxed mb-3"
+          class="text-xl text-purple-100 mb-4 drop-shadow-lg max-w-2xl mx-auto"
+          style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8)"
         >
           {{ maddieCountdown.maddieDescription }}
         </div>
-        <div class="flex items-center justify-center space-x-3">
-          <div class="text-4xl font-bold text-yellow-400 animate-bounce">
-            {{ maddieCountdown.countdown }}
-          </div>
-          <div class="text-lg text-white">seconds</div>
+        <div class="text-8xl font-bold text-yellow-300 animate-bounce drop-shadow-2xl"
+             style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9); filter: drop-shadow(0 0 20px rgba(255,255,0,0.8))">
+          {{ maddieCountdown.countdown }}
+        </div>
+        <div class="text-2xl text-white mt-2 drop-shadow-lg"
+             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
+          seconds until activation
         </div>
       </div>
     </div>
@@ -2203,24 +2657,43 @@ onUnmounted(() => {
       v-if="boosterActivation?.active"
       class="fixed inset-0 flex items-center justify-center pointer-events-none z-40"
     >
-      <div class="text-center transform animate-bounce">
-        <div class="text-9xl mb-4 animate-pulse">{{ boosterActivation.boosterIcon }}</div>
+      <!-- Semi-transparent backdrop for better contrast -->
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      
+      <!-- Main content with enhanced readability -->
+      <div class="relative text-center transform animate-bounce">
+        <!-- Large booster icon with glow -->
+        <div class="text-9xl mb-4 animate-pulse drop-shadow-2xl" 
+             style="filter: drop-shadow(0 0 20px rgba(255,255,255,0.8))">
+          {{ boosterActivation.boosterIcon }}
+        </div>
+        
+        <!-- Team name with strong contrast -->
         <div 
-          class="text-5xl font-bold mb-4"
+          class="text-5xl font-bold mb-4 drop-shadow-2xl"
           :class="{
-            'text-blue-400': boosterActivation.teamColor === 'blue',
-            'text-red-400': boosterActivation.teamColor === 'red'
+            'text-blue-300': boosterActivation.teamColor === 'blue',
+            'text-red-300': boosterActivation.teamColor === 'red'
           }"
+          style="text-shadow: 3px 3px 6px rgba(0,0,0,0.9)"
         >
           {{ boosterActivation.teamName }}
         </div>
-        <div class="text-4xl font-bold text-white mb-2">BOOSTER ACTIVATED!</div>
+        
+        <!-- "BOOSTER ACTIVATED!" text with enhanced visibility -->
+        <div class="text-4xl font-bold text-white mb-4 drop-shadow-2xl"
+             style="text-shadow: 3px 3px 6px rgba(0,0,0,0.9)">
+          BOOSTER ACTIVATED!
+        </div>
+        
+        <!-- Booster name with enhanced container -->
         <div 
-          class="text-3xl font-bold px-8 py-4 rounded-2xl border-4 animate-pulse"
+          class="text-3xl font-bold px-8 py-4 rounded-2xl border-4 animate-pulse shadow-2xl"
           :class="{
-            'bg-blue-600/80 border-blue-300 text-blue-100': boosterActivation.teamColor === 'blue',
-            'bg-red-600/80 border-red-300 text-red-100': boosterActivation.teamColor === 'red'
+            'bg-blue-700/90 border-blue-300 text-white': boosterActivation.teamColor === 'blue',
+            'bg-red-700/90 border-red-300 text-white': boosterActivation.teamColor === 'red'
           }"
+          style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8); backdrop-filter: blur(8px);"
         >
           {{ boosterActivation.boosterName }}
         </div>
@@ -2250,7 +2723,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Active Booster Timers Overlay -->
-    <div 
+    <!--<div 
       v-if="Object.keys(activeBoosterTimers).length > 0"
       class="fixed top-4 right-4 z-30 space-y-2"
     >
@@ -2292,7 +2765,7 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
-
+    -->
     <!-- Match Selector Modal -->
     <div 
       v-if="showMatchSelector"
@@ -2342,6 +2815,22 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Debug Panel (only in development and when toggled) -->
+    <div v-if="isDevelopment && showDebugPanel" class="fixed bottom-4 right-4 bg-black/80 text-white p-4 rounded-lg space-y-2 text-sm z-50">
+      <div class="font-bold text-yellow-400">DEBUG PANEL</div>
+      <div>Real-time: {{ realtimeWorking ? '✅ Working' : '❌ Failed' }}</div>
+      <div>Polling: {{ pollingInterval ? '🔄 Active' : '⏸️ Inactive' }}</div>
+      <div>Subscription: {{ subscriptionStatus }}</div>
+      <div>Last Update: {{ lastUpdateTime }}</div>
+      <div>Match ID: {{ currentMatch?.id?.slice(-8) || 'None' }}</div>
+      <div class="space-x-2 pt-2">
+        <button @click="testRealtimeConnection" class="bg-blue-600 px-2 py-1 rounded text-xs">Test RT</button>
+        <button @click="testDatabaseUpdate" class="bg-green-600 px-2 py-1 rounded text-xs">Test DB</button>
+        <button @click="startPolling" class="bg-orange-600 px-2 py-1 rounded text-xs">Start Poll</button>
+        <button @click="stopPolling" class="bg-red-600 px-2 py-1 rounded text-xs">Stop Poll</button>
+        <button @click="forcePollOnce" class="bg-purple-600 px-2 py-1 rounded text-xs">Poll Once</button>
+      </div>
+    </div>
 
   </div>
 </template>

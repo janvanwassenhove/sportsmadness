@@ -13,7 +13,8 @@ const router = createRouter({
     {
       path: '/theme-demo',
       name: 'theme-demo',
-      component: () => import('@/views/ThemeDemoView.vue')
+      component: () => import('@/views/ThemeDemoView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
       path: '/auth-diagnostic',

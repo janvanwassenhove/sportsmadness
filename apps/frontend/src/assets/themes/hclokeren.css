@@ -733,7 +733,6 @@
   /* Header with Logo - Clean Layout */
   .header-section {
     background-color: var(--hc-grey-light);
-    padding: 2rem 0;
     border-bottom: 1px solid var(--hc-grey-medium);
   }
   

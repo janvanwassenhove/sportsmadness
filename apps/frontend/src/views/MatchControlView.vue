@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { supabase } from '@/lib/supabase'
@@ -43,9 +43,25 @@ const match = ref<any>(null)
 const teams = ref<Record<string, any>>({})
 const loading = ref(true)
 const resetting = ref(false)
+const initializing = ref(false)
 const initialized = ref(false)
 const timer = ref<number | null>(null)
 const penaltyTimer = ref<number | null>(null)
+
+// UI state management
+const updatingMatch = ref(false)
+const buttonStates = ref({
+  play: false,
+  pause: false,
+  finish: false,
+  spinners: false
+})
+
+// Score update debouncing
+const scoreUpdateTimeouts = ref<Record<string, number>>({})
+
+// PC update debouncing
+const pcUpdateTimeouts = ref<Record<string, number>>({})
 
 // Match phase tracking
 const currentPhase = ref<'quarter' | 'break' | 'halftime' | 'finished'>('quarter')
@@ -94,6 +110,10 @@ const activeMaddieTimer = ref<{
   remainingTime: number
   intervalId?: number
 } | null>(null)
+
+// Update queue to prevent race conditions
+const updateQueue: Array<() => Promise<any>> = []
+let isProcessingQueue = false
 
 // Load boosters and maddies from database
 async function loadBoostersAndMaddies() {
@@ -156,14 +176,22 @@ const isHalfTimeGame = computed(() => {
   return matchSettings.value?.quarters_count === 2
 })
 
+const isSingleQuarterGame = computed(() => {
+  return matchSettings.value?.quarters_count === 1
+})
+
 const currentPhaseLabel = computed(() => {
   if (!matchSettings.value) return 'Game'
   
   switch (currentPhase.value) {
     case 'quarter':
-      return isHalfTimeGame.value 
-        ? `${currentPeriod.value}${currentPeriod.value === 1 ? 'st' : 'nd'} Half`
-        : `${currentPeriod.value}${getOrdinalSuffix(currentPeriod.value)} Quarter`
+      if (isSingleQuarterGame.value) {
+        return 'Match'
+      } else if (isHalfTimeGame.value) {
+        return `${currentPeriod.value}${currentPeriod.value === 1 ? 'st' : 'nd'} Half`
+      } else {
+        return `${currentPeriod.value}${getOrdinalSuffix(currentPeriod.value)} Quarter`
+      }
     case 'break':
       return isHalfTimeGame.value ? 'Halftime' : 'Break'
     case 'halftime':
@@ -512,40 +540,88 @@ async function loadTeams() {
 
 
 
+// Process update queue sequentially to prevent race conditions
+async function processUpdateQueue() {
+  if (isProcessingQueue || updateQueue.length === 0) return
+  
+  isProcessingQueue = true
+  console.log('📝 Processing update queue with', updateQueue.length, 'items')
+  
+  while (updateQueue.length > 0) {
+    const updateFn = updateQueue.shift()
+    if (updateFn) {
+      try {
+        console.log('📝 Processing queued update...')
+        await updateFn()
+        console.log('✅ Queued update completed successfully')
+      } catch (error) {
+        console.error('❌ Error processing queued update:', error)
+      }
+    }
+  }
+  
+  isProcessingQueue = false
+  console.log('📝 Update queue processing completed')
+}
+
+// Queue an update to prevent race conditions
+function queueUpdate(updateFn: () => Promise<any>) {
+  updateQueue.push(updateFn)
+  processUpdateQueue()
+}
+
 async function updateMatch(updates: Partial<any>) {
   console.log('🔧 updateMatch function started')
   
-  try {
-    console.log('� Updating match with:', updates)
-    console.log('� Match ID:', props.id)
-    console.log('� About to call supabase update...')
-    
-    // Try the simplest possible update
-    const result = await supabase
-      .from('matches')
-      .update(updates)
-      .eq('id', props.id)
-    
-    console.log('� Supabase update result:', result)
-    
-    if (result.error) {
-      console.error('❌ Error updating match:', result.error)
-      return { error: result.error }
-    }
+  return new Promise((resolve, reject) => {
+    const updateFn = async () => {
+      try {
+        console.log('📝 Processing queued update with:', updates)
+        console.log('📝 Match ID:', props.id)
+        console.log('📝 Current match state before update:', {
+          status: match.value?.status,
+          score_a: match.value?.score_a,
+          score_b: match.value?.score_b,
+          boosters: match.value?.boosters ? 'present' : 'absent'
+        })
+        
+        // Try the simplest possible update
+        const result = await supabase
+          .from('matches')
+          .update(updates)
+          .eq('id', props.id)
+        
+        console.log('📝 Supabase update result:', result)
+        
+        if (result.error) {
+          console.error('❌ Error updating match:', result.error)
+          reject(result.error)
+          return
+        }
 
-    console.log('✅ Match updated successfully')
-    
-    // Update local state
-    if (match.value) {
-      Object.assign(match.value, updates)
-      console.log('✅ Local state updated:', { status: match.value.status })
+        console.log('✅ Match updated successfully in database')
+        
+        // Update local state
+        if (match.value) {
+          Object.assign(match.value, updates)
+          console.log('✅ Local state updated:', { 
+            status: match.value.status,
+            updateType: Object.keys(updates).join(', ')
+          })
+        }
+        
+        // Add a small delay to ensure database changes propagate
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        resolve({ success: true })
+      } catch (error) {
+        console.error('❌ Exception updating match:', error)
+        reject(error)
+      }
     }
     
-    return { success: true }
-  } catch (error) {
-    console.error('❌ Exception updating match:', error)
-    return { error }
-  }
+    queueUpdate(updateFn)
+  })
 }
 
 function startTimer() {
@@ -624,32 +700,159 @@ function stopPenaltyTimer() {
 }
 
 async function playMatch() {
-  await updateMatch({ status: 'active' })
-  startTimer()
-  startPenaltyTimer()
+  if (buttonStates.value.play) return // Prevent double-clicks
+  
+  buttonStates.value.play = true
+  try {
+    console.log('▶️ Starting match...')
+    await updateMatch({ status: 'active' })
+    startTimer()
+    startPenaltyTimer()
+    console.log('✅ Match started successfully')
+  } catch (error) {
+    console.error('❌ Failed to start match:', error)
+    alert('Failed to start match. Please try again.')
+  } finally {
+    buttonStates.value.play = false
+  }
 }
 
 async function pauseMatch() {
-  await updateMatch({ status: 'paused' })
-  stopTimer()
-  stopPenaltyTimer()
+  if (buttonStates.value.pause) return // Prevent double-clicks
+  
+  buttonStates.value.pause = true
+  try {
+    console.log('⏸️ Pausing match...')
+    await updateMatch({ status: 'paused' })
+    stopTimer()
+    stopPenaltyTimer()
+    console.log('✅ Match paused successfully')
+  } catch (error) {
+    console.error('❌ Failed to pause match:', error)
+    alert('Failed to pause match. Please try again.')
+  } finally {
+    buttonStates.value.pause = false
+  }
 }
 
 async function finishMatch() {
-  await updateMatch({ status: 'finished' })
-  stopTimer()
-  stopPenaltyTimer()
+  if (buttonStates.value.finish) return // Prevent double-clicks
+  
+  buttonStates.value.finish = true
+  try {
+    console.log('🏁 Finishing match...')
+    await updateMatch({ status: 'finished' })
+    stopTimer()
+    stopPenaltyTimer()
+    console.log('✅ Match finished successfully')
+  } catch (error) {
+    console.error('❌ Failed to finish match:', error)
+    alert('Failed to finish match. Please try again.')
+  } finally {
+    buttonStates.value.finish = false
+  }
 }
 
 async function updateScore(team: 'a' | 'b', increment: number) {
-  const currentScore = team === 'a' ? match.value?.score_a || 0 : match.value?.score_b || 0
+  const teamKey = `score_${team}`
+  
+  console.log(`🔢 updateScore called: team=${team}, increment=${increment}`)
+  
+  // Clear existing timeout for this team
+  if (scoreUpdateTimeouts.value[teamKey]) {
+    clearTimeout(scoreUpdateTimeouts.value[teamKey])
+  }
+  
+  // Calculate new score
+  const currentScore = team === 'a' ? (match.value?.score_a || 0) : (match.value?.score_b || 0)
   const newScore = Math.max(0, currentScore + increment)
   
-  const updates = team === 'a' 
-    ? { score_a: newScore }
-    : { score_b: newScore }
+  console.log(`🔢 Score change: ${currentScore} -> ${newScore} for team ${team.toUpperCase()}`)
   
-  await updateMatch(updates)
+  // Update local display immediately for responsive UI
+  if (match.value) {
+    if (team === 'a') {
+      match.value.score_a = newScore
+    } else {
+      match.value.score_b = newScore
+    }
+    console.log(`🔢 Local UI updated immediately: ${team}=${newScore}`)
+  }
+  
+  // Debounce the database update
+  scoreUpdateTimeouts.value[teamKey] = setTimeout(async () => {
+    try {
+      const updates = team === 'a' 
+        ? { score_a: newScore }
+        : { score_b: newScore }
+      
+      console.log(`🔢 Sending score update to database:`, updates)
+      await updateMatch(updates)
+      console.log(`✅ Score updated for team ${team.toUpperCase()}:`, updates)
+    } catch (error) {
+      console.error(`❌ Failed to update score for team ${team}:`, error)
+      // Revert local changes on error
+      if (match.value) {
+        if (team === 'a') {
+          match.value.score_a = currentScore
+        } else {
+          match.value.score_b = currentScore
+        }
+      }
+    }
+    delete scoreUpdateTimeouts.value[teamKey]
+  }, 300) // 300ms debounce
+}
+
+async function updatePC(team: 'a' | 'b', increment: number) {
+  const teamKey = `pc_${team}`
+  
+  console.log(`🏒 updatePC called: team=${team}, increment=${increment}`)
+  
+  // Clear existing timeout for this team
+  if (pcUpdateTimeouts.value[teamKey]) {
+    clearTimeout(pcUpdateTimeouts.value[teamKey])
+  }
+  
+  // Calculate new PC count
+  const currentPC = team === 'a' ? (match.value?.pc_a || 0) : (match.value?.pc_b || 0)
+  const newPC = Math.max(0, currentPC + increment)
+  
+  console.log(`🏒 PC change: ${currentPC} -> ${newPC} for team ${team.toUpperCase()}`)
+  
+  // Update local display immediately for responsive UI
+  if (match.value) {
+    if (team === 'a') {
+      match.value.pc_a = newPC
+    } else {
+      match.value.pc_b = newPC
+    }
+    console.log(`🏒 Local UI updated immediately: PC ${team}=${newPC}`)
+  }
+  
+  // Debounce the database update
+  pcUpdateTimeouts.value[teamKey] = setTimeout(async () => {
+    try {
+      const updates = team === 'a' 
+        ? { pc_a: newPC }
+        : { pc_b: newPC }
+      
+      console.log(`🏒 Sending PC update to database:`, updates)
+      await updateMatch(updates)
+      console.log(`✅ PC updated for team ${team.toUpperCase()}:`, updates)
+    } catch (error) {
+      console.error(`❌ Failed to update PC for team ${team}:`, error)
+      // Revert local changes on error
+      if (match.value) {
+        if (team === 'a') {
+          match.value.pc_a = currentPC
+        } else {
+          match.value.pc_b = currentPC
+        }
+      }
+    }
+    delete pcUpdateTimeouts.value[teamKey]
+  }, 300) // 300ms debounce
 }
 
 async function addCardToPlayer(team: 'a' | 'b', player: Player, cardType: 'yellow' | 'green' | 'red') {
@@ -715,33 +918,47 @@ async function addCardToPlayer(team: 'a' | 'b', player: Player, cardType: 'yello
 
 // Booster selection functions
 async function startBoosterSelection() {
-  console.log('🎰 Starting booster selection...', { match: match.value?.status })
-  if (match.value?.status !== 'active' && match.value?.status !== 'pending') return
+  if (buttonStates.value.spinners) return // Prevent double-clicks
   
-  showBoosterSelection.value = true
-  selectedBoosters.value = { teamA: [], teamB: [] }
-  boosterPhase.value = 'ready'
-  currentTeamSpinning.value = null
-  
-  console.log('🎰 Updating database with booster selection state...')
-  // Update match to show booster selection is active on scoreboard
-  // Using boosters column to store selection state since we don't have dedicated columns yet
-  const currentBoosters = match.value?.boosters || {}
-  await updateMatch({ 
-    boosters: {
-      ...currentBoosters,
-      selection_active: true,
-      selection_phase: 'ready',
-      is_spinning: false,
-      current_team: null,
-      spinning_slot: 0,
-      current_boosters: {
-        teamA: [],
-        teamB: []
-      }
+  buttonStates.value.spinners = true
+  try {
+    console.log('🎰 Starting booster selection...', { match: match.value?.status })
+    if (match.value?.status !== 'active' && match.value?.status !== 'pending') {
+      console.log('⚠️ Cannot start booster selection - invalid match status')
+      return
     }
-  })
-  console.log('🎰 Booster selection state updated in database')
+    
+    showBoosterSelection.value = true
+    selectedBoosters.value = { teamA: [], teamB: [] }
+    boosterPhase.value = 'ready'
+    currentTeamSpinning.value = null
+    
+    console.log('🎰 Updating database with booster selection state...')
+    // Update match to show booster selection is active on scoreboard
+    // Using boosters column to store selection state since we don't have dedicated columns yet
+    const currentBoosters = match.value?.boosters || {}
+    await updateMatch({ 
+      boosters: {
+        ...currentBoosters,
+        selection_active: true,
+        selection_phase: 'ready',
+        is_spinning: false,
+        current_team: null,
+        spinning_slot: 0,
+        current_boosters: {
+          teamA: [],
+          teamB: []
+        }
+      }
+    })
+    console.log('✅ Booster selection state updated in database')
+  } catch (error) {
+    console.error('❌ Failed to start booster selection:', error)
+    alert('Failed to start booster selection. Please try again.')
+    showBoosterSelection.value = false
+  } finally {
+    buttonStates.value.spinners = false
+  }
 }
 
 async function spinCurrentPhase() {
@@ -771,12 +988,12 @@ async function spinCurrentPhase() {
   isSpinning.value = true
   spinningSlot.value = 0
   
-  // Backup timeout to ensure spinning never gets stuck longer than 3 seconds
+  // Backup timeout to ensure spinning never gets stuck longer than 5 seconds
   const backupTimeout = setTimeout(() => {
-    console.warn('⚠️ Backup timeout triggered - force resetting spin state after 3 seconds')
+    console.warn('⚠️ Backup timeout triggered - force resetting spin state after 5 seconds')
     isSpinning.value = false
     currentTeamSpinning.value = null
-  }, 3000)
+  }, 5000) // Increased to 5 seconds to allow for database updates
   
   // Play spinning sound effect
   try {
@@ -856,22 +1073,22 @@ async function spinCurrentPhase() {
     console.error('❌ Failed to update database with spinning state:', error)
     // Reset spinning state on database error
     isSpinning.value = false
+    clearTimeout(backupTimeout)
     return
   }
   
-  // Animate slot spinning with real-time updates to scoreboard
+  // Animate slot spinning with periodic DB updates for scoreboard sync
   const spinInterval = setInterval(async () => {
     const newSlot = Math.floor(Math.random() * availableBoosters.value.length)
     spinningSlot.value = newSlot
     
-    // Update scoreboard with current spinning slot every few iterations for smoother animation
-    if (Math.random() < 0.3) { // Update 30% of the time to avoid too many DB calls
+    // Update database every few spins to keep scoreboard in sync
+    // Use modulo to reduce database calls while still providing visual updates
+    if (newSlot % 3 === 0) {
       try {
-        // Get fresh boosters data to avoid overwriting
-        const latestBoosters = match.value?.boosters || {}
         await updateMatch({
           boosters: {
-            ...latestBoosters,
+            ...currentBoosters,
             selection_active: true,
             selection_phase: boosterPhase.value,
             is_spinning: true,
@@ -880,8 +1097,8 @@ async function spinCurrentPhase() {
           }
         })
       } catch (error) {
-        console.warn('⚠️ Failed to update spinning slot in interval:', error)
-        // Don't break the interval for minor update failures
+        // Silently fail on update errors during spinning to avoid interrupting animation
+        console.log('⚠️ Spin update failed (continuing):', error)
       }
     }
   }, 100)
@@ -891,6 +1108,7 @@ async function spinCurrentPhase() {
     try {
       console.log('🎰 Timeout triggered - stopping spin...')
       clearInterval(spinInterval)
+      clearTimeout(backupTimeout) // Clear the backup timeout since we're handling completion properly
       
       // Get available boosters (excluding already selected ones)
       const excludeIds = [...selectedBoosters.value.teamA, ...selectedBoosters.value.teamB].map(b => b.id)
@@ -1396,22 +1614,37 @@ async function resumeAfterBooster() {
 }
 
 async function initializeMatch() {
-  console.log('� Initialize match clicked', { match: match.value, status: match.value?.status })
+  console.log('🚀 Initialize match clicked', { match: match.value, status: match.value?.status })
   
   if (match.value?.status !== 'pending') {
     console.warn('⚠️ Cannot initialize - match status is not pending:', match.value?.status)
     return
   }
   
+  if (initializing.value) {
+    console.log('⏳ Already initializing, ignoring click')
+    return
+  }
+  
   try {
-    console.log('� Initializing match...')
-    // Initialize match - set to pending status to show Play button
-    // Reset scores, clear any existing cards/boosters  
-    console.log('� About to call updateMatch...')
+    initializing.value = true
+    console.log('🔧 Initializing match...')
+    
+    // First, mark as initialized immediately to provide UI feedback
+    console.log('🔄 Setting initialized to true for immediate UI update')
+    initialized.value = true
+    
+    // Force a UI update by triggering Vue reactivity
+    await nextTick()
+    
+    // Then update the database
+    console.log('📤 About to call updateMatch...')
     const result = await updateMatch({ 
       status: 'pending',
       score_a: 0,
       score_b: 0,
+      pc_a: 0,
+      pc_b: 0,
       cards: {},
       boosters: {
         // Explicitly clear all booster selection state
@@ -1426,13 +1659,26 @@ async function initializeMatch() {
       },
       time_left: getCalculatedMatchTime()
     })
-    console.log('� updateMatch completed with result:', result)
-    console.log('✅ Match initialized successfully')
+    console.log('📥 updateMatch completed with result:', result)
     
-    // Mark as initialized to show control panel
-    initialized.value = true
+    // Verify the database update was successful
+    if (result && (result as any).success) {
+      console.log('✅ Match initialized successfully')
+      
+      // Force UI update by triggering reactivity
+      match.value = { ...match.value }
+    } else {
+      console.error('❌ Database update failed, reverting initialized state')
+      initialized.value = false
+      alert('Failed to initialize match. Please check the console and try again.')
+    }
   } catch (error) {
     console.error('❌ Error initializing match:', error)
+    // Revert the initialized state if there was an error
+    initialized.value = false
+    alert('Failed to initialize match. Please try again.')
+  } finally {
+    initializing.value = false
   }
 }
 
@@ -1443,6 +1689,7 @@ async function resetMatch() {
     'Are you sure you want to reset this match?\n\n' +
     'This will:\n' +
     '• Clear all scores (0-0)\n' +
+    '• Clear all penalty corners (0-0)\n' +
     '• Remove all player penalties\n' +
     '• Clear all boosters\n' +
     '• Reset timer to 30:00\n' +
@@ -1461,6 +1708,8 @@ async function resetMatch() {
       status: 'pending',
       score_a: 0,
       score_b: 0,
+      pc_a: 0,
+      pc_b: 0,
       cards: {},
       boosters: {},
       time_left: matchTime,
@@ -1679,6 +1928,45 @@ async function deactivateBooster(team: 'a' | 'b', boosterIndex: number) {
   }
 }
 
+async function finishInstantBooster(team: 'a' | 'b', boosterIndex: number) {
+  if (!match.value?.boosters) return
+  
+  const boosters = { ...match.value.boosters }
+  const teamKey = team === 'a' ? 'teamA' : 'teamB'
+  
+  if (boosters[teamKey] && boosters[teamKey][boosterIndex]) {
+    const booster = boosters[teamKey][boosterIndex]
+    
+    // Only allow finishing instant boosters (no duration or 0 duration)
+    if (booster.activated && (!booster.duration || booster.duration === 0)) {
+      console.log(`🏁 Finishing instant booster ${booster.name} for team ${team.toUpperCase()}`)
+      
+      const updatedTeamBoosters = [...boosters[teamKey]]
+      updatedTeamBoosters[boosterIndex] = {
+        ...updatedTeamBoosters[boosterIndex],
+        activated: false,
+        expired: true,
+        expiredAt: new Date().toISOString()
+      }
+      
+      boosters[teamKey] = updatedTeamBoosters
+      
+      // Clear any special states related to this booster
+      let updates: any = { boosters }
+      
+      if (booster.id === 'goalie_timeout' || booster.id === 'timeout' || booster.id === 'coach_stroke') {
+        updates.special_state = null
+        console.log(`🏁 Cleared special state for instant booster ${booster.name}`)
+      }
+      
+      await updateMatch(updates)
+      console.log(`✅ Instant booster ${booster.name} finished successfully`)
+    } else {
+      console.warn(`⚠️ Cannot finish booster ${booster.name} - either not activated or has duration`)
+    }
+  }
+}
+
 // Real-time subscription for match updates
 let matchSubscription: any = null
 
@@ -1687,7 +1975,7 @@ function setupRealtimeSubscription() {
   if (!match.value) return
 
   matchSubscription = supabase
-    .channel(`admin-match-${match.value.id}`)
+    .channel(`match_${match.value.id}`)
     .on('postgres_changes', {
       event: 'UPDATE',
       schema: 'public',
@@ -1696,6 +1984,7 @@ function setupRealtimeSubscription() {
     }, (payload) => {
       console.log('🔄 Admin received match update:', payload.new)
       console.log('🏑 MATCH CONTROL - Received update for match:', (payload.new as any).id)
+      console.log('🏑 MATCH CONTROL - Booster update detected:', (payload.new as any).boosters)
       
       console.log('🏑🔄 Admin payload details:', {
         eventType: payload.eventType,
@@ -1866,6 +2155,11 @@ onUnmounted(() => {
   stopPenaltyTimer()
   clearAllBoosterTimers()
   
+  // Clean up score update timeouts
+  Object.values(scoreUpdateTimeouts.value).forEach(timeoutId => {
+    clearTimeout(timeoutId)
+  })
+  
   // Clean up subscription
   if (matchSubscription) {
     matchSubscription.unsubscribe()
@@ -1908,12 +2202,13 @@ onUnmounted(() => {
             {{ $t('matchControl.setup.description') }}
           </div>
           <button 
-            @click="initializeMatch"
-            class="btn bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold px-8 py-4 text-xl"
-            :disabled="!match || match.status !== 'pending'"
+            @click="() => { console.log('🖱️ Initialize button clicked!'); initializeMatch(); }"
+            class="btn bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold px-8 py-4 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="!match || match.status !== 'pending' || initializing"
           >
-            <span class="mr-2">🏑</span>
-            {{ $t('matchControl.setup.initializeButton') }}
+            <span v-if="initializing" class="mr-2">⏳</span>
+            <span v-else class="mr-2">🏑</span>
+            {{ initializing ? 'Initializing...' : $t('matchControl.setup.initializeButton') }}
             <span v-if="match?.status !== 'pending'" class="text-xs block">
               (Status: {{ match?.status || 'loading...' }})
             </span>
@@ -1936,6 +2231,18 @@ onUnmounted(() => {
               <div class="flex justify-center space-x-2">
                 <button @click="updateScore('a', -1)" class="btn btn-danger">-1</button>
                 <button @click="updateScore('a', 1)" class="btn btn-success">+1</button>
+              </div>
+            </div>
+
+            <!-- PC Control -->
+            <div class="text-center mb-6">
+              <div class="text-lg font-semibold text-white mb-2">Penalty Corners</div>
+              <div class="text-4xl font-bold text-yellow-300 mb-3">
+                {{ match.pc_a || 0 }}
+              </div>
+              <div class="flex justify-center space-x-2">
+                <button @click="updatePC('a', -1)" class="btn btn-sm btn-warning">-1</button>
+                <button @click="updatePC('a', 1)" class="btn btn-sm btn-warning">+1</button>
               </div>
             </div>
 
@@ -1992,6 +2299,15 @@ onUnmounted(() => {
                       class="btn-xs bg-green-600 hover:bg-green-700 text-white ml-2 animate-pulse"
                     >
                       {{ $t('matchControl.boosters.activate') }}
+                    </button>
+                    <!-- Finish button for instant boosters -->
+                    <button 
+                      v-else-if="booster.activated && !booster.expired && (!booster.duration || booster.duration === 0)"
+                      @click="finishInstantBooster('a', index)"
+                      class="btn-xs bg-orange-600 hover:bg-orange-700 text-white ml-2"
+                      title="Finish instant booster"
+                    >
+                      Finish
                     </button>
                     <span v-else-if="booster.activated && !booster.expired" class="text-green-400 text-xs ml-2 animate-bounce">{{ $t('matchControl.boosters.live') }}</span>
                   </div>
@@ -2100,16 +2416,24 @@ onUnmounted(() => {
               <button 
                 v-if="match.status !== 'active'"
                 @click="playMatch" 
+                :disabled="buttonStates.play"
                 class="btn btn-success"
+                :class="{ 'opacity-50 cursor-not-allowed': buttonStates.play }"
               >
-                ▶️ Play
+                <span v-if="buttonStates.play">⏳</span>
+                <span v-else>▶️</span>
+                {{ buttonStates.play ? 'Starting...' : 'Play' }}
               </button>
               <button 
                 v-else
                 @click="pauseMatch" 
+                :disabled="buttonStates.pause"
                 class="btn btn-warning"
+                :class="{ 'opacity-50 cursor-not-allowed': buttonStates.pause }"
               >
-                ⏸️ Pause
+                <span v-if="buttonStates.pause">⏳</span>
+                <span v-else>⏸️</span>
+                {{ buttonStates.pause ? 'Pausing...' : 'Pause' }}
               </button>
               
               <!-- Resume after booster execution button -->
@@ -2121,8 +2445,15 @@ onUnmounted(() => {
                 ▶️ Resume After Booster
               </button>
               
-              <button @click="finishMatch" class="btn btn-danger">
-                ⏹️ Finish
+              <button 
+                @click="finishMatch" 
+                :disabled="buttonStates.finish"
+                class="btn btn-danger"
+                :class="{ 'opacity-50 cursor-not-allowed': buttonStates.finish }"
+              >
+                <span v-if="buttonStates.finish">⏳</span>
+                <span v-else>⏹️</span>
+                {{ buttonStates.finish ? 'Finishing...' : 'Finish' }}
               </button>
               
               <button @click="resetTimer" class="btn btn-secondary col-span-2">
@@ -2130,19 +2461,23 @@ onUnmounted(() => {
               </button>
               
               <button 
-                v-if="match.status === 'pending'"
+                v-if="match.status === 'pending' && !initialized"
                 @click="initializeMatch" 
                 class="btn btn-primary col-span-2"
               >
-                � Initialize Match
+                🚀 Initialize Match
               </button>
               
               <button 
                 v-if="(match.status === 'active' || match.status === 'pending') && (!match.boosters?.teamA?.length) && (!match.boosters?.teamB?.length)"
                 @click="startBoosterSelection" 
+                :disabled="buttonStates.spinners"
                 class="btn bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 col-span-2 animate-pulse"
+                :class="{ 'opacity-50 cursor-not-allowed': buttonStates.spinners }"
               >
-                🎰 Spin Casino Boosters
+                <span v-if="buttonStates.spinners">⏳</span>
+                <span v-else>🎰</span>
+                {{ buttonStates.spinners ? 'Starting Casino...' : 'Spin Casino Boosters' }}
               </button>
               
               <div v-else-if="match.boosters?.teamA?.length > 0 || match.boosters?.teamB?.length > 0" class="col-span-2 text-center text-green-400 text-sm">
@@ -2247,6 +2582,18 @@ onUnmounted(() => {
               </div>
             </div>
 
+            <!-- PC Control -->
+            <div class="text-center mb-6">
+              <div class="text-lg font-semibold text-white mb-2">Penalty Corners</div>
+              <div class="text-4xl font-bold text-yellow-300 mb-3">
+                {{ match.pc_b || 0 }}
+              </div>
+              <div class="flex justify-center space-x-2">
+                <button @click="updatePC('b', -1)" class="btn btn-sm btn-warning">-1</button>
+                <button @click="updatePC('b', 1)" class="btn btn-sm btn-warning">+1</button>
+              </div>
+            </div>
+
             <!-- Active Penalties -->
             <div class="mb-6">
               <h3 class="text-lg font-semibold text-white mb-3">Active Penalties</h3>
@@ -2300,6 +2647,15 @@ onUnmounted(() => {
                       class="btn-xs bg-green-600 hover:bg-green-700 text-white ml-2 animate-pulse"
                     >
                       Activate
+                    </button>
+                    <!-- Finish button for instant boosters -->
+                    <button 
+                      v-else-if="booster.activated && !booster.expired && (!booster.duration || booster.duration === 0)"
+                      @click="finishInstantBooster('b', index)"
+                      class="btn-xs bg-orange-600 hover:bg-orange-700 text-white ml-2"
+                      title="Finish instant booster"
+                    >
+                      Finish
                     </button>
                     <span v-else-if="booster.activated && !booster.expired" class="text-green-400 text-xs ml-2 animate-bounce">🟢 LIVE</span>
                   </div>

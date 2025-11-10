@@ -151,8 +151,9 @@ watch(() => authStore.profile?.role, (newRole) => {
           </p>
         </RouterLink>
 
-        <!-- Theme Demo -->
+        <!-- Theme Demo (Admin only) -->
         <RouterLink 
+          v-if="authStore.isAdmin"
           to="/theme-demo" 
           class="nav-card"
         >

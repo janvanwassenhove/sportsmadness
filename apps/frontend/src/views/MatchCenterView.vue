@@ -19,6 +19,30 @@
         </div>
       </div>
 
+      <!-- Debug Section (Development Only) -->
+      <div v-if="match && isDevelopment" class="bg-red-900/20 backdrop-blur-sm rounded-xl p-4 border border-red-500/30 mb-8">
+        <h3 class="text-red-300 font-bold mb-3">🔧 Debug Tools</h3>
+        <div class="flex gap-2 flex-wrap">
+          <button 
+            @click="testScoreUpdate" 
+            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Test Score Update
+          </button>
+          <button 
+            @click="testBoosterUpdate" 
+            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Test Booster Update
+          </button>
+          <div class="text-red-300 text-xs">
+            User Team: {{ userTeamSide || 'None' }} | 
+            Match Status: {{ match.status }} |
+            Boosters: {{ match.boosters ? 'Loaded' : 'None' }}
+          </div>
+        </div>
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-20">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
@@ -155,7 +179,7 @@
               </div>
 
               <!-- Activation Button -->
-              <div v-if="!booster.used && !booster.activated" class="text-center">
+              <div v-if="!booster.used && !booster.activated && !booster.countdown" class="text-center">
                 <button
                   @click="activateUserBooster(index)"
                   :disabled="activatingBooster"
@@ -216,6 +240,7 @@
               <h3 class="text-lg font-semibold text-blue-300 flex items-center">
                 <span class="mr-2">🔵</span>
                 {{ getTeamName(match.team_a) }}
+                <span v-if="userTeamSide === 'a'" class="ml-2 text-xs bg-blue-500 px-2 py-1 rounded text-white">YOUR TEAM</span>
               </h3>
               
               <div v-if="!getTeamBoosters('teamA').length" class="text-center py-8">
@@ -227,33 +252,89 @@
                 <div 
                   v-for="(booster, index) in getTeamBoosters('teamA')"
                   :key="`team-a-${index}`"
-                  class="bg-blue-500/10 border border-blue-400/30 rounded-lg p-3"
+                  class="rounded-lg p-4 border transition-all"
+                  :class="{
+                    'bg-green-600/20 border-green-400 shadow-lg': booster.activated && !booster.expired,
+                    'bg-orange-500/20 border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
+                    'bg-red-500/20 border-red-400': booster.expired,
+                    'bg-gray-500/20 border-gray-400': booster.used && !booster.activated,
+                    'bg-blue-500/10 border-blue-400/30': !booster.activated && !booster.expired && !booster.used && !booster.countdown
+                  }"
                 >
                   <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-3">
                       <span 
-                        class="text-xl"
-                        :class="{ 'line-through opacity-50': booster.expired }"
+                        class="text-2xl transition-all"
+                        :class="{ 
+                          'line-through opacity-50': booster.expired,
+                          'animate-bounce': (booster.activated && !booster.expired) || (booster.countdown && !booster.activated && !booster.expired)
+                        }"
                       >
                         {{ booster.expired ? '🚫' : (booster.icon || '⚡') }}
                       </span>
-                      <span 
-                        class="text-white font-medium"
-                        :class="{ 'line-through text-gray-400': booster.expired }"
-                      >
-                        {{ booster.name || booster.title }}
-                      </span>
+                      <div class="flex-1">
+                        <div 
+                          class="font-semibold"
+                          :class="{ 
+                            'line-through text-gray-400': booster.expired,
+                            'text-green-300': booster.activated && !booster.expired,
+                            'text-orange-300 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
+                            'text-white': !booster.expired && !booster.activated && !booster.countdown
+                          }"
+                        >
+                          {{ booster.name || booster.title }}
+                        </div>
+                        <div 
+                          class="text-sm"
+                          :class="{ 
+                            'text-gray-500': booster.expired,
+                            'text-green-200': booster.activated && !booster.expired,
+                            'text-orange-200': booster.countdown && !booster.activated && !booster.expired,
+                            'text-blue-200': !booster.expired && !booster.activated && !booster.countdown
+                          }"
+                        >
+                          {{ booster.description }}
+                        </div>
+                      </div>
                     </div>
-                    <div class="flex items-center space-x-2 text-sm">
-                      <span v-if="booster.expired" class="text-red-400 font-semibold">● EXPIRED</span>
-                      <span v-else-if="booster.activated" class="text-green-400 font-semibold">● ACTIVE</span>
-                      <span v-else-if="booster.used" class="text-gray-400">● USED</span>
-                      <span v-else class="text-yellow-400">● READY</span>
+                    <div class="text-right flex flex-col items-end space-y-1">
+                      <!-- Status indicator -->
+                      <span 
+                        class="text-sm font-semibold px-2 py-1 rounded-full"
+                        :class="{
+                          'bg-red-500/20 text-red-400 border border-red-400': booster.expired,
+                          'bg-green-500/20 text-green-400 border border-green-400': booster.activated && !booster.expired,
+                          'bg-orange-500/20 text-orange-400 border border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
+                          'bg-gray-500/20 text-gray-400 border border-gray-400': booster.used && !booster.activated,
+                          'bg-yellow-500/20 text-yellow-400 border border-yellow-400': !booster.activated && !booster.expired && !booster.used && !booster.countdown
+                        }"
+                      >
+                        <span v-if="booster.expired">● EXPIRED</span>
+                        <span v-else-if="booster.activated">● ACTIVE</span>
+                        <span v-else-if="booster.countdown">● COUNTDOWN</span>
+                        <span v-else-if="booster.used">● USED</span>
+                        <span v-else>● READY</span>
+                      </span>
                       
                       <!-- Active timer for this booster -->
-                      <span v-if="booster.activated && activeBoosterTimers[`a_${index}`]" class="text-green-400 font-bold">
-                        ({{ Math.ceil(activeBoosterTimers[`a_${index}`]?.timeLeft || 0) }}s)
+                      <span v-if="booster.activated && activeBoosterTimers[`a_${index}`]" 
+                            class="bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold font-mono animate-pulse">
+                        ⏰ {{ Math.ceil(activeBoosterTimers[`a_${index}`]?.timeLeft || 0) }}s
                       </span>
+                      
+                      <!-- Activation button for user's team -->
+                      <button
+                        v-if="userTeamSide === 'a' && !booster.activated && !booster.used && !booster.expired && !booster.countdown"
+                        @click="activateUserBooster(index)"
+                        :disabled="activatingBooster"
+                        class="mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
+                      >
+                        <span v-if="activatingBooster" class="flex items-center">
+                          <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                          Activating...
+                        </span>
+                        <span v-else>🚀 Activate</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -265,6 +346,7 @@
               <h3 class="text-lg font-semibold text-purple-300 flex items-center">
                 <span class="mr-2">🟣</span>
                 {{ getTeamName(match.team_b) }}
+                <span v-if="userTeamSide === 'b'" class="ml-2 text-xs bg-purple-500 px-2 py-1 rounded text-white">YOUR TEAM</span>
               </h3>
               
               <div v-if="!getTeamBoosters('teamB').length" class="text-center py-8">
@@ -276,33 +358,89 @@
                 <div 
                   v-for="(booster, index) in getTeamBoosters('teamB')"
                   :key="`team-b-${index}`"
-                  class="bg-purple-500/10 border border-purple-400/30 rounded-lg p-3"
+                  class="rounded-lg p-4 border transition-all"
+                  :class="{
+                    'bg-green-600/20 border-green-400 shadow-lg': booster.activated && !booster.expired,
+                    'bg-orange-500/20 border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
+                    'bg-red-500/20 border-red-400': booster.expired,
+                    'bg-gray-500/20 border-gray-400': booster.used && !booster.activated,
+                    'bg-purple-500/10 border-purple-400/30': !booster.activated && !booster.expired && !booster.used && !booster.countdown
+                  }"
                 >
                   <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-3">
                       <span 
-                        class="text-xl"
-                        :class="{ 'line-through opacity-50': booster.expired }"
+                        class="text-2xl transition-all"
+                        :class="{ 
+                          'line-through opacity-50': booster.expired,
+                          'animate-bounce': (booster.activated && !booster.expired) || (booster.countdown && !booster.activated && !booster.expired)
+                        }"
                       >
                         {{ booster.expired ? '🚫' : (booster.icon || '⚡') }}
                       </span>
-                      <span 
-                        class="text-white font-medium"
-                        :class="{ 'line-through text-gray-400': booster.expired }"
-                      >
-                        {{ booster.name || booster.title }}
-                      </span>
+                      <div class="flex-1">
+                        <div 
+                          class="font-semibold"
+                          :class="{ 
+                            'line-through text-gray-400': booster.expired,
+                            'text-green-300': booster.activated && !booster.expired,
+                            'text-orange-300 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
+                            'text-white': !booster.expired && !booster.activated && !booster.countdown
+                          }"
+                        >
+                          {{ booster.name || booster.title }}
+                        </div>
+                        <div 
+                          class="text-sm"
+                          :class="{ 
+                            'text-gray-500': booster.expired,
+                            'text-green-200': booster.activated && !booster.expired,
+                            'text-orange-200': booster.countdown && !booster.activated && !booster.expired,
+                            'text-purple-200': !booster.expired && !booster.activated && !booster.countdown
+                          }"
+                        >
+                          {{ booster.description }}
+                        </div>
+                      </div>
                     </div>
-                    <div class="flex items-center space-x-2 text-sm">
-                      <span v-if="booster.expired" class="text-red-400 font-semibold">● EXPIRED</span>
-                      <span v-else-if="booster.activated" class="text-green-400 font-semibold">● ACTIVE</span>
-                      <span v-else-if="booster.used" class="text-gray-400">● USED</span>
-                      <span v-else class="text-yellow-400">● READY</span>
+                    <div class="text-right flex flex-col items-end space-y-1">
+                      <!-- Status indicator -->
+                      <span 
+                        class="text-sm font-semibold px-2 py-1 rounded-full"
+                        :class="{
+                          'bg-red-500/20 text-red-400 border border-red-400': booster.expired,
+                          'bg-green-500/20 text-green-400 border border-green-400': booster.activated && !booster.expired,
+                          'bg-orange-500/20 text-orange-400 border border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
+                          'bg-gray-500/20 text-gray-400 border border-gray-400': booster.used && !booster.activated,
+                          'bg-yellow-500/20 text-yellow-400 border border-yellow-400': !booster.activated && !booster.expired && !booster.used && !booster.countdown
+                        }"
+                      >
+                        <span v-if="booster.expired">● EXPIRED</span>
+                        <span v-else-if="booster.activated">● ACTIVE</span>
+                        <span v-else-if="booster.countdown">● COUNTDOWN</span>
+                        <span v-else-if="booster.used">● USED</span>
+                        <span v-else>● READY</span>
+                      </span>
                       
                       <!-- Active timer for this booster -->
-                      <span v-if="booster.activated && activeBoosterTimers[`b_${index}`]" class="text-green-400 font-bold">
-                        ({{ Math.ceil(activeBoosterTimers[`b_${index}`]?.timeLeft || 0) }}s)
+                      <span v-if="booster.activated && activeBoosterTimers[`b_${index}`]" 
+                            class="bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold font-mono animate-pulse">
+                        ⏰ {{ Math.ceil(activeBoosterTimers[`b_${index}`]?.timeLeft || 0) }}s
                       </span>
+                      
+                      <!-- Activation button for user's team -->
+                      <button
+                        v-if="userTeamSide === 'b' && !booster.activated && !booster.used && !booster.expired && !booster.countdown"
+                        @click="activateUserBooster(index)"
+                        :disabled="activatingBooster"
+                        class="mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
+                      >
+                        <span v-if="activatingBooster" class="flex items-center">
+                          <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                          Activating...
+                        </span>
+                        <span v-else>🚀 Activate</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -444,6 +582,45 @@ const activeBoosterTimers = ref<Record<string, {
   intervalId: number
 }>>({})
 
+// DEBUG: Test functions for development
+const testScoreUpdate = async () => {
+  console.log('🧪 MANUAL TEST: Testing simple score update...')
+  if (!match.value) {
+    console.log('❌ No match loaded')
+    return
+  }
+  
+  try {
+    const newScore = (match.value.score_a || 0) + 1
+    console.log('🧪 Sending test score update:', newScore)
+    const result = await updateMatch({ score_a: newScore })
+    console.log('🧪 Test score update result:', result)
+  } catch (error) {
+    console.error('🧪 Test score update failed:', error)
+  }
+}
+
+const testBoosterUpdate = async () => {
+  console.log('🧪 MANUAL TEST: Testing booster database update...')
+  if (!match.value) {
+    console.log('❌ No match loaded')
+    return
+  }
+  
+  try {
+    const testBoosters = {
+      ...match.value.boosters,
+      test_timestamp: new Date().toISOString()
+    }
+    
+    console.log('🧪 Sending test update:', testBoosters)
+    const result = await updateMatch({ boosters: testBoosters })
+    console.log('🧪 Test update result:', result)
+  } catch (error) {
+    console.error('🧪 Test update failed:', error)
+  }
+}
+
 // Determine which side the user's team is on
 const userTeamSide = computed(() => {
   const result = (() => {
@@ -463,6 +640,11 @@ const userTeamSide = computed(() => {
   })
   
   return result
+})
+
+// Development mode check
+const isDevelopment = computed(() => {
+  return import.meta.env.DEV
 })
 
 // Load user's team
@@ -523,96 +705,30 @@ async function loadMatch() {
     
     // Set up real-time subscription for match updates
     matchSubscription = supabase
-      .channel(`match-${props.id}`)
+      .channel(`match_${props.id}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'matches',
         filter: `id=eq.${props.id}`
       }, (payload) => {
-        console.log('🔄 Match update received:', payload.new)
+        console.log('🔄 Match update received in MatchCenterView:', payload.new)
+        console.log('🔄 Match update received - BOOSTER CHECK:', payload.new?.boosters)
         
         // CHECK FOR POTENTIAL RACE CONDITION
         console.log('🔍 RACE CONDITION CHECK:')
         console.log('🔍 Current local boosters before overwrite:', JSON.stringify(match.value?.boosters, null, 2))
         console.log('🔍 Incoming payload boosters:', JSON.stringify(payload.new.boosters, null, 2))
         
-        // PREVENT RACE CONDITION: Merge booster states intelligently
+        // SIMPLIFIED: Accept all incoming updates without race condition prevention
+        // This ensures proper real-time synchronization across all views
         const updatedMatch = payload.new as Match
-        
-        // Store the original incoming boosters before any modifications
-        const originalIncomingBoosters = updatedMatch.boosters ? JSON.parse(JSON.stringify(updatedMatch.boosters)) : null
-        
-        // If we have local booster activations that are newer than incoming data, preserve them
-        if (match.value?.boosters && updatedMatch.boosters) {
-          const localBoosters = match.value.boosters
-          const incomingBoosters = updatedMatch.boosters
-          
-          // Check Team A boosters
-          if (localBoosters.teamA && incomingBoosters.teamA && Array.isArray(incomingBoosters.teamA)) {
-            localBoosters.teamA.forEach((localBooster: any, index: number) => {
-              const incomingBooster = incomingBoosters.teamA?.[index]
-              if (localBooster && incomingBooster && 
-                  localBooster.activated && !incomingBooster.activated &&
-                  localBooster.activatedAt && incomingBoosters.teamA) {
-                // Local activation is newer, keep it
-                console.log(`🔒 Preserving local Team A booster ${index} activation:`, localBooster.name)
-                incomingBoosters.teamA[index] = localBooster
-              }
-            })
-          }
-          
-          // Check Team B boosters
-          if (localBoosters.teamB && incomingBoosters.teamB && Array.isArray(incomingBoosters.teamB)) {
-            localBoosters.teamB.forEach((localBooster: any, index: number) => {
-              const incomingBooster = incomingBoosters.teamB?.[index]
-              if (localBooster && incomingBooster && 
-                  localBooster.activated && !incomingBooster.activated &&
-                  localBooster.activatedAt && incomingBoosters.teamB) {
-                // Local activation is newer, keep it
-                console.log(`🔒 Preserving local Team B booster ${index} activation:`, localBooster.name)
-                incomingBoosters.teamB[index] = localBooster
-              }
-            })
-          }
-        }
+        console.log('� Accepting incoming update without race condition prevention')
         
         match.value = updatedMatch
         
-        // If we preserved any local activations, we need to sync them back to the database
-        // so other views can see them
-        let preservedActivations = false
-        if (match.value?.boosters && originalIncomingBoosters) {
-          const currentBoosters = match.value.boosters
-          
-          // Check if we have any preserved activations that differ from the original incoming payload
-          const hasTeamAPreservations = currentBoosters.teamA?.some((booster: any, index: number) => {
-            const original = originalIncomingBoosters.teamA?.[index]
-            return booster.activated && original && !original.activated
-          })
-          
-          const hasTeamBPreservations = currentBoosters.teamB?.some((booster: any, index: number) => {
-            const original = originalIncomingBoosters.teamB?.[index]
-            return booster.activated && original && !original.activated
-          })
-          
-          preservedActivations = Boolean(hasTeamAPreservations || hasTeamBPreservations)
-          
-          if (preservedActivations) {
-            console.log('🔍 PRESERVATION DETAILS:')
-            console.log('🔍 Current boosters:', JSON.stringify(currentBoosters, null, 2))
-            console.log('🔍 Original incoming boosters:', JSON.stringify(originalIncomingBoosters, null, 2))
-          }
-        }
-        
-        if (preservedActivations) {
-          console.log('🔄 Syncing preserved activations back to database...')
-          console.log('🔄 Syncing this booster state:', JSON.stringify(match.value.boosters, null, 2))
-          // Update the database with our preserved activations
-          updateMatch({ boosters: match.value.boosters }).catch(error => {
-            console.error('❌ Failed to sync preserved activations:', error)
-          })
-        }
+        // If we preserved any local activations that are newer than incoming data, preserve them
+        // NOTE: Race condition prevention has been simplified to improve real-time sync
         
         updateBoosterTimers()
       })
@@ -801,6 +917,7 @@ async function updateMatch(updates: Partial<any>) {
     // DETAILED DEBUGGING: Log the exact boosters structure being sent
     if (updates.boosters) {
       console.log('🔍 EXACT BOOSTERS BEING SENT TO DB:', JSON.stringify(updates.boosters, null, 2))
+      console.log('🔍 MATCH CENTER - SENDING BOOSTER UPDATE FOR MATCH:', match.value?.id)
     }
     
     console.log('� About to call supabase update...')
@@ -873,16 +990,17 @@ async function activateUserBooster(boosterIndex: number) {
       hasTeamBoosters: !!boosters[teamKey],
       boosterExists: !!(boosters[teamKey] && boosters[teamKey][boosterIndex]),
       isNotActivated: boosters[teamKey] && boosters[teamKey][boosterIndex] ? !boosters[teamKey][boosterIndex].activated : false,
+      isNotInCountdown: boosters[teamKey] && boosters[teamKey][boosterIndex] ? !boosters[teamKey][boosterIndex].countdown : false,
       currentBooster: boosters[teamKey] ? boosters[teamKey][boosterIndex] : null
     })
     
     if (boosters[teamKey] && boosters[teamKey][boosterIndex] && !boosters[teamKey][boosterIndex].activated && !boosters[teamKey][boosterIndex].countdown) {
       const updatedTeamBoosters = [...boosters[teamKey]]
       const booster = updatedTeamBoosters[boosterIndex]
-      
-      // Start countdown first
-      updatedTeamBoosters[boosterIndex] = {
-        ...booster,
+        
+        // Start countdown first
+        updatedTeamBoosters[boosterIndex] = {
+          ...booster,
         countdown: true,
         countdownStartedAt: new Date().toISOString(),
         activatedBy: authStore.profile?.email || 'user'
@@ -905,7 +1023,14 @@ async function activateUserBooster(boosterIndex: number) {
       console.log('🔍 Full Boosters Object for DB:', JSON.stringify(boosters, null, 2))
 
       // Use the same update pattern as MatchControlView
-      await updateMatch({ boosters })
+      console.log('🔥 ABOUT TO CALL updateMatch - CRITICAL DEBUG POINT')
+      console.log('🔥 Match ID:', match.value?.id)
+      console.log('🔥 Boosters object to send:', JSON.stringify(boosters, null, 2))
+      
+      const updateResult = await updateMatch({ boosters })
+      
+      console.log('🔥 updateMatch completed with result:', updateResult)
+      console.log('🔥 POST-UPDATE: Local match boosters:', JSON.stringify(match.value?.boosters, null, 2))
       
       // Start 7-second countdown before actual activation
       setTimeout(async () => {
@@ -986,8 +1111,22 @@ async function activateUserBooster(boosterIndex: number) {
         teamBoostersLength: boosters[teamKey]?.length || 0,
         boosterExists: !!(boosters[teamKey] && boosters[teamKey][boosterIndex]),
         boosterData: boosters[teamKey] ? boosters[teamKey][boosterIndex] : null,
-        isAlreadyActivated: boosters[teamKey] && boosters[teamKey][boosterIndex] ? boosters[teamKey][boosterIndex].activated : 'N/A'
+        isAlreadyActivated: boosters[teamKey] && boosters[teamKey][boosterIndex] ? boosters[teamKey][boosterIndex].activated : 'N/A',
+        isInCountdown: boosters[teamKey] && boosters[teamKey][boosterIndex] ? boosters[teamKey][boosterIndex].countdown : 'N/A',
+        countdownStartedAt: boosters[teamKey] && boosters[teamKey][boosterIndex] ? boosters[teamKey][boosterIndex].countdownStartedAt : 'N/A'
       })
+      
+      // Provide user feedback for common scenarios
+      if (boosters[teamKey] && boosters[teamKey][boosterIndex]) {
+        const booster = boosters[teamKey][boosterIndex]
+        if (booster.activated) {
+          alert('This booster has already been activated!')
+        } else if (booster.countdown) {
+          alert('This booster is already counting down. Please wait for it to activate.')
+        } else {
+          alert('Unable to activate this booster. Please try again.')
+        }
+      }
     }
   } catch (error) {
     console.error('❌ Error activating booster:', error)
@@ -1067,6 +1206,10 @@ onMounted(async () => {
   timerInterval = setInterval(() => {
     // Timer updates are handled by real-time subscription
   }, 1000)
+  
+  // DEBUG: Add test function to window for manual testing
+  ;(window as any).testBoosterUpdate = testBoosterUpdate
+  ;(window as any).testScoreUpdate = testScoreUpdate
 })
 
 // Cleanup

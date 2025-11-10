@@ -9,9 +9,16 @@ interface SoundFile {
 export class SoundManager {
   private static audioCache: Map<string, HTMLAudioElement> = new Map()
 
+  // Get the correct base path for assets
+  private static getBasePath(): string {
+    // Use import.meta.env.BASE_URL which Vite sets automatically based on the base config
+    return import.meta.env.BASE_URL || '/'
+  }
+
   // Get available sound files from the public directory
   static async getAvailableSounds(type: 'boosters' | 'maddies'): Promise<SoundFile[]> {
     const sounds: SoundFile[] = []
+    const basePath = this.getBasePath()
     
     // Pre-defined sound files based on the folder structure
     const soundFiles = type === 'boosters' 
@@ -21,7 +28,7 @@ export class SoundManager {
     soundFiles.forEach(file => {
       sounds.push({
         name: file,
-        path: `/sounds/${type}/${file}`,
+        path: `${basePath}sounds/${type}/${file}`,
         displayName: file.replace('.mp3', '').replace('_', ' ').toUpperCase()
       })
     })
@@ -29,22 +36,34 @@ export class SoundManager {
     return sounds
   }
 
-  // Play a sound file
+  // Play a sound file with automatic base path resolution
   static async playSound(soundPath: string, volume: number = 0.7): Promise<void> {
     try {
-      let audio = this.audioCache.get(soundPath)
+      // If soundPath doesn't start with http or data: and doesn't include the base path, add it
+      let fullPath = soundPath
+      const basePath = this.getBasePath()
+      
+      if (!soundPath.startsWith('http') && 
+          !soundPath.startsWith('data:') && 
+          !soundPath.startsWith(basePath)) {
+        // Remove leading slash if present, then add base path
+        const cleanPath = soundPath.startsWith('/') ? soundPath.substring(1) : soundPath
+        fullPath = `${basePath}${cleanPath}`
+      }
+      
+      let audio = this.audioCache.get(fullPath)
       
       if (!audio) {
-        audio = new Audio(soundPath)
+        audio = new Audio(fullPath)
         audio.volume = volume
-        this.audioCache.set(soundPath, audio)
+        this.audioCache.set(fullPath, audio)
       }
 
       // Reset the audio to the beginning
       audio.currentTime = 0
       audio.volume = volume
       
-      console.log('🔊 Playing sound:', soundPath)
+      console.log('🔊 Playing sound:', fullPath)
       await audio.play()
     } catch (error) {
       console.error('🔊 Error playing sound:', soundPath, error)
@@ -53,10 +72,21 @@ export class SoundManager {
 
   // Preload a sound for better performance
   static preloadSound(soundPath: string): void {
-    if (!this.audioCache.has(soundPath)) {
-      const audio = new Audio(soundPath)
+    // Apply the same base path logic as playSound
+    let fullPath = soundPath
+    const basePath = this.getBasePath()
+    
+    if (!soundPath.startsWith('http') && 
+        !soundPath.startsWith('data:') && 
+        !soundPath.startsWith(basePath)) {
+      const cleanPath = soundPath.startsWith('/') ? soundPath.substring(1) : soundPath
+      fullPath = `${basePath}${cleanPath}`
+    }
+    
+    if (!this.audioCache.has(fullPath)) {
+      const audio = new Audio(fullPath)
       audio.preload = 'auto'
-      this.audioCache.set(soundPath, audio)
+      this.audioCache.set(fullPath, audio)
     }
   }
 

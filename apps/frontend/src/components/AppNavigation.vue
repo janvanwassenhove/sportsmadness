@@ -124,19 +124,10 @@
           <div class="relative" ref="languageDropdownRef">
             <button
               @click="showLanguageDropdown = !showLanguageDropdown"
-              class="nav-link flex items-center space-x-1"
+              class="flex items-center justify-center w-10 h-10 rounded-lg transition-colors hover:bg-white/10 text-white font-semibold text-sm"
+              :title="$t('navigation.language')"
             >
-              <span>{{ languageStore.currentLanguage?.flag || '🌐' }}</span>
-              <span class="hidden sm:inline">{{ $t('navigation.language') }}</span>
-              <svg 
-                class="w-4 h-4 transition-transform duration-200"
-                :class="{ 'rotate-180': showLanguageDropdown }"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+              {{ languageStore.currentLanguage?.code?.toUpperCase() || 'EN' }}
             </button>
             
             <!-- Language Dropdown -->
