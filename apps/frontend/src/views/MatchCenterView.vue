@@ -19,30 +19,6 @@
         </div>
       </div>
 
-      <!-- Debug Section (Development Only) -->
-      <div v-if="match && isDevelopment" class="bg-red-900/20 backdrop-blur-sm rounded-xl p-4 border border-red-500/30 mb-8">
-        <h3 class="text-red-300 font-bold mb-3">🔧 Debug Tools</h3>
-        <div class="flex gap-2 flex-wrap">
-          <button 
-            @click="testScoreUpdate" 
-            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
-          >
-            Test Score Update
-          </button>
-          <button 
-            @click="testBoosterUpdate" 
-            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
-          >
-            Test Booster Update
-          </button>
-          <div class="text-red-300 text-xs">
-            User Team: {{ userTeamSide || 'None' }} | 
-            Match Status: {{ match.status }} |
-            Boosters: {{ match.boosters ? 'Loaded' : 'None' }}
-          </div>
-        </div>
-      </div>
-
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-20">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
@@ -181,11 +157,11 @@
               <!-- Activation Button -->
               <div v-if="!booster.used && !booster.activated && !booster.countdown" class="text-center">
                 <button
-                  @click="activateUserBooster(index)"
-                  :disabled="activatingBooster"
+                  @click="console.log('🚨 BUTTON CLICKED - Index:', index); activateUserBooster(index)"
+                  :disabled="booster.countdown || booster.activated"
                   class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
                 >
-                  <span v-if="activatingBooster" class="flex items-center justify-center">
+                  <span v-if="booster.countdown" class="flex items-center justify-center">
                     <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Activating...
                   </span>
@@ -325,11 +301,11 @@
                       <!-- Activation button for user's team -->
                       <button
                         v-if="userTeamSide === 'a' && !booster.activated && !booster.used && !booster.expired && !booster.countdown"
-                        @click="activateUserBooster(index)"
-                        :disabled="activatingBooster"
+                        @click="console.log('🚨 TEAM A BUTTON CLICKED - Index:', index); activateUserBooster(index)"
+                        :disabled="booster.countdown || booster.activated"
                         class="mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
                       >
-                        <span v-if="activatingBooster" class="flex items-center">
+                        <span v-if="booster.countdown" class="flex items-center">
                           <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
                           Activating...
                         </span>
@@ -431,11 +407,11 @@
                       <!-- Activation button for user's team -->
                       <button
                         v-if="userTeamSide === 'b' && !booster.activated && !booster.used && !booster.expired && !booster.countdown"
-                        @click="activateUserBooster(index)"
-                        :disabled="activatingBooster"
+                        @click="console.log('🚨 TEAM B BUTTON CLICKED - Index:', index); activateUserBooster(index)"
+                        :disabled="booster.countdown || booster.activated"
                         class="mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
                       >
-                        <span v-if="activatingBooster" class="flex items-center">
+                        <span v-if="booster.countdown" class="flex items-center">
                           <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
                           Activating...
                         </span>
@@ -570,7 +546,6 @@ const standings = ref<TeamStanding[]>([])
 const loading = ref(true)
 const loadingStandings = ref(true)
 const error = ref<string>('')
-const activatingBooster = ref(false)
 
 // Real-time subscriptions
 let matchSubscription: any = null
@@ -726,6 +701,32 @@ async function loadMatch() {
         console.log('� Accepting incoming update without race condition prevention')
         
         match.value = updatedMatch
+        
+        // CRITICAL DEBUGGING: Check if countdown data was lost
+        if (payload.new.boosters) {
+          const hasCountdownAfter = match.value?.boosters?.teamA?.some(b => b.countdown) || match.value?.boosters?.teamB?.some(b => b.countdown)
+          
+          if (!hasCountdownAfter) {
+            console.warn('⚠️ No countdown data found in updated match:', {
+              matchBoosters: match.value?.boosters,
+              payloadBoosters: payload.new.boosters
+            })
+            
+            // DETAILED ANALYSIS: Check each team's boosters
+            console.error('🔍 DETAILED COUNTDOWN LOSS ANALYSIS:')
+            console.error('🔍 Local teamA boosters:', JSON.stringify(match.value?.boosters?.teamA, null, 2))
+            console.error('🔍 Local teamB boosters:', JSON.stringify(match.value?.boosters?.teamB, null, 2))
+            console.error('🔍 Incoming teamA boosters:', JSON.stringify(payload.new.boosters.teamA, null, 2))
+            console.error('🔍 Incoming teamB boosters:', JSON.stringify(payload.new.boosters.teamB, null, 2))
+            
+            // Check if ANY countdown data exists in incoming payload
+            const incomingHasCountdown = payload.new.boosters.teamA?.some((b: any) => b.countdown) || payload.new.boosters.teamB?.some((b: any) => b.countdown)
+            console.error('🔍 Incoming payload has countdown data:', incomingHasCountdown)
+            
+          } else {
+            console.log('✅ Countdown data present after update')
+          }
+        }
         
         // If we preserved any local activations that are newer than incoming data, preserve them
         // NOTE: Race condition prevention has been simplified to improve real-time sync
@@ -918,6 +919,15 @@ async function updateMatch(updates: Partial<any>) {
     if (updates.boosters) {
       console.log('🔍 EXACT BOOSTERS BEING SENT TO DB:', JSON.stringify(updates.boosters, null, 2))
       console.log('🔍 MATCH CENTER - SENDING BOOSTER UPDATE FOR MATCH:', match.value?.id)
+      
+      // CRITICAL: Check if countdown data is present in what we're sending
+      const sendingCountdownA = updates.boosters.teamA?.some((b: any) => b.countdown)
+      const sendingCountdownB = updates.boosters.teamB?.some((b: any) => b.countdown)
+      console.log('🔍 SENDING COUNTDOWN DATA CHECK:', {
+        teamA: sendingCountdownA,
+        teamB: sendingCountdownB,
+        hasAnyCountdown: sendingCountdownA || sendingCountdownB
+      })
     }
     
     console.log('� About to call supabase update...')
@@ -967,172 +977,97 @@ async function updateMatch(updates: Partial<any>) {
 // Activate booster for user's team
 async function activateUserBooster(boosterIndex: number) {
   console.log('🎯 activateUserBooster called with index:', boosterIndex)
-  console.log('🎯 Pre-checks:', {
-    hasMatch: !!match.value,
-    userTeamSide: userTeamSide.value,
-    activatingBooster: activatingBooster.value
-  })
   
-  if (!match.value || !userTeamSide.value || activatingBooster.value) {
-    console.log('❌ Activation blocked by pre-checks')
+  if (!match.value?.boosters || !userTeamSide.value) {
+    console.log('❌ No match boosters or user team side')
     return
   }
 
-  activatingBooster.value = true
+  const boosters = { ...match.value.boosters }
+  const teamKey = userTeamSide.value === 'a' ? 'teamA' : 'teamB'
   
-  try {
-    const teamKey = userTeamSide.value === 'a' ? 'teamA' : 'teamB'
-    const boosters = { ...match.value.boosters }
+  if (boosters[teamKey] && boosters[teamKey][boosterIndex] && !boosters[teamKey][boosterIndex].activated && !boosters[teamKey][boosterIndex].countdown) {
+    // Create a new array with the updated booster - start with countdown
+    const updatedTeamBoosters = [...boosters[teamKey]]
+    const booster = updatedTeamBoosters[boosterIndex]
     
-    console.log('🎯 Activation details:', {
+    updatedTeamBoosters[boosterIndex] = {
+      ...booster,
+      countdown: true,
+      countdownStartedAt: new Date().toISOString(),
+      activatedBy: 'user' // Mark as user-activated
+    }
+    
+    // Update the boosters object
+    boosters[teamKey] = updatedTeamBoosters
+    
+    console.log(`🕐 USER starting countdown for team ${userTeamSide.value.toUpperCase()} booster:`, {
+      boosterIndex,
+      booster: updatedTeamBoosters[boosterIndex],
+      boosterType: booster.id,
+      hasDuration: !!booster.duration,
+      allBoosters: boosters
+    })
+    
+    // Update database with countdown state - USE THE SAME UPDATEMATCH AS MATCHCONTROL
+    await updateMatch({ boosters })
+    
+    // Start 7-second countdown before actual activation
+    setTimeout(async () => {
+      try {
+        // Double-check booster still exists and countdown is still active
+        const currentMatch = await supabase
+          .from('matches')
+          .select('boosters')
+          .eq('id', match.value?.id)
+          .single()
+        
+        if (currentMatch.error) {
+          console.error('Error checking match state during countdown:', currentMatch.error)
+          return
+        }
+        
+        const currentBoosters = currentMatch.data.boosters
+        const currentBooster = currentBoosters?.[teamKey]?.[boosterIndex]
+        
+        if (!currentBooster?.countdown) {
+          console.log('🚫 User booster countdown was cancelled or already processed')
+          return
+        }
+        
+        // Now actually activate the booster
+        console.log(`🚀 USER countdown complete - activating booster for team ${userTeamSide.value?.toUpperCase() || 'UNKNOWN'}`)
+        
+        const finalBoosters = { ...currentBoosters }
+        const finalUpdatedTeamBoosters = [...finalBoosters[teamKey]]
+        
+        finalUpdatedTeamBoosters[boosterIndex] = {
+          ...currentBooster,
+          activated: true,
+          activatedAt: new Date().toISOString(),
+          countdown: false // Clear countdown flag
+        }
+        
+        finalBoosters[teamKey] = finalUpdatedTeamBoosters
+        
+        // Update database with final activation - USE THE SAME UPDATEMATCH AS MATCHCONTROL
+        await updateMatch({ boosters: finalBoosters })
+        
+        console.log('✅ User booster activated successfully!')
+        
+      } catch (error) {
+        console.error('Error during user booster activation after countdown:', error)
+      }
+    }, 7000) // 7 seconds countdown
+    
+  } else {
+    console.log('❌ Booster activation conditions not met:', {
       teamKey,
       boosterIndex,
       hasTeamBoosters: !!boosters[teamKey],
       boosterExists: !!(boosters[teamKey] && boosters[teamKey][boosterIndex]),
-      isNotActivated: boosters[teamKey] && boosters[teamKey][boosterIndex] ? !boosters[teamKey][boosterIndex].activated : false,
-      isNotInCountdown: boosters[teamKey] && boosters[teamKey][boosterIndex] ? !boosters[teamKey][boosterIndex].countdown : false,
-      currentBooster: boosters[teamKey] ? boosters[teamKey][boosterIndex] : null
+      boosterData: boosters[teamKey] ? boosters[teamKey][boosterIndex] : null
     })
-    
-    if (boosters[teamKey] && boosters[teamKey][boosterIndex] && !boosters[teamKey][boosterIndex].activated && !boosters[teamKey][boosterIndex].countdown) {
-      const updatedTeamBoosters = [...boosters[teamKey]]
-      const booster = updatedTeamBoosters[boosterIndex]
-        
-        // Start countdown first
-        updatedTeamBoosters[boosterIndex] = {
-          ...booster,
-        countdown: true,
-        countdownStartedAt: new Date().toISOString(),
-        activatedBy: authStore.profile?.email || 'user'
-      }
-      
-      boosters[teamKey] = updatedTeamBoosters
-      
-      console.log(`🏑 User starting countdown for team ${userTeamSide.value.toUpperCase()} booster:`, {
-        boosterIndex,
-        booster: updatedTeamBoosters[boosterIndex],
-        fullBoosterState: boosters,
-        matchId: match.value.id
-      })
-
-      // DETAILED DEBUGGING: Check the exact booster countdown start
-      console.log('🔍 BOOSTER COUNTDOWN VERIFICATION:')
-      console.log('🔍 Team Key:', teamKey)
-      console.log('🔍 Booster Index:', boosterIndex)
-      console.log('🔍 Updated Booster Object:', JSON.stringify(updatedTeamBoosters[boosterIndex], null, 2))
-      console.log('🔍 Full Boosters Object for DB:', JSON.stringify(boosters, null, 2))
-
-      // Use the same update pattern as MatchControlView
-      console.log('🔥 ABOUT TO CALL updateMatch - CRITICAL DEBUG POINT')
-      console.log('🔥 Match ID:', match.value?.id)
-      console.log('🔥 Boosters object to send:', JSON.stringify(boosters, null, 2))
-      
-      const updateResult = await updateMatch({ boosters })
-      
-      console.log('🔥 updateMatch completed with result:', updateResult)
-      console.log('🔥 POST-UPDATE: Local match boosters:', JSON.stringify(match.value?.boosters, null, 2))
-      
-      // Start 7-second countdown before actual activation
-      setTimeout(async () => {
-        try {
-          // Double-check booster still exists and countdown is still active
-          const currentMatch = await supabase
-            .from('matches')
-            .select('boosters')
-            .eq('id', match.value?.id)
-            .single()
-          
-          if (currentMatch.error) {
-            console.error('Error checking match state during countdown:', currentMatch.error)
-            return
-          }
-          
-          const currentBoosters = currentMatch.data.boosters
-          const currentBooster = currentBoosters?.[teamKey]?.[boosterIndex]
-          
-          if (!currentBooster?.countdown) {
-            console.log('🚫 User booster countdown was cancelled or already processed')
-            return
-          }
-          
-          // Now actually activate the booster
-          console.log(`🚀 User countdown complete - activating booster for team ${userTeamSide.value?.toUpperCase() || 'UNKNOWN'}`)
-          
-          const finalBoosters = { ...currentBoosters }
-          const finalUpdatedTeamBoosters = [...finalBoosters[teamKey]]
-          
-          finalUpdatedTeamBoosters[boosterIndex] = {
-            ...currentBooster,
-            activated: true,
-            activatedAt: new Date().toISOString(),
-            countdown: false // Clear countdown flag
-          }
-          
-          finalBoosters[teamKey] = finalUpdatedTeamBoosters
-          
-          // Update database with final activation
-          await updateMatch({ boosters: finalBoosters })
-          
-        } catch (error) {
-          console.error('Error during user booster activation after countdown:', error)
-        }
-      }, 7000) // 7 seconds countdown
-      
-      console.log('✅ Database updated successfully with booster countdown started:', {
-        matchId: match.value.id,
-        updatedBoosters: boosters
-      })
-      
-      console.log('🕐 DETAILED COUNTDOWN DATA:', {
-        teamKey,
-        countdownBooster: updatedTeamBoosters[boosterIndex],
-        fullTeamABoosters: boosters.teamA,
-        fullTeamBBoosters: boosters.teamB
-      })
-      
-      console.log('🏑 MATCH CENTER - Booster countdown started for match:', match.value.id)
-
-      // Local state updated by updateMatch function
-      
-      // IMMEDIATE CHECK: Verify local state after update
-      console.log('🔍 IMMEDIATE LOCAL STATE CHECK:', JSON.stringify(match.value?.boosters, null, 2))
-      
-      // Set up timer for timed boosters
-      if (booster.duration && booster.duration > 0) {
-        updateBoosterTimers()
-      }
-
-      console.log('✅ Booster activated successfully!')
-    } else {
-      console.log('❌ Booster activation conditions not met:', {
-        teamKey,
-        boosterIndex,
-        hasTeamBoosters: !!boosters[teamKey],
-        teamBoostersLength: boosters[teamKey]?.length || 0,
-        boosterExists: !!(boosters[teamKey] && boosters[teamKey][boosterIndex]),
-        boosterData: boosters[teamKey] ? boosters[teamKey][boosterIndex] : null,
-        isAlreadyActivated: boosters[teamKey] && boosters[teamKey][boosterIndex] ? boosters[teamKey][boosterIndex].activated : 'N/A',
-        isInCountdown: boosters[teamKey] && boosters[teamKey][boosterIndex] ? boosters[teamKey][boosterIndex].countdown : 'N/A',
-        countdownStartedAt: boosters[teamKey] && boosters[teamKey][boosterIndex] ? boosters[teamKey][boosterIndex].countdownStartedAt : 'N/A'
-      })
-      
-      // Provide user feedback for common scenarios
-      if (boosters[teamKey] && boosters[teamKey][boosterIndex]) {
-        const booster = boosters[teamKey][boosterIndex]
-        if (booster.activated) {
-          alert('This booster has already been activated!')
-        } else if (booster.countdown) {
-          alert('This booster is already counting down. Please wait for it to activate.')
-        } else {
-          alert('Unable to activate this booster. Please try again.')
-        }
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error activating booster:', error)
-    alert('Failed to activate booster. Please try again.')
-  } finally {
-    activatingBooster.value = false
   }
 }
 

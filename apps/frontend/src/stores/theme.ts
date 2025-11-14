@@ -66,8 +66,8 @@ export const themes: Theme[] = [
 ]
 
 export const useThemeStore = defineStore('theme', () => {
-  // Get saved theme from localStorage or default to 'default'
-  const savedThemeId = localStorage.getItem('hm-theme') || 'default'
+  // Get saved theme from localStorage or default to 'hclokeren'
+  const savedThemeId = localStorage.getItem('hm-theme') || 'hclokeren'
   
   // Current theme ID
   const currentThemeId = ref(savedThemeId)
