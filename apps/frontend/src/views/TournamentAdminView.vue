@@ -1259,8 +1259,10 @@ function calculateMatchStartTimes(tournament: Tournament, matchCount: number): s
   let currentTime = hours * 60 + minutes // Convert to minutes
   
   for (let i = 0; i < matchCount; i++) {
-    const matchHours = Math.floor(currentTime / 60)
-    const matchMinutes = currentTime % 60
+    // Wrap time to stay within 24-hour range (0-1439 minutes)
+    const validTime = currentTime % 1440 // 1440 minutes = 24 hours
+    const matchHours = Math.floor(validTime / 60)
+    const matchMinutes = validTime % 60
     startTimes.push(`${matchHours.toString().padStart(2, '0')}:${matchMinutes.toString().padStart(2, '0')}:00`)
     currentTime += totalSlotMinutes
   }
