@@ -550,12 +550,151 @@ const error = ref<string>('')
 // Real-time subscriptions
 let matchSubscription: any = null
 let timerInterval: number | null = null
+let pollingInterval: number | null = null
 
 // Active booster timers tracking
 const activeBoosterTimers = ref<Record<string, {
   timeLeft: number
   intervalId: number
 }>>({})
+
+// Update queue to prevent race conditions
+const updateQueue: Array<() => Promise<any>> = []
+let isProcessingQueue = false
+
+// Track last update timestamp to prevent stale real-time updates
+const lastLocalUpdateTime = ref<number>(0)
+const ignoreRealtimeUntil = ref<number>(0)
+
+// Process update queue sequentially to prevent race conditions
+async function processUpdateQueue() {
+  if (isProcessingQueue || updateQueue.length === 0) return
+  
+  isProcessingQueue = true
+  console.log('📝 MatchCenter: Processing update queue with', updateQueue.length, 'items')
+  
+  while (updateQueue.length > 0) {
+    const updateFn = updateQueue.shift()
+    if (updateFn) {
+      try {
+        console.log('📝 MatchCenter: Processing queued update...')
+        await updateFn()
+        console.log('✅ MatchCenter: Queued update completed successfully')
+      } catch (error) {
+        console.error('❌ MatchCenter: Error processing queued update:', error)
+      }
+    }
+  }
+  
+  isProcessingQueue = false
+  console.log('📝 MatchCenter: Update queue processing completed')
+}
+
+// Queue an update to prevent race conditions
+function queueUpdate(updateFn: () => Promise<any>) {
+  updateQueue.push(updateFn)
+  processUpdateQueue()
+}
+
+// Polling mechanism for backup
+function startPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+  
+  const poll = async () => {
+    if (!match.value) {
+      console.log('⚠️ No match to poll')
+      return
+    }
+    
+    try {
+      const now = Date.now()
+      const withinProtectionWindow = now < ignoreRealtimeUntil.value
+      
+      if (withinProtectionWindow) {
+        console.log('⏭️ Polling within protection window - will merge instead of replace')
+      }
+      
+      console.log('📊 MatchCenter: Polling for updates...')
+      const { data, error: pollError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', match.value.id)
+        .single()
+      
+      if (pollError) {
+        console.error('❌ MatchCenter: Polling error:', pollError)
+        return
+      }
+      
+      if (data) {
+        // Check for changes
+        const hasChanges = 
+          data.score_a !== match.value.score_a ||
+          data.score_b !== match.value.score_b ||
+          data.status !== match.value.status ||
+          data.time_left !== match.value.time_left ||
+          JSON.stringify(data.boosters) !== JSON.stringify(match.value.boosters)
+        
+        if (hasChanges) {
+          console.log('📊 MatchCenter: Polling detected changes:', {
+            old_scores: `${match.value.score_a} - ${match.value.score_b}`,
+            new_scores: `${data.score_a} - ${data.score_b}`,
+            status: `${match.value.status} -> ${data.status}`,
+            boosters_changed: JSON.stringify(data.boosters) !== JSON.stringify(match.value.boosters)
+          })
+          
+          console.log('📊 POLLING: About to overwrite local state!')
+          console.log('📊 POLLING: Current local boosters:', JSON.stringify(match.value.boosters, null, 2))
+          console.log('📊 POLLING: New database boosters:', JSON.stringify(data.boosters, null, 2))
+          
+          // Check if we're about to lose countdown data
+          const localHasCountdown = match.value?.boosters?.teamA?.some((b: any) => b.countdown) || 
+                                   match.value?.boosters?.teamB?.some((b: any) => b.countdown)
+          const dbHasCountdown = data.boosters?.teamA?.some((b: any) => b.countdown) || 
+                                data.boosters?.teamB?.some((b: any) => b.countdown)
+          
+          if (localHasCountdown && !dbHasCountdown) {
+            console.error('⚠️⚠️⚠️ POLLING ABOUT TO DESTROY COUNTDOWN DATA!')
+            console.error('⚠️ This should not happen - protection window failed!')
+          }
+          
+          // If within protection window, merge instead of replace
+          if (withinProtectionWindow) {
+            console.log('🔀 POLLING: Merging - preserving local booster state')
+            const preservedBoosters = match.value.boosters
+            match.value = {
+              ...data as Match,
+              boosters: preservedBoosters // Keep local booster state
+            }
+          } else {
+            match.value = data as Match
+          }
+          
+          updateBoosterTimers()
+        }
+      }
+    } catch (error) {
+      console.error('❌ MatchCenter: Polling failed:', error)
+    }
+  }
+  
+  console.log('📊 MatchCenter: Starting polling (1000ms interval)')
+  pollingInterval = setInterval(poll, 1000) as unknown as number
+  
+  // Do an immediate poll
+  poll()
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    console.log('🛑 MatchCenter: Stopping polling')
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+}
 
 // DEBUG: Test functions for development
 const testScoreUpdate = async () => {
@@ -687,7 +826,36 @@ async function loadMatch() {
         table: 'matches',
         filter: `id=eq.${props.id}`
       }, (payload) => {
-        console.log('🔄 Match update received in MatchCenterView:', payload.new)
+        const now = Date.now()
+        const withinProtectionWindow = now < ignoreRealtimeUntil.value
+        
+        console.log('🔄 Match update received in MatchCenterView:', {
+          timestamp: now,
+          ignoreUntil: ignoreRealtimeUntil.value,
+          withinProtectionWindow,
+          timeSinceLastUpdate: now - lastLocalUpdateTime.value,
+          payload: payload.new
+        })
+        
+        // Don't completely ignore - instead merge intelligently
+        if (withinProtectionWindow) {
+          console.log('🔀 Within protection window - merging instead of replacing')
+          
+          // Merge: keep local booster state, but update everything else
+          const incomingData = payload.new as Match
+          if (match.value && incomingData.boosters) {
+            // Preserve local booster state during protection window
+            console.log('🔀 Preserving local booster state, updating other fields')
+            const preservedBoosters = { ...match.value.boosters }
+            match.value = {
+              ...incomingData,
+              boosters: preservedBoosters // Keep our local booster state
+            }
+            updateBoosterTimers()
+            return
+          }
+        }
+        
         console.log('🔄 Match update received - BOOSTER CHECK:', payload.new?.boosters)
         
         // CHECK FOR POTENTIAL RACE CONDITION
@@ -698,7 +866,7 @@ async function loadMatch() {
         // SIMPLIFIED: Accept all incoming updates without race condition prevention
         // This ensures proper real-time synchronization across all views
         const updatedMatch = payload.new as Match
-        console.log('� Accepting incoming update without race condition prevention')
+        console.log('📥 Accepting incoming update without race condition prevention')
         
         match.value = updatedMatch
         
@@ -733,7 +901,19 @@ async function loadMatch() {
         
         updateBoosterTimers()
       })
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 MatchCenter: Subscription status:', status)
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ MatchCenter: Successfully subscribed to real-time updates')
+          // Start polling as backup
+          startPolling()
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ MatchCenter: Subscription error')
+          // Start polling on error
+          startPolling()
+        }
+      })
 
     // Update booster timers based on current match state
     updateBoosterTimers()
@@ -911,67 +1091,103 @@ async function loadTournamentStandings() {
 async function updateMatch(updates: Partial<any>) {
   console.log('🔧 updateMatch function started (MatchCenterView)')
   
-  try {
-    console.log('� Updating match with:', updates)
-    console.log('� Match ID:', match.value?.id)
-    
-    // DETAILED DEBUGGING: Log the exact boosters structure being sent
-    if (updates.boosters) {
-      console.log('🔍 EXACT BOOSTERS BEING SENT TO DB:', JSON.stringify(updates.boosters, null, 2))
-      console.log('🔍 MATCH CENTER - SENDING BOOSTER UPDATE FOR MATCH:', match.value?.id)
-      
-      // CRITICAL: Check if countdown data is present in what we're sending
-      const sendingCountdownA = updates.boosters.teamA?.some((b: any) => b.countdown)
-      const sendingCountdownB = updates.boosters.teamB?.some((b: any) => b.countdown)
-      console.log('🔍 SENDING COUNTDOWN DATA CHECK:', {
-        teamA: sendingCountdownA,
-        teamB: sendingCountdownB,
-        hasAnyCountdown: sendingCountdownA || sendingCountdownB
-      })
-    }
-    
-    console.log('� About to call supabase update...')
-    
-    // Try the simplest possible update
-    const result = await supabase
-      .from('matches')
-      .update(updates)
-      .eq('id', match.value?.id)
-    
-    console.log('� Supabase update result:', result)
-    
-    if (result.error) {
-      console.error('❌ Error updating match:', result.error)
-      throw result.error
-    }
+  return new Promise((resolve, reject) => {
+    const updateFn = async () => {
+      try {
+        // Mark that we're making a local update - ignore real-time for 8 seconds
+        // (needs to cover 7-second countdown + buffer)
+        const updateTimestamp = Date.now()
+        lastLocalUpdateTime.value = updateTimestamp
+        ignoreRealtimeUntil.value = updateTimestamp + 8000
+        
+        console.log('📝 MatchCenter: Processing queued update with:', updates)
+        console.log('📝 MatchCenter: Match ID:', match.value?.id)
+        console.log('📝 MatchCenter: Update timestamp:', updateTimestamp)
+        console.log('📝 MatchCenter: Will ignore real-time updates until:', new Date(ignoreRealtimeUntil.value).toISOString())
+        console.log('📝 MatchCenter: Current match state before update:', {
+          status: match.value?.status,
+          score_a: match.value?.score_a,
+          score_b: match.value?.score_b,
+          boosters: match.value?.boosters ? 'present' : 'absent'
+        })
+        
+        // DETAILED DEBUGGING: Log the exact boosters structure being sent
+        if (updates.boosters) {
+          console.log('🔍 EXACT BOOSTERS BEING SENT TO DB:', JSON.stringify(updates.boosters, null, 2))
+          console.log('🔍 MATCH CENTER - SENDING BOOSTER UPDATE FOR MATCH:', match.value?.id)
+          
+          // CRITICAL: Check if countdown data is present in what we're sending
+          const sendingCountdownA = updates.boosters.teamA?.some((b: any) => b.countdown)
+          const sendingCountdownB = updates.boosters.teamB?.some((b: any) => b.countdown)
+          console.log('🔍 SENDING COUNTDOWN DATA CHECK:', {
+            teamA: sendingCountdownA,
+            teamB: sendingCountdownB,
+            hasAnyCountdown: sendingCountdownA || sendingCountdownB
+          })
+        }
+        
+        // Try the simplest possible update
+        const result = await supabase
+          .from('matches')
+          .update(updates)
+          .eq('id', match.value?.id)
+          .select() // CRITICAL: Request the updated data back
+        
+        console.log('📝 MatchCenter: Supabase update result:', result)
+        console.log('📝 MatchCenter: Returned data after update:', result.data)
+        
+        if (result.error) {
+          console.error('❌ MatchCenter: Error updating match:', result.error)
+          reject(result.error)
+          return
+        }
 
-    console.log('✅ Match updated successfully')
-    
-    // VERIFICATION: Check what was actually saved to database
-    console.log('🔍 VERIFICATION: Fetching match from database to confirm update...')
-    const { data: verificationData, error: verificationError } = await supabase
-      .from('matches')
-      .select('boosters')
-      .eq('id', match.value?.id)
-      .single()
-    
-    if (verificationError) {
-      console.error('❌ Verification fetch failed:', verificationError)
-    } else {
-      console.log('🔍 DATABASE VERIFICATION - What was actually saved:', JSON.stringify(verificationData.boosters, null, 2))
+        // CRITICAL DEBUGGING: Check if countdown persisted in database
+        if (updates.boosters && result.data && result.data[0]) {
+          const returnedBoosters = result.data[0].boosters
+          console.log('🔍 CRITICAL: Boosters returned from database:', JSON.stringify(returnedBoosters, null, 2))
+          
+          const dbHasCountdown = returnedBoosters?.teamA?.some((b: any) => b.countdown) || 
+                                returnedBoosters?.teamB?.some((b: any) => b.countdown)
+          const sentHasCountdown = updates.boosters.teamA?.some((b: any) => b.countdown) || 
+                                  updates.boosters.teamB?.some((b: any) => b.countdown)
+          
+          console.log('🔍 COUNTDOWN PERSISTENCE CHECK:', {
+            sentCountdown: sentHasCountdown,
+            dbHasCountdown: dbHasCountdown,
+            countdownWasLost: sentHasCountdown && !dbHasCountdown
+          })
+          
+          if (sentHasCountdown && !dbHasCountdown) {
+            console.error('❌❌❌ DATABASE DID NOT PERSIST COUNTDOWN DATA!')
+            console.error('❌ This is a database issue, not a code issue')
+          }
+        }
+
+        console.log('✅ MatchCenter: Match updated successfully in database')
+        
+        // Update local state immediately - don't wait for real-time
+        if (match.value) {
+          Object.assign(match.value, updates)
+          console.log('✅ MatchCenter: Local state updated immediately:', { 
+            status: match.value.status,
+            updateType: Object.keys(updates).join(', '),
+            boosters: updates.boosters ? 'updated' : 'not changed'
+          })
+        }
+        
+        // Add a small delay to ensure database changes propagate
+        await new Promise(resolveDelay => setTimeout(resolveDelay, 100))
+        
+        resolve({ success: true })
+      } catch (error) {
+        console.error('❌ MatchCenter: Exception updating match:', error)
+        reject(error)
+      }
     }
     
-    // Update local state
-    if (match.value) {
-      Object.assign(match.value, updates)
-      console.log('✅ Local state updated:', { boosters: match.value.boosters })
-    }
-    
-    return { success: true }
-  } catch (error) {
-    console.error('❌ Exception updating match:', error)
-    throw error
-  }
+    queueUpdate(updateFn)
+  })
 }
 
 // Activate booster for user's team
@@ -1015,7 +1231,10 @@ async function activateUserBooster(boosterIndex: number) {
     // Start 7-second countdown before actual activation
     setTimeout(async () => {
       try {
-        // Double-check booster still exists and countdown is still active
+        console.log('⏰ 7-second countdown timer fired!')
+        console.log('⏰ Re-fetching match state from database to verify countdown...')
+        
+        // Double-check booster still exists and countdown is still active (same as Match Control)
         const currentMatch = await supabase
           .from('matches')
           .select('boosters')
@@ -1023,15 +1242,23 @@ async function activateUserBooster(boosterIndex: number) {
           .single()
         
         if (currentMatch.error) {
-          console.error('Error checking match state during countdown:', currentMatch.error)
+          console.error('❌ Error checking match state during countdown:', currentMatch.error)
           return
         }
         
         const currentBoosters = currentMatch.data.boosters
         const currentBooster = currentBoosters?.[teamKey]?.[boosterIndex]
         
+        console.log('⏰ Database booster state:', {
+          teamKey,
+          boosterIndex,
+          currentBooster,
+          hasCountdown: currentBooster?.countdown,
+          isActivated: currentBooster?.activated
+        })
+        
         if (!currentBooster?.countdown) {
-          console.log('🚫 User booster countdown was cancelled or already processed')
+          console.log('🚫 Booster countdown was cancelled or already processed')
           return
         }
         
@@ -1039,7 +1266,7 @@ async function activateUserBooster(boosterIndex: number) {
         console.log(`🚀 USER countdown complete - activating booster for team ${userTeamSide.value?.toUpperCase() || 'UNKNOWN'}`)
         
         const finalBoosters = { ...currentBoosters }
-        const finalUpdatedTeamBoosters = [...finalBoosters[teamKey]]
+        const finalUpdatedTeamBoosters = [...(finalBoosters[teamKey] || [])]
         
         finalUpdatedTeamBoosters[boosterIndex] = {
           ...currentBooster,
@@ -1050,10 +1277,58 @@ async function activateUserBooster(boosterIndex: number) {
         
         finalBoosters[teamKey] = finalUpdatedTeamBoosters
         
-        // Update database with final activation - USE THE SAME UPDATEMATCH AS MATCHCONTROL
-        await updateMatch({ boosters: finalBoosters })
+        // Special handling for different booster types
+        const updates: any = { boosters: finalBoosters }
         
-        console.log('✅ User booster activated successfully!')
+        if (booster.id === 'coach_stroke') {
+          // Coach stroke - might affect match state
+          console.log('🎯 Coach stroke activated by user')
+          // Note: Users can't pause the match, but we log it
+        } else if (booster.id === 'goalie_timeout') {
+          // For goalie timeout, we might want to add special match state
+          console.log('🥅 Goalie timeout activated by user - opposing goalie benched')
+          const opposingTeam = userTeamSide.value === 'a' ? 'b' : 'a'
+          updates.special_state = `goalie_timeout_${opposingTeam}`
+        }
+        
+        // Update database with final activation
+        await updateMatch(updates)
+        
+        console.log('✅ User booster activated successfully!', {
+          boosterName: booster.name,
+          boosterId: booster.id,
+          hasDuration: !!booster.duration,
+          duration: booster.duration
+        })
+        
+        // For timed boosters, set up countdown timer (visual only for users)
+        if (booster.duration && booster.duration > 0) {
+          console.log(`⏰ Timed booster activated by user: ${booster.name} for ${booster.duration} minute(s)`)
+          // The booster timer will be managed by the real-time subscription updates
+          // But we can set up a local visual timer
+          const timerKey = `${teamKey}_${boosterIndex}`
+          const durationMs = booster.duration * 60 * 1000
+          const endTime = Date.now() + durationMs
+          
+          activeBoosterTimers.value[timerKey] = {
+            timeLeft: Math.floor(durationMs / 1000),
+            intervalId: setInterval(() => {
+              const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000))
+              if (activeBoosterTimers.value[timerKey]) {
+                activeBoosterTimers.value[timerKey].timeLeft = remaining
+              }
+              
+              if (remaining <= 0) {
+                if (activeBoosterTimers.value[timerKey]) {
+                  clearInterval(activeBoosterTimers.value[timerKey].intervalId)
+                  delete activeBoosterTimers.value[timerKey]
+                }
+              }
+            }, 1000) as unknown as number
+          }
+        } else {
+          console.log(`⚡ Instant effect booster activated by user: ${booster.name}`)
+        }
         
       } catch (error) {
         console.error('Error during user booster activation after countdown:', error)
@@ -1156,6 +1431,9 @@ onUnmounted(() => {
   if (timerInterval) {
     clearInterval(timerInterval)
   }
+  
+  // Stop polling
+  stopPolling()
 
   // Clear all booster timers
   Object.values(activeBoosterTimers.value).forEach(timer => {

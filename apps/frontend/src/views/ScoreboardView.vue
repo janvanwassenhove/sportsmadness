@@ -119,18 +119,25 @@ const showDebugPanel = ref<boolean>(false)
 
 // Fallback polling mechanism when real-time fails
 function startPolling() {
-  if (pollingInterval) clearInterval(pollingInterval)
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
   
   // Adjust polling frequency based on match status
   const getPollingInterval = () => {
     if (!currentMatch.value) return 3000
-    return currentMatch.value.status === 'active' ? 2000 : 4000 // 2s for active, 4s for inactive
+    return currentMatch.value.status === 'active' ? 1000 : 3000 // 1s for active, 3s for inactive
   }
   
   const poll = async () => {
-    if (!currentMatch.value) return
+    if (!currentMatch.value) {
+      console.log('⚠️ No current match, stopping poll')
+      return
+    }
     
     try {
+      console.log('📊 Polling for match updates...', currentMatch.value.id)
       const { data, error } = await supabase
         .from('matches')
         .select('*')
@@ -143,7 +150,7 @@ function startPolling() {
       }
       
       if (data) {
-        // Check for significant changes only - let local timer handle smooth countdown
+        // Check for ANY changes - be more aggressive with updates
         const timeDiff = Math.abs(data.time_left - currentMatch.value.time_left)
         const hasChanges = 
           data.score_a !== currentMatch.value.score_a ||
@@ -151,13 +158,16 @@ function startPolling() {
           (data.pc_a || 0) !== (currentMatch.value.pc_a || 0) ||
           (data.pc_b || 0) !== (currentMatch.value.pc_b || 0) ||
           data.status !== currentMatch.value.status ||
-          timeDiff > 8 || // Only sync for major time differences (8+ seconds)
-          JSON.stringify(data.boosters) !== JSON.stringify(currentMatch.value.boosters)
+          timeDiff > 2 || // Sync for any time difference over 2 seconds
+          JSON.stringify(data.boosters) !== JSON.stringify(currentMatch.value.boosters) ||
+          JSON.stringify(data.cards) !== JSON.stringify(currentMatch.value.cards)
         
         if (hasChanges) {
           console.log('📊 Polling detected changes:', {
             old_scores: `${currentMatch.value.score_a} - ${currentMatch.value.score_b}`,
             new_scores: `${data.score_a} - ${data.score_b}`,
+            old_pc: `${currentMatch.value.pc_a || 0} - ${currentMatch.value.pc_b || 0}`,
+            new_pc: `${data.pc_a || 0} - ${data.pc_b || 0}`,
             old_time: currentMatch.value.time_left,
             new_time: data.time_left,
             time_diff: timeDiff,
@@ -174,28 +184,29 @@ function startPolling() {
           
           // Call the same handler that real-time would call
           handleRealtimeUpdate(payload)
+        } else {
+          console.log('📊 Polling: No changes detected')
         }
       }
     } catch (error) {
       console.error('❌ Polling failed:', error)
     }
-    
-    // Schedule next poll with dynamic interval
-    if (pollingInterval) {
-      clearTimeout(pollingInterval)
-      pollingInterval = setTimeout(poll, getPollingInterval())
-    }
   }
   
   console.log(`📊 Starting adaptive polling (${getPollingInterval()}ms interval)...`)
-  pollingInterval = setTimeout(poll, getPollingInterval())
+  
+  // Use setInterval for more reliable polling
+  pollingInterval = setInterval(poll, getPollingInterval()) as unknown as number
+  
+  // Do an immediate poll
+  poll()
 }
 
 function stopPolling() {
   if (pollingInterval) {
-    clearTimeout(pollingInterval) // Use clearTimeout since we switched to timeout-based polling
+    console.log('🛑 Stopping polling')
+    clearInterval(pollingInterval)
     pollingInterval = null
-    console.log('📊 Polling stopped')
   }
 }
 
@@ -206,20 +217,28 @@ function handleRealtimeUpdate(payload: any) {
   
   console.log('📡 *** SCOREBOARD RECEIVED UPDATE ***', payload)
   console.log('📡 Scoreboard received real-time update:', payload)
-  console.log('📡 Payload details:', {
-    eventType: payload.eventType,
-    newId: (payload.new as any)?.id,
+  
+  // Normalize payload structure - Supabase uses different formats
+  const eventType = payload.eventType || payload.event_type || 'UPDATE'
+  const newData = payload.new || payload
+  const oldData = payload.old || currentMatch.value
+  
+  console.log('📡 Normalized payload:', {
+    eventType,
+    newId: newData?.id,
     currentMatchId: currentMatch.value?.id,
-    willUpdate: payload.eventType === 'UPDATE' && currentMatch.value?.id === (payload.new as any)?.id
+    willUpdate: eventType === 'UPDATE' && currentMatch.value?.id === newData?.id,
+    newScores: `${newData?.score_a || 0} - ${newData?.score_b || 0}`,
+    currentScores: `${currentMatch.value?.score_a || 0} - ${currentMatch.value?.score_b || 0}`
   })
   
   // DETAILED BOOSTER COMPARISON DEBUG
   console.log('🔍 DETAILED BOOSTER COMPARISON:')
   console.log('🔍 Old boosters structure:', JSON.stringify(currentMatch.value?.boosters, null, 2))
-  console.log('🔍 New boosters structure:', JSON.stringify((payload.new as any).boosters, null, 2))
+  console.log('🔍 New boosters structure:', JSON.stringify(newData?.boosters, null, 2))
 
-  if (payload.eventType === 'UPDATE') {
-    console.log('🚨 SCOREBOARD - Received update for match:', payload.new.id)
+  if (eventType === 'UPDATE' || eventType === 'INSERT') {
+    console.log('🚨 SCOREBOARD - Received update for match:', newData.id)
     
     const oldMaddie = currentMatch.value?.maddie || false
     const oldBoosters = currentMatch.value?.boosters
@@ -227,14 +246,14 @@ function handleRealtimeUpdate(payload: any) {
     // Track score changes
     const oldScoreA = currentMatch.value?.score_a || 0
     const oldScoreB = currentMatch.value?.score_b || 0
-    const newScoreA = (payload.new as any).score_a || 0
-    const newScoreB = (payload.new as any).score_b || 0
+    const newScoreA = newData.score_a || 0
+    const newScoreB = newData.score_b || 0
     
     // Track PC changes
     const oldPCA = currentMatch.value?.pc_a || 0
     const oldPCB = currentMatch.value?.pc_b || 0
-    const newPCA = (payload.new as any).pc_a || 0
-    const newPCB = (payload.new as any).pc_b || 0
+    const newPCA = newData.pc_a || 0
+    const newPCB = newData.pc_b || 0
     
     if (oldScoreA !== newScoreA || oldScoreB !== newScoreB) {
       console.log('🔢 SCOREBOARD - Score changed!', {
@@ -255,11 +274,11 @@ function handleRealtimeUpdate(payload: any) {
     }
     
     console.log('📡 Updating match state:', { 
-      boosters: payload.new.boosters,
-      selection_active: payload.new.boosters?.selection_active,
-      selection_phase: payload.new.boosters?.selection_phase,
-      teamA: payload.new.boosters?.teamA,
-      teamB: payload.new.boosters?.teamB,
+      boosters: newData.boosters,
+      selection_active: newData.boosters?.selection_active,
+      selection_phase: newData.boosters?.selection_phase,
+      teamA: newData.boosters?.teamA,
+      teamB: newData.boosters?.teamB,
       oldBoosters: oldBoosters,
       scores: {
         old: `${oldScoreA} - ${oldScoreB}`,
@@ -268,13 +287,13 @@ function handleRealtimeUpdate(payload: any) {
     })
     
     // Detect booster activation before updating the match
-    detectBoosterActivation(oldBoosters, payload.new.boosters)
+    detectBoosterActivation(oldBoosters, newData.boosters)
     
     // Store old values for sync comparison
     const oldTimeLeft = currentMatch.value?.time_left || 0
     const oldStatus = currentMatch.value?.status
     
-    currentMatch.value = payload.new as Match
+    currentMatch.value = newData as Match
     
     // Sync timer if time changed OR status changed
     if (currentMatch.value.time_left !== oldTimeLeft || currentMatch.value.status !== oldStatus) {
@@ -287,14 +306,14 @@ function handleRealtimeUpdate(payload: any) {
     console.log('📡 Match state updated, overlay should be:', overlayShould)
     
     // Enhanced debugging for booster state changes
-    if (payload.new.boosters) {
+    if (newData.boosters) {
       console.log('📡 Booster state change detected:', {
-        selection_active: payload.new.boosters.selection_active,
-        selection_phase: payload.new.boosters.selection_phase,
-        teamA_exists: !!payload.new.boosters.teamA,
-        teamB_exists: !!payload.new.boosters.teamB,
-        teamA_length: payload.new.boosters.teamA?.length || 0,
-        teamB_length: payload.new.boosters.teamB?.length || 0
+        selection_active: newData.boosters.selection_active,
+        selection_phase: newData.boosters.selection_phase,
+        teamA_exists: !!newData.boosters.teamA,
+        teamB_exists: !!newData.boosters.teamB,
+        teamA_length: newData.boosters.teamA?.length || 0,
+        teamB_length: newData.boosters.teamB?.length || 0
       })
     }
     
@@ -1046,11 +1065,19 @@ function setupRealtimeSubscription() {
   })
   
   if (!currentMatch.value) {
-    console.log('❌ No current match - cannot set up subscription')
+    console.log('❌ No current match - cannot set up subscription, starting polling anyway')
+    startPolling()
     return
   }
   
   console.log('🔧 Setting up ScoreboardView real-time subscription for match:', currentMatch.value.id)
+  
+  // Unsubscribe from previous subscription if exists
+  if (realtimeSubscription) {
+    console.log('🔧 Unsubscribing from previous subscription')
+    realtimeSubscription.unsubscribe()
+    realtimeSubscription = null
+  }
   
   const channelName = `match_${currentMatch.value.id}`
   console.log('📡 Creating channel:', channelName)
@@ -1074,7 +1101,9 @@ function setupRealtimeSubscription() {
       }
     )
     .subscribe((status) => {
-      console.log('� ScoreboardView subscription status:', status)
+      console.log('📡 ScoreboardView subscription status:', status)
+      subscriptionStatus.value = status
+      
       if (status === 'SUBSCRIBED') {
         console.log('✅ ScoreboardView successfully subscribed to real-time updates')
         
@@ -1082,17 +1111,11 @@ function setupRealtimeSubscription() {
         console.log('🔄 Starting polling as backup')
         startPolling()
         
-        // Test if real-time is working by waiting 5 seconds and checking
-        setTimeout(() => {
-          if (!realtimeWorking) {
-            console.log('⚠️ Real-time not working after 5 seconds, keeping polling active')
-          } else {
-            console.log('✅ Real-time is working properly, stopping polling backup')
-            stopPolling()
-          }
-        }, 5000)
+        // Keep polling active for reliability - don't stop it
+        console.log('✅ Keeping polling active for reliability')
       } else if (status === 'CHANNEL_ERROR') {
         console.error('❌ ScoreboardView subscription error')
+        subscriptionStatus.value = 'Error'
         startPolling() // Start polling immediately on error
       }
     })
