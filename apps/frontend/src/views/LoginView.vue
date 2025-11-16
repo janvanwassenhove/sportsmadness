@@ -58,15 +58,19 @@ async function handleSubmit() {
     if (!authStore.isAuthenticated) {
       console.error('🔐 Login form: Authentication state never updated after successful login')
       // Force a page reload to ensure auth state is properly set
-      window.location.href = route.query.redirect as string || '/home'
+      window.location.href = route.query.redirect as string || '/dashboard'
       return
     }
 
     console.log('🔐 Login form: Final auth state - isAuthenticated:', authStore.isAuthenticated)
     console.log('🔐 Login form: Final auth state - isAdmin:', authStore.isAdmin)
 
-    // Redirect to intended page or admin dashboard
-    const redirectTo = route.query.redirect as string || (authStore.isAdmin ? '/admin' : '/home')
+    // Redirect to intended page or appropriate dashboard based on role
+    // Admin -> /admin, User/Team -> /dashboard
+    let redirectTo = route.query.redirect as string
+    if (!redirectTo) {
+      redirectTo = authStore.isAdmin ? '/admin' : '/dashboard'
+    }
     console.log('🔐 Login form: Redirecting to:', redirectTo)
     
     // Use replace instead of push to avoid login page in history

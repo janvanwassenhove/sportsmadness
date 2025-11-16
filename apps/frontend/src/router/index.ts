@@ -97,7 +97,7 @@ const router = createRouter({
       path: '/dashboard',
       name: 'user-dashboard',
       component: () => import('../views/UserDashboardView.vue'),
-      meta: { requiresAuth: true, requiresUserRole: true },
+      meta: { requiresAuth: true },
     },
     {
       path: '/match/:id',

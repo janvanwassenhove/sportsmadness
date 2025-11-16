@@ -376,6 +376,7 @@
     border-radius: 9999px;
     font-size: 0.75rem;
     box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+    display: inline-block;
   }
   
   .status-active {
@@ -389,6 +390,7 @@
     border-radius: 9999px;
     font-size: 0.75rem;
     box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
+    display: inline-block;
   }
   
   .status-expired {
@@ -402,6 +404,7 @@
     border-radius: 9999px;
     font-size: 0.75rem;
     box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
+    display: inline-block;
   }
 
   /* Booster Action Buttons */
@@ -696,40 +699,6 @@
     box-shadow: 0 4px 16px rgba(71, 141, 203, 0.2);
   }
 
-  /* Status Indicators */
-  .status-active {
-    background-color: #10b981;
-    color: var(--hc-white);
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .status-ready {
-    background-color: var(--hc-accent);
-    color: var(--hc-white);
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .status-expired {
-    background-color: var(--hc-grey-medium);
-    color: var(--hc-grey-dark);
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
   /* Header with Logo - Clean Layout */
   .header-section {
     background-color: var(--hc-grey-light);
@@ -768,6 +737,472 @@
     outline-offset: 2px;
   }
   
+  /* Match Center Specific Styles */
+  
+  /* Match Center Background with Lokeren gradient */
+  .match-center-bg {
+    background: linear-gradient(135deg, var(--hc-primary) 0%, var(--hc-accent) 100%);
+    min-height: 100vh;
+  }
+
+  /* Match Center Container Cards */
+  .match-center-card {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(18, 18, 56, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  /* Override text colors in match center cards for readability */
+  .match-center-card .text-white {
+    color: var(--hc-primary) !important;
+  }
+
+  .match-center-card .text-blue-200,
+  .match-center-card .text-blue-300 {
+    color: var(--hc-grey-dark) !important;
+  }
+
+  .match-center-card .text-purple-300 {
+    color: var(--hc-primary) !important;
+  }
+
+  .match-center-card .text-purple-200 {
+    color: var(--hc-grey-dark) !important;
+  }
+
+  .match-center-card .text-gray-400 {
+    color: var(--hc-grey-medium) !important;
+  }
+
+  .match-center-card .text-yellow-400 {
+    color: #ca8a04 !important;
+  }
+
+  .match-center-card .text-green-400 {
+    color: #16a34a !important;
+  }
+
+  .match-center-card .text-red-400 {
+    color: #dc2626 !important;
+  }
+
+  .match-center-card .text-green-300 {
+    color: #15803d !important;
+  }
+
+  .match-center-card .text-green-200 {
+    color: #16a34a !important;
+  }
+
+  .match-center-card .text-orange-300 {
+    color: #c2410c !important;
+  }
+
+  .match-center-card .text-orange-200 {
+    color: #ea580c !important;
+  }
+
+  .match-center-card .text-orange-400 {
+    color: #ea580c !important;
+  }
+
+  /* Match Header Back Button */
+  .match-back-btn {
+    background-color: var(--hc-accent);
+    color: var(--hc-white);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+    font-weight: 600;
+  }
+
+  .match-back-btn:hover {
+    background-color: var(--hc-primary);
+    transform: translateX(-2px);
+    box-shadow: 0 2px 8px rgba(18, 18, 56, 0.3);
+  }
+
+  /* Match Header Title */
+  .match-header-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--hc-white);
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Match ID Display */
+  .match-id-label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+  }
+
+  .match-id-value {
+    color: var(--hc-white);
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Loading and Error States */
+  .match-loading-spinner {
+    border-color: rgba(255, 255, 255, 0.3);
+    border-top-color: var(--hc-white);
+  }
+
+  .match-loading-text,
+  .match-error-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+  }
+
+  .match-error-title {
+    color: var(--hc-white);
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+    font-weight: 700;
+  }
+
+  /* Team Names in Match Center */
+  .match-team-name {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--hc-primary);
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+  }
+
+  /* Score Display in Match Center */
+  .match-score {
+    font-size: 3.75rem;
+    font-weight: 700;
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+  }
+
+  .match-score-team-a {
+    color: var(--hc-accent);
+  }
+
+  .match-score-team-b {
+    color: var(--hc-primary);
+  }
+
+  /* Your Team Badge */
+  .your-team-badge {
+    background-color: var(--hc-accent);
+    color: var(--hc-white);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+    box-shadow: 0 2px 4px rgba(71, 141, 203, 0.4);
+  }
+
+  /* Match Status Badge */
+  .match-status-active {
+    background-color: #16a34a;
+    color: #ffffff;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .match-status-pending {
+    background-color: #eab308;
+    color: #000000;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .match-status-finished {
+    background-color: #6b7280;
+    color: #ffffff;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Timer Display */
+  .match-timer {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--hc-primary);
+    font-family: 'Courier New', monospace;
+  }
+
+  .match-timer-label {
+    color: var(--hc-grey-dark);
+    font-size: 0.875rem;
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+  }
+
+  /* Booster Section Headers */
+  .booster-section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--hc-primary);
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+  }
+
+  /* Team emoji colors in match center */
+  .match-center-card .text-blue-300 {
+    color: var(--hc-accent) !important;
+  }
+
+  .match-center-card .text-purple-300 {
+    color: var(--hc-primary) !important;
+  }
+
+  /* Booster Cards in Match Center */
+  .booster-card {
+    background-color: rgba(243, 243, 243, 0.8);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid var(--hc-grey-medium);
+    transition: all 0.2s ease;
+  }
+
+  .booster-card:hover {
+    border-color: var(--hc-accent);
+    box-shadow: 0 2px 8px rgba(71, 141, 203, 0.2);
+  }
+
+  /* Override text colors in booster cards */
+  .booster-card .text-white {
+    color: var(--hc-primary) !important;
+  }
+
+  .booster-card .text-blue-200 {
+    color: var(--hc-grey-dark) !important;
+  }
+
+  .booster-card .text-gray-400 {
+    color: var(--hc-grey-medium) !important;
+  }
+
+  .booster-card .text-gray-500 {
+    color: var(--hc-grey-medium) !important;
+  }
+
+  /* Active booster card text colors */
+  .booster-card-active .text-green-300,
+  .booster-card-active .text-green-200 {
+    color: #15803d !important;
+  }
+
+  /* Countdown booster card text colors */
+  .booster-card-countdown .text-orange-300,
+  .booster-card-countdown .text-orange-200 {
+    color: #c2410c !important;
+  }
+
+  .booster-card-active {
+    background-color: rgba(22, 163, 74, 0.15);
+    border: 2px solid #16a34a;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  }
+
+  .booster-card-countdown {
+    background-color: rgba(234, 179, 8, 0.15);
+    border: 2px solid #eab308;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .booster-card-expired {
+    background-color: rgba(107, 114, 128, 0.15);
+    border: 2px solid #9ca3af;
+    opacity: 0.7;
+  }
+
+  .booster-card-used {
+    background-color: rgba(107, 114, 128, 0.1);
+    border: 1px solid #d1d5db;
+    opacity: 0.8;
+  }
+
+  /* Booster Name/Title */
+  .booster-name {
+    color: var(--hc-primary);
+    font-weight: 600;
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+  }
+
+  .booster-name-expired {
+    color: var(--hc-grey-medium);
+    text-decoration: line-through;
+  }
+
+  /* Booster Description */
+  .booster-description {
+    color: var(--hc-grey-dark);
+    font-size: 0.875rem;
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+  }
+
+  .booster-description-expired {
+    color: var(--hc-grey-medium);
+  }
+
+  /* Booster Activate Button in Match Center */
+  .booster-activate-btn-match {
+    background: linear-gradient(to right, #eab308, #ea580c);
+    color: #000000;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(234, 179, 8, 0.4);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  }
+
+  .booster-activate-btn-match:hover:not(:disabled) {
+    background: linear-gradient(to right, #ca8a04, #c2410c);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(234, 179, 8, 0.5);
+  }
+
+  .booster-activate-btn-match:disabled {
+    background: linear-gradient(to right, #9ca3af, #6b7280);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* Booster Timer Display */
+  .booster-timer-active {
+    background-color: rgba(22, 163, 74, 0.2);
+    border: 2px solid #16a34a;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .booster-timer-value {
+    color: #16a34a;
+    font-weight: 700;
+    font-size: 1.125rem;
+    font-family: 'Courier New', monospace;
+  }
+
+  .booster-timer-label {
+    color: #15803d;
+    font-size: 0.875rem;
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+  }
+
+  /* Booster Status Messages */
+  .booster-status-expired {
+    background-color: rgba(220, 38, 38, 0.15);
+    border: 2px solid #dc2626;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .booster-status-expired-text {
+    color: #dc2626;
+    font-weight: 600;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+    text-decoration: line-through;
+  }
+
+  .booster-status-used {
+    background-color: rgba(107, 114, 128, 0.15);
+    border: 2px solid #9ca3af;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .booster-status-used-text {
+    color: var(--hc-grey-dark);
+    font-weight: 600;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+  }
+
+  /* Empty state styling - no boosters message */
+  .match-center-card .match-error-text {
+    color: var(--hc-grey-dark) !important;
+  }
+
+  /* Status badges inside match center cards */
+  .match-center-card .bg-red-500\/20 {
+    background-color: rgba(220, 38, 38, 0.2) !important;
+  }
+
+  .match-center-card .bg-green-500\/20 {
+    background-color: rgba(22, 163, 74, 0.2) !important;
+  }
+
+  .match-center-card .bg-orange-500\/20 {
+    background-color: rgba(234, 88, 12, 0.2) !important;
+  }
+
+  .match-center-card .bg-gray-500\/20 {
+    background-color: rgba(107, 114, 128, 0.2) !important;
+  }
+
+  .match-center-card .bg-yellow-500\/20 {
+    background-color: rgba(234, 179, 8, 0.2) !important;
+  }
+
+  /* Team Label for Boosters Section */
+  .team-label {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--hc-primary);
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+  }
+
+  /* Override team label colors in match center */
+  .match-center-card .team-label.text-blue-300 {
+    color: var(--hc-accent) !important;
+  }
+
+  .match-center-card .team-label.text-purple-300 {
+    color: var(--hc-primary) !important;
+  }
+
+  .team-label-your-team {
+    background-color: var(--hc-accent);
+    color: var(--hc-white);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+    font-family: 'Bebas Neue', 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* VS Text */
+  .match-vs-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--hc-primary);
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+  }
+
+  /* Final Status */
+  .match-final-status {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--hc-grey-dark);
+    font-family: 'League Spartan', 'Montserrat', sans-serif;
+  }
+
   /* Responsive Design */
   @media (max-width: 768px) {
     .home-title {
@@ -792,6 +1227,22 @@
     
     .scoreboard-card {
       padding: 1rem;
+    }
+
+    .match-header-title {
+      font-size: 1.5rem;
+    }
+
+    .match-team-name {
+      font-size: 1.5rem;
+    }
+
+    .match-score {
+      font-size: 2.5rem;
+    }
+
+    .match-timer {
+      font-size: 1.75rem;
     }
   }
 }

@@ -46,11 +46,11 @@ function redirectUserToDefaultPage() {
         // Admins can stay on home page to see overview
         break
       case 'user':
-        // Users should probably see their dashboard
+        // Users should see their dashboard
         router.replace('/dashboard')
         break
       case 'team':
-        // Team members can stay on home page
+        // Team members should stay on home page - no redirect needed
         break
     }
   }
@@ -148,6 +148,19 @@ watch(() => authStore.profile?.role, (newRole) => {
           <h2 class="nav-card-title">{{ $t('home.myTeamProfile.title') }}</h2>
           <p class="nav-card-description">
             {{ $t('home.myTeamProfile.description') }}
+          </p>
+        </RouterLink>
+
+        <!-- Team Dashboard (if team role) -->
+        <RouterLink 
+          v-if="authStore.isTeam"
+          to="/dashboard" 
+          class="nav-card"
+        >
+          <div class="text-4xl mb-4">📅</div>
+          <h2 class="nav-card-title">{{ $t('home.myDashboard.title') }}</h2>
+          <p class="nav-card-description">
+            View your upcoming matches and team statistics
           </p>
         </RouterLink>
 

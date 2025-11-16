@@ -640,9 +640,10 @@ const shouldShowBoosterOverlay = computed(() => {
     phase
   })
   
-  // Only show overlay if selection is explicitly active AND phase is not null
-  // Include 'complete' phase so users can see results and confirm boosters
-  const shouldShow = active === true && phase && phase !== null
+  // Only show overlay if selection is explicitly active
+  // Keep showing until selection_active becomes false (confirmation in MatchControl)
+  // This prevents glitching during phase transitions or database updates
+  const shouldShow = active === true
   
   console.log('🎰 Scoreboard booster overlay check:', {
     hasMatch: !!currentMatch.value,
@@ -651,10 +652,7 @@ const shouldShowBoosterOverlay = computed(() => {
     phase,
     shouldShow,
     debug_conditions: {
-      active_is_true: active === true,
-      phase_exists: !!phase,
-      phase_not_complete: phase !== 'complete',
-      phase_not_null: phase !== null
+      active_is_true: active === true
     }
   })
   return shouldShow
@@ -1650,44 +1648,14 @@ watch(
   () => currentMatch.value?.boosters?.selection_phase,
   (newPhase, oldPhase) => {
     if (newPhase === 'complete' && oldPhase !== 'complete') {
-      console.log('🎯 Scoreboard detected booster selection complete - starting auto-close timer')
+      console.log('🎯 Scoreboard detected booster selection complete - waiting for admin confirmation')
       
-      // FALLBACK: If admin auto-confirmation fails, do it from scoreboard side
-      setTimeout(() => {
-        if (currentMatch.value?.boosters?.selection_active === true) {
-          console.log('🎯 Admin auto-confirmation failed - doing fallback confirmation from scoreboard')
-          
-          // Check if we have current_boosters data to transfer
-          const currentBoosters = currentMatch.value?.boosters?.current_boosters
-          if (currentBoosters?.teamA?.length > 0 && currentBoosters?.teamB?.length > 0) {
-            console.log('🎯 Transferring boosters from current_boosters to final location')
-            
-            // Update the match directly to transfer the boosters
-            if (currentMatch.value?.boosters) {
-              currentMatch.value.boosters.teamA = currentBoosters.teamA.map((booster: any) => ({
-                ...booster,
-                available: true,
-                activated: false,
-                used: false
-              }))
-              currentMatch.value.boosters.teamB = currentBoosters.teamB.map((booster: any) => ({
-                ...booster,
-                available: true,
-                activated: false,
-                used: false
-              }))
-              currentMatch.value.boosters.selection_active = false
-              currentMatch.value.boosters.selection_phase = null
-              currentMatch.value.boosters.current_boosters = null
-              
-              console.log('✅ Fallback confirmation completed - boosters should now be visible!')
-            }
-          } else {
-            console.log('🎯 Auto-closing booster overlay after timeout (no data to transfer)')
-            forceCloseBoosterOverlay()
-          }
-        }
-      }, 2000) // 2 second timeout - shorter since we're doing the work ourselves
+      // DO NOT auto-close or fallback confirm
+      // The overlay will remain visible until MatchControlView explicitly confirms
+      // and sets selection_active to false
+      // This prevents glitching between views during phase transitions
+      
+      console.log('✅ Overlay will remain visible until explicit confirmation in MatchControl')
     }
   }
 )

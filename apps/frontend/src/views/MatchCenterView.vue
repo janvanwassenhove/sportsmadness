@@ -1,38 +1,38 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
+  <div class="min-h-screen match-center-bg bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
     <div class="container mx-auto px-4 py-8">
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div class="flex items-center space-x-4">
           <button 
             @click="$router.back()"
-            class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors"
+            class="match-back-btn bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors"
           >
             ← Back
           </button>
-          <h1 class="text-3xl font-bold text-white">Match Center</h1>
+          <h1 class="match-header-title text-3xl font-bold text-white">Match Center</h1>
         </div>
         
         <div v-if="match" class="text-right">
-          <div class="text-sm text-blue-200">Match ID</div>
-          <div class="text-white font-mono">{{ match.id.slice(-8) }}</div>
+          <div class="match-id-label text-sm text-blue-200">Match ID</div>
+          <div class="match-id-value text-white font-mono">{{ match.id.slice(-8) }}</div>
         </div>
       </div>
 
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-20">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-        <p class="text-blue-200 text-xl">Loading match data...</p>
+        <div class="match-loading-spinner animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+        <p class="match-loading-text text-blue-200 text-xl">Loading match data...</p>
       </div>
 
       <!-- Error State -->
       <div v-else-if="error" class="text-center py-20">
         <div class="text-6xl mb-4">❌</div>
-        <h2 class="text-2xl font-bold text-white mb-4">Match Not Found</h2>
-        <p class="text-blue-200 mb-6">{{ error }}</p>
+        <h2 class="match-error-title text-2xl font-bold text-white mb-4">Match Not Found</h2>
+        <p class="match-error-text text-blue-200 mb-6">{{ error }}</p>
         <RouterLink 
           to="/dashboard"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
+          class="match-back-btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-block"
         >
           Return to Dashboard
         </RouterLink>
@@ -42,15 +42,15 @@
       <div v-else-if="match" class="space-y-8">
         
         <!-- Match Info Header -->
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+        <div class="match-center-card bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
           <div class="grid md:grid-cols-3 gap-6 items-center">
             
             <!-- Team A -->
             <div class="text-center">
-              <div class="text-4xl font-bold text-white mb-2">{{ getTeamName(match.team_a) }}</div>
-              <div class="text-6xl font-bold text-blue-300">{{ match.score_a }}</div>
+              <div class="match-team-name text-4xl font-bold text-white mb-2">{{ getTeamName(match.team_a) }}</div>
+              <div class="match-score match-score-team-a text-6xl font-bold text-blue-300">{{ match.score_a }}</div>
               <div v-if="userTeam?.id === match.team_a" class="mt-2">
-                <span class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                <span class="your-team-badge bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                   YOUR TEAM
                 </span>
               </div>
@@ -58,7 +58,7 @@
 
             <!-- Match Status & Timer -->
             <div class="text-center">
-              <div class="text-2xl font-bold text-white mb-4">VS</div>
+              <div class="match-vs-text text-2xl font-bold text-white mb-4">VS</div>
               
               <!-- Match Status -->
               <div class="mb-4">
@@ -72,14 +72,14 @@
 
               <!-- Timer Display -->
               <div v-if="match.status === 'active' && match.time_left > 0" class="text-center">
-                <div class="text-4xl font-bold text-white font-mono">
+                <div class="match-timer text-4xl font-bold text-white font-mono">
                   {{ formatTimeLeft(match.time_left) }}
                 </div>
-                <div class="text-blue-200 text-sm">Time Remaining</div>
+                <div class="match-timer-label text-blue-200 text-sm">Time Remaining</div>
               </div>
               
               <div v-else-if="match.status === 'finished'" class="text-center">
-                <div class="text-2xl font-bold text-gray-400">FINAL</div>
+                <div class="match-final-status text-2xl font-bold text-gray-400">FINAL</div>
               </div>
               
               <div v-else class="text-center">
@@ -89,10 +89,10 @@
 
             <!-- Team B -->
             <div class="text-center">
-              <div class="text-4xl font-bold text-white mb-2">{{ getTeamName(match.team_b) }}</div>
-              <div class="text-6xl font-bold text-purple-300">{{ match.score_b }}</div>
+              <div class="match-team-name text-4xl font-bold text-white mb-2">{{ getTeamName(match.team_b) }}</div>
+              <div class="match-score match-score-team-b text-6xl font-bold text-purple-300">{{ match.score_b }}</div>
               <div v-if="userTeam?.id === match.team_b" class="mt-2">
-                <span class="bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                <span class="your-team-badge bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                   YOUR TEAM
                 </span>
               </div>
@@ -101,11 +101,11 @@
         </div>
 
         <!-- User Team Booster Controls -->
-        <div v-if="userTeamSide && match.status === 'active'" class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-          <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+        <div v-if="userTeamSide && match.status === 'active'" class="match-center-card bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+          <h2 class="booster-section-title text-2xl font-bold text-white mb-6 flex items-center">
             <span class="mr-3">⚡</span>
             Your Team's Boosters
-            <span class="ml-3 text-sm bg-green-600 px-3 py-1 rounded-full">
+            <span class="team-label-your-team ml-3 text-sm bg-green-600 px-3 py-1 rounded-full">
               {{ getTeamName(userTeam?.id || '') }}
             </span>
           </h2>
@@ -114,7 +114,13 @@
             <div 
               v-for="(booster, index) in getUserTeamBoosters()"
               :key="`user-booster-${index}`"
-              class="bg-white/5 rounded-lg p-4 border border-white/10"
+              class="booster-card bg-white/5 rounded-lg p-4 border border-white/10"
+              :class="{
+                'booster-card-active': booster.activated && !booster.expired,
+                'booster-card-countdown': booster.countdown && !booster.activated && !booster.expired,
+                'booster-card-expired': booster.expired,
+                'booster-card-used': booster.used && !booster.activated
+              }"
             >
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center space-x-3">
@@ -126,14 +132,14 @@
                   </span>
                   <div>
                     <div 
-                      class="text-white font-semibold"
-                      :class="{ 'line-through text-gray-400': booster.expired }"
+                      class="booster-name text-white font-semibold"
+                      :class="{ 'booster-name-expired line-through text-gray-400': booster.expired }"
                     >
                       {{ booster.name || booster.title }}
                     </div>
                     <div 
-                      class="text-blue-200 text-sm"
-                      :class="{ 'text-gray-500': booster.expired }"
+                      class="booster-description text-blue-200 text-sm"
+                      :class="{ 'booster-description-expired text-gray-500': booster.expired }"
                     >
                       {{ booster.description }}
                     </div>
@@ -142,14 +148,17 @@
                 
                 <!-- Booster Status -->
                 <div class="text-right">
-                  <div v-if="booster.activated" class="text-green-400 text-sm font-semibold">
+                  <div v-if="booster.activated" class="status-active text-sm font-semibold">
                     ✓ ACTIVE
                   </div>
-                  <div v-else-if="booster.used" class="text-gray-400 text-sm">
-                    ✓ Used
+                  <div v-else-if="booster.expired" class="status-expired text-sm font-semibold">
+                    ● EXPIRED
                   </div>
-                  <div v-else class="text-yellow-400 text-sm">
-                    Ready
+                  <div v-else-if="booster.used" class="status-expired text-sm font-semibold">
+                    ✓ USED
+                  </div>
+                  <div v-else class="status-ready text-sm font-semibold">
+                    ● READY
                   </div>
                 </div>
               </div>
@@ -159,7 +168,7 @@
                 <button
                   @click="console.log('🚨 BUTTON CLICKED - Index:', index); activateUserBooster(index)"
                   :disabled="booster.countdown || booster.activated"
-                  class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
+                  class="booster-activate-btn-match w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
                 >
                   <span v-if="booster.countdown" class="flex items-center justify-center">
                     <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -174,18 +183,18 @@
 
               <!-- Active Timer -->
               <div v-else-if="booster.activated && activeBoosterTimers[`${userTeamSide}_${index}`]" class="text-center">
-                <div class="bg-green-500/20 border border-green-400 rounded-lg p-3">
-                  <div class="text-green-400 font-bold text-lg">
+                <div class="booster-timer-active bg-green-500/20 border border-green-400 rounded-lg p-3">
+                  <div class="booster-timer-value text-green-400 font-bold text-lg">
                     ⏰ {{ Math.ceil(activeBoosterTimers[`${userTeamSide}_${index}`]?.timeLeft || 0) }}s
                   </div>
-                  <div class="text-green-300 text-sm">remaining</div>
+                  <div class="booster-timer-label text-green-300 text-sm">remaining</div>
                 </div>
               </div>
               
               <!-- Expired State -->
               <div v-else-if="booster.expired" class="text-center">
-                <div class="bg-red-500/20 border border-red-400 rounded-lg p-3">
-                  <div class="text-red-400 font-semibold line-through">
+                <div class="booster-status-expired bg-red-500/20 border border-red-400 rounded-lg p-3">
+                  <div class="booster-status-expired-text text-red-400 font-semibold line-through">
                     🚫 Booster Expired
                   </div>
                 </div>
@@ -193,8 +202,8 @@
 
               <!-- Used State -->
               <div v-else-if="booster.used || booster.activated" class="text-center">
-                <div class="bg-gray-500/20 border border-gray-400 rounded-lg p-3">
-                  <div class="text-gray-400 font-semibold">
+                <div class="booster-status-used bg-gray-500/20 border border-gray-400 rounded-lg p-3">
+                  <div class="booster-status-used-text text-gray-400 font-semibold">
                     {{ booster.activated ? '✓ Booster Applied' : '✓ Already Used' }}
                   </div>
                 </div>
@@ -204,8 +213,8 @@
         </div>
 
         <!-- Both Teams' Boosters Overview -->
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-          <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+        <div class="match-center-card bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+          <h2 class="booster-section-title text-2xl font-bold text-white mb-6 flex items-center">
             <span class="mr-3">🎯</span>
             Selected Boosters
           </h2>
@@ -213,27 +222,27 @@
           <div class="grid md:grid-cols-2 gap-6">
             <!-- Team A Boosters -->
             <div class="space-y-3">
-              <h3 class="text-lg font-semibold text-blue-300 flex items-center">
+              <h3 class="team-label text-lg font-semibold text-blue-300 flex items-center">
                 <span class="mr-2">🔵</span>
                 {{ getTeamName(match.team_a) }}
-                <span v-if="userTeamSide === 'a'" class="ml-2 text-xs bg-blue-500 px-2 py-1 rounded text-white">YOUR TEAM</span>
+                <span v-if="userTeamSide === 'a'" class="team-label-your-team ml-2 text-xs bg-blue-500 px-2 py-1 rounded text-white">YOUR TEAM</span>
               </h3>
               
               <div v-if="!getTeamBoosters('teamA').length" class="text-center py-8">
                 <div class="text-4xl mb-2">📋</div>
-                <p class="text-blue-200">No boosters selected</p>
+                <p class="match-error-text text-blue-200">No boosters selected</p>
               </div>
               
               <div v-else class="space-y-2">
                 <div 
                   v-for="(booster, index) in getTeamBoosters('teamA')"
                   :key="`team-a-${index}`"
-                  class="rounded-lg p-4 border transition-all"
+                  class="booster-card rounded-lg p-4 border transition-all"
                   :class="{
-                    'bg-green-600/20 border-green-400 shadow-lg': booster.activated && !booster.expired,
-                    'bg-orange-500/20 border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
-                    'bg-red-500/20 border-red-400': booster.expired,
-                    'bg-gray-500/20 border-gray-400': booster.used && !booster.activated,
+                    'booster-card-active bg-green-600/20 border-green-400 shadow-lg': booster.activated && !booster.expired,
+                    'booster-card-countdown bg-orange-500/20 border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
+                    'booster-card-expired bg-red-500/20 border-red-400': booster.expired,
+                    'booster-card-used bg-gray-500/20 border-gray-400': booster.used && !booster.activated,
                     'bg-blue-500/10 border-blue-400/30': !booster.activated && !booster.expired && !booster.used && !booster.countdown
                   }"
                 >
@@ -294,7 +303,7 @@
                       
                       <!-- Active timer for this booster -->
                       <span v-if="booster.activated && activeBoosterTimers[`a_${index}`]" 
-                            class="bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold font-mono animate-pulse">
+                            class="booster-timer-value bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold font-mono animate-pulse">
                         ⏰ {{ Math.ceil(activeBoosterTimers[`a_${index}`]?.timeLeft || 0) }}s
                       </span>
                       
@@ -303,7 +312,7 @@
                         v-if="userTeamSide === 'a' && !booster.activated && !booster.used && !booster.expired && !booster.countdown"
                         @click="console.log('🚨 TEAM A BUTTON CLICKED - Index:', index); activateUserBooster(index)"
                         :disabled="booster.countdown || booster.activated"
-                        class="mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
+                        class="booster-activate-btn-match mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
                       >
                         <span v-if="booster.countdown" class="flex items-center">
                           <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
@@ -319,27 +328,27 @@
 
             <!-- Team B Boosters -->
             <div class="space-y-3">
-              <h3 class="text-lg font-semibold text-purple-300 flex items-center">
+              <h3 class="team-label text-lg font-semibold text-purple-300 flex items-center">
                 <span class="mr-2">🟣</span>
                 {{ getTeamName(match.team_b) }}
-                <span v-if="userTeamSide === 'b'" class="ml-2 text-xs bg-purple-500 px-2 py-1 rounded text-white">YOUR TEAM</span>
+                <span v-if="userTeamSide === 'b'" class="team-label-your-team ml-2 text-xs bg-purple-500 px-2 py-1 rounded text-white">YOUR TEAM</span>
               </h3>
               
               <div v-if="!getTeamBoosters('teamB').length" class="text-center py-8">
                 <div class="text-4xl mb-2">📋</div>
-                <p class="text-blue-200">No boosters selected</p>
+                <p class="match-error-text text-blue-200">No boosters selected</p>
               </div>
               
               <div v-else class="space-y-2">
                 <div 
                   v-for="(booster, index) in getTeamBoosters('teamB')"
                   :key="`team-b-${index}`"
-                  class="rounded-lg p-4 border transition-all"
+                  class="booster-card rounded-lg p-4 border transition-all"
                   :class="{
-                    'bg-green-600/20 border-green-400 shadow-lg': booster.activated && !booster.expired,
-                    'bg-orange-500/20 border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
-                    'bg-red-500/20 border-red-400': booster.expired,
-                    'bg-gray-500/20 border-gray-400': booster.used && !booster.activated,
+                    'booster-card-active bg-green-600/20 border-green-400 shadow-lg': booster.activated && !booster.expired,
+                    'booster-card-countdown bg-orange-500/20 border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
+                    'booster-card-expired bg-red-500/20 border-red-400': booster.expired,
+                    'booster-card-used bg-gray-500/20 border-gray-400': booster.used && !booster.activated,
                     'bg-purple-500/10 border-purple-400/30': !booster.activated && !booster.expired && !booster.used && !booster.countdown
                   }"
                 >
@@ -356,9 +365,9 @@
                       </span>
                       <div class="flex-1">
                         <div 
-                          class="font-semibold"
+                          class="booster-name font-semibold"
                           :class="{ 
-                            'line-through text-gray-400': booster.expired,
+                            'booster-name-expired line-through text-gray-400': booster.expired,
                             'text-green-300': booster.activated && !booster.expired,
                             'text-orange-300 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
                             'text-white': !booster.expired && !booster.activated && !booster.countdown
@@ -367,9 +376,9 @@
                           {{ booster.name || booster.title }}
                         </div>
                         <div 
-                          class="text-sm"
+                          class="booster-description text-sm"
                           :class="{ 
-                            'text-gray-500': booster.expired,
+                            'booster-description-expired text-gray-500': booster.expired,
                             'text-green-200': booster.activated && !booster.expired,
                             'text-orange-200': booster.countdown && !booster.activated && !booster.expired,
                             'text-purple-200': !booster.expired && !booster.activated && !booster.countdown
@@ -384,11 +393,11 @@
                       <span 
                         class="text-sm font-semibold px-2 py-1 rounded-full"
                         :class="{
-                          'bg-red-500/20 text-red-400 border border-red-400': booster.expired,
-                          'bg-green-500/20 text-green-400 border border-green-400': booster.activated && !booster.expired,
+                          'status-expired bg-red-500/20 text-red-400 border border-red-400': booster.expired,
+                          'status-active bg-green-500/20 text-green-400 border border-green-400': booster.activated && !booster.expired,
                           'bg-orange-500/20 text-orange-400 border border-orange-400 animate-pulse': booster.countdown && !booster.activated && !booster.expired,
                           'bg-gray-500/20 text-gray-400 border border-gray-400': booster.used && !booster.activated,
-                          'bg-yellow-500/20 text-yellow-400 border border-yellow-400': !booster.activated && !booster.expired && !booster.used && !booster.countdown
+                          'status-ready bg-yellow-500/20 text-yellow-400 border border-yellow-400': !booster.activated && !booster.expired && !booster.used && !booster.countdown
                         }"
                       >
                         <span v-if="booster.expired">● EXPIRED</span>
@@ -400,7 +409,7 @@
                       
                       <!-- Active timer for this booster -->
                       <span v-if="booster.activated && activeBoosterTimers[`b_${index}`]" 
-                            class="bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold font-mono animate-pulse">
+                            class="booster-timer-value bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold font-mono animate-pulse">
                         ⏰ {{ Math.ceil(activeBoosterTimers[`b_${index}`]?.timeLeft || 0) }}s
                       </span>
                       
@@ -409,7 +418,7 @@
                         v-if="userTeamSide === 'b' && !booster.activated && !booster.used && !booster.expired && !booster.countdown"
                         @click="console.log('🚨 TEAM B BUTTON CLICKED - Index:', index); activateUserBooster(index)"
                         :disabled="booster.countdown || booster.activated"
-                        class="mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
+                        class="booster-activate-btn-match mt-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all transform hover:scale-105 disabled:hover:scale-100"
                       >
                         <span v-if="booster.countdown" class="flex items-center">
                           <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
@@ -426,20 +435,20 @@
         </div>
 
         <!-- Tournament Standings (if available) -->
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-          <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+        <div class="match-center-card bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+          <h2 class="booster-section-title text-2xl font-bold text-white mb-6 flex items-center">
             <span class="mr-3">🏆</span>
             Tournament Standings
           </h2>
           
           <div v-if="loadingStandings" class="text-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-            <p class="text-blue-200">Loading standings...</p>
+            <div class="match-loading-spinner animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+            <p class="match-loading-text text-blue-200">Loading standings...</p>
           </div>
           
           <div v-else-if="standings.length === 0" class="text-center py-8">
             <div class="text-4xl mb-4">📊</div>
-            <p class="text-blue-200">No tournament standings available</p>
+            <p class="match-error-text text-blue-200">No tournament standings available</p>
           </div>
           
           <div v-else class="space-y-2 max-h-80 overflow-y-auto">
@@ -1354,13 +1363,13 @@ function getTeamName(teamId: string) {
 function getMatchStatusClass(status: string) {
   switch (status) {
     case 'active':
-      return 'bg-green-500 text-white'
+      return 'match-status-active bg-green-500 text-white'
     case 'pending':
-      return 'bg-yellow-500 text-black'
+      return 'match-status-pending bg-yellow-500 text-black'
     case 'paused':
       return 'bg-orange-500 text-white'
     case 'finished':
-      return 'bg-gray-500 text-white'
+      return 'match-status-finished bg-gray-500 text-white'
     default:
       return 'bg-gray-400 text-white'
   }
