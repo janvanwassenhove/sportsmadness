@@ -24,10 +24,13 @@
     var pathSegmentsToKeep = 1;
 
     var l = window.location;
+    var pathArray = l.pathname.split('/').filter(function(segment) { return segment; });
+    var redirectPath = pathArray.slice(pathSegmentsToKeep).join('/');
+    
     l.replace(
       l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      '/' + pathArray.slice(0, pathSegmentsToKeep).join('/') + '/?/' +
+      redirectPath.replace(/&/g, '~and~') +
       (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
       l.hash
     );
