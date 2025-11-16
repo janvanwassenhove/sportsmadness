@@ -32,6 +32,12 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
+      - name: Generate version file
+        working-directory: apps/frontend
+        run: |
+          echo "{\"version\":\"${{ github.sha }}\",\"buildTime\":\"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}" > dist/version.json
+          cat dist/version.json
+
       - name: Add .nojekyll file
         working-directory: apps/frontend
         run: touch dist/.nojekyll
