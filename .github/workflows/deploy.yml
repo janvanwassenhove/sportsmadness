@@ -36,9 +36,15 @@ jobs:
         working-directory: apps/frontend
         run: touch dist/.nojekyll
 
-      - name: List build output
+      - name: Verify build output
         working-directory: apps/frontend
-        run: ls -la dist/assets/
+        run: |
+          echo "=== Build Output Structure ==="
+          ls -la dist/
+          echo "=== Assets Directory ==="
+          ls -la dist/assets/ || echo "No assets directory found"
+          echo "=== Checking for index.html ==="
+          test -f dist/index.html && echo "✓ index.html exists" || echo "✗ index.html missing"
 
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
@@ -48,3 +54,7 @@ jobs:
           publish_dir: apps/frontend/dist
           publish_branch: gh-pages
           force_orphan: true
+          # Enable cleaning to remove old files
+          # This prevents stale asset references
+          enable_jekyll: false
+          cname: ''

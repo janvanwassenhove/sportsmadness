@@ -20,11 +20,20 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    // Clear output directory before build to prevent stale files
+    emptyOutDir: true,
     rollupOptions: {
       output: {
+        // Use shorter hashes but ensure they change with content
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+        // Ensure proper code splitting
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor'
+          }
+        }
       }
     }
   },

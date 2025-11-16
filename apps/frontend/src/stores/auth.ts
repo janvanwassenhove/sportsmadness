@@ -25,32 +25,43 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       console.log('🔍 Auth initialization started')
       
-      // Set a failsafe timeout
-      setTimeout(() => {
+      // Set a failsafe timeout (longer than the external timeout)
+      const failsafeTimeout = setTimeout(() => {
         if (loading.value) {
-          console.warn('🔍 Auth initialization timeout - forcing completion')
+          console.warn('🔍 Auth initialization failsafe timeout - forcing completion')
           loading.value = false
         }
-      }, 15000)
+      }, 20000) // 20 seconds failsafe
       
       // Check if Supabase is properly configured
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
       console.log('🔍 Supabase URL check:', supabaseUrl ? 'Set' : 'Missing')
       if (!supabaseUrl || supabaseUrl.includes('your-project-ref')) {
         console.warn('Supabase not configured. Please update .env.local with your Supabase credentials.')
+        clearTimeout(failsafeTimeout)
         loading.value = false
         return
       }
       
-      // Get current session
+      // Get current session with timeout
       console.log('🔍 Getting current session...')
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log('🔍 Session result:', session ? 'User logged in' : 'No session')
+      const sessionPromise = supabase.auth.getSession()
+      const sessionTimeout = new Promise<any>((_, reject) => 
+        setTimeout(() => reject(new Error('Session fetch timeout')), 8000)
+      )
       
-      if (session?.user) {
-        user.value = session.user
-        console.log('🔍 Loading user profile...')
-        await loadProfile()
+      try {
+        const { data: { session } } = await Promise.race([sessionPromise, sessionTimeout])
+        console.log('🔍 Session result:', session ? 'User logged in' : 'No session')
+        
+        if (session?.user) {
+          user.value = session.user
+          console.log('🔍 Loading user profile...')
+          await loadProfile()
+        }
+      } catch (sessionError) {
+        console.warn('🔍 Session fetch failed or timed out:', sessionError)
+        // Continue without session - user can still navigate to public routes
       }
 
       // Listen for auth changes
@@ -67,6 +78,8 @@ export const useAuthStore = defineStore('auth', () => {
           profile.value = null
         }
       })
+      
+      clearTimeout(failsafeTimeout)
     } catch (error) {
       console.error('Error initializing auth:', error)
     } finally {

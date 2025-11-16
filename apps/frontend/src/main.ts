@@ -24,16 +24,16 @@ async function initializeApp() {
   console.log('🎨 Theme system initialized')
   
   // Initialize auth store before mounting with timeout
-  console.log('� Hockey Madness loaded - Initializing auth...')
+  console.log('🏑 Hockey Madness loaded - Initializing auth...')
   const { useAuthStore } = await import('@/stores/auth')
   const authStore = useAuthStore()
   
   try {
-    // Add timeout to prevent hanging
+    // Add timeout to prevent hanging (15 seconds - should be enough for slow networks)
     await Promise.race([
       authStore.initialize(),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Auth initialization timeout')), 10000)
+        setTimeout(() => reject(new Error('Auth initialization timeout')), 15000)
       )
     ])
     console.log('🏑 Auth initialization complete, setting up router')

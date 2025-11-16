@@ -226,4 +226,33 @@ router.beforeEach(async (to, from, next) => {
   }
 })
 
+// Global error handler for chunk loading failures (typically due to cache issues after deployment)
+router.onError((error) => {
+  console.error('🚨 Router error:', error)
+  
+  // Check if it's a chunk loading error
+  if (error.message.includes('Failed to fetch dynamically imported module') || 
+      error.message.includes('ERR_ABORTED') ||
+      error.message.includes('Importing a module script failed')) {
+    console.warn('🔄 Chunk loading failed - likely due to deployment update. Reloading page...')
+    
+    // Reload the page to get the latest version
+    // Add a flag to prevent infinite reload loops
+    const hasReloaded = sessionStorage.getItem('chunk-load-reload')
+    if (!hasReloaded) {
+      sessionStorage.setItem('chunk-load-reload', 'true')
+      window.location.reload()
+    } else {
+      console.error('🚨 Chunk load failed after reload. Please clear your browser cache.')
+      sessionStorage.removeItem('chunk-load-reload')
+      alert('An error occurred loading the application. Please clear your browser cache and try again.')
+    }
+  }
+})
+
+// Clear the reload flag on successful navigation
+router.afterEach(() => {
+  sessionStorage.removeItem('chunk-load-reload')
+})
+
 export default router
