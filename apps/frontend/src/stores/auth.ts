@@ -97,7 +97,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('🔍 Loading profile for user:', user.value.id)
       
-      // Add timeout to prevent hanging on profile load
+      // Add timeout to prevent hanging on profile load (increased to 10s for slower connections)
       const profilePromise = supabase
         .from('users')
         .select('*')
@@ -105,7 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
         .single()
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile load timeout')), 5000)
+        setTimeout(() => reject(new Error('Profile load timeout')), 10000)
       )
       
       const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any
@@ -113,12 +113,16 @@ export const useAuthStore = defineStore('auth', () => {
       if (error) {
         console.error('🔍 Error loading profile:', error)
         console.warn('🔍 Continuing without profile - user will have basic access only')
+        
         // Set a minimal profile to ensure user has some role
         profile.value = {
           id: user.value.id,
           email: user.value.email || '',
           role: 'user' // Default role
         }
+        
+        // Retry loading profile in the background (don't await)
+        retryLoadProfileInBackground()
         return
       }
 
@@ -133,6 +137,35 @@ export const useAuthStore = defineStore('auth', () => {
         role: 'user'
       }
       console.log('🔍 Using default profile due to error')
+      
+      // Retry loading profile in the background (don't await)
+      retryLoadProfileInBackground()
+    }
+  }
+
+  async function retryLoadProfileInBackground() {
+    if (!user.value) return
+    
+    console.log('🔄 Retrying profile load in background...')
+    
+    // Wait a bit before retrying
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.value.id)
+        .single()
+      
+      if (!error && data) {
+        profile.value = data
+        console.log('✅ Background profile load successful! Role:', data.role)
+      } else {
+        console.warn('🔄 Background profile load failed:', error)
+      }
+    } catch (error) {
+      console.warn('🔄 Background profile retry exception:', error)
     }
   }
 

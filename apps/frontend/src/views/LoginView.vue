@@ -83,17 +83,16 @@ async function handleSubmit() {
     // Construct full path, avoiding double slashes
     let fullPath: string
     if (redirectPath.startsWith('/')) {
-      // Absolute path - combine with base
-      fullPath = baseUrl === '/' ? redirectPath : baseUrl + redirectPath.slice(1)
+      // Absolute path - combine with base, ensuring no double slashes
+      if (baseUrl.endsWith('/')) {
+        fullPath = baseUrl + redirectPath.slice(1)
+      } else {
+        fullPath = baseUrl + redirectPath
+      }
     } else {
-      // Relative path - just add to base
-      fullPath = baseUrl + redirectPath
+      // Relative path - ensure base ends with slash
+      fullPath = baseUrl.endsWith('/') ? baseUrl + redirectPath : baseUrl + '/' + redirectPath
     }
-    
-    // Normalize path (remove double slashes)
-    fullPath = fullPath.replace(/\/+/g, '/')
-    // Restore protocol slashes if present
-    fullPath = fullPath.replace(/:\//g, '://')
     
     console.log('🔐 Login form: Full redirect URL:', fullPath)
     console.log('🔐 Login form: Base URL:', baseUrl)
