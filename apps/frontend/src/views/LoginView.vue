@@ -45,15 +45,28 @@ async function handleSubmit() {
     console.log('🔐 Login form: isAuthenticated:', authStore.isAuthenticated)
     console.log('🔐 Login form: isAdmin:', authStore.isAdmin)
 
-    // Give the auth state time to update
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for auth state and profile to fully update
+    let attempts = 0
+    while (!authStore.isAuthenticated && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      attempts++
+    }
+
+    if (!authStore.isAuthenticated) {
+      console.error('🔐 Login form: Auth state did not update after sign in')
+      error.value = 'Authentication state error. Please try again.'
+      return
+    }
+
+    console.log('🔐 Login form: Auth state confirmed after', attempts, 'attempts')
+    console.log('🔐 Login form: Final state - isAuthenticated:', authStore.isAuthenticated, 'isAdmin:', authStore.isAdmin)
 
     // Redirect to intended page or appropriate dashboard based on role
-    const redirectTo = route.query.redirect as string || (authStore.isAdmin ? '/admin' : '/dashboard')
-    console.log('🔐 Login form: Redirecting to:', redirectTo)
+    const redirectPath = route.query.redirect as string || (authStore.isAdmin ? '/admin' : '/dashboard')
+    console.log('🔐 Login form: Redirecting to:', redirectPath)
     
-    // Use window.location for a clean navigation that triggers all route guards
-    window.location.href = redirectTo
+    // Use Vue Router for navigation
+    await router.push(redirectPath)
   } catch (err: any) {
     console.error('🔐 Login form: Exception:', err)
     error.value = err.message || 'An error occurred'
