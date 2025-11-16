@@ -39,7 +39,8 @@
     "profile": "Profiel",
     "login": "Inloggen",
     "logout": "Uitloggen",
-    "language": "Taal"
+    "language": "Taal",
+    "gameGuide": "Spelgids"
   },
   "theme": {
     "switchTheme": "Thema Wijzigen",
@@ -552,6 +553,45 @@
     },
     "success": {
       "created": "Toernooi succesvol aangemaakt!"
+    }
+  },
+  "gameGuide": {
+    "title": "Spelgids",
+    "subtitle": "Leer over boosters, maddies en spelmechanismen",
+    "loading": "Spelinformatie laden...",
+    "error": "Kan spelgegevens niet laden",
+    "retry": "Opnieuw Proberen",
+    "duration": "Duur",
+    "instant": "Direct Effect",
+    "backToDashboard": "Terug naar Dashboard",
+    "boosters": {
+      "title": "Boosters",
+      "description": "Power-ups die je team strategische voordelen geven tijdens wedstrijden. Gebruik ze verstandig om het tij te keren!",
+      "noBoosters": "Momenteel geen boosters beschikbaar"
+    },
+    "maddies": {
+      "title": "Maddies",
+      "description": "Chaotische gebeurtenissen die onvoorspelbaarheid en spanning aan het spel toevoegen. Omarm de gekte en pas je strategie aan!",
+      "noMaddies": "Momenteel geen maddies beschikbaar"
+    },
+    "tips": {
+      "title": "Pro Tips & Strategie",
+      "timing": {
+        "title": "Perfecte Timing",
+        "description": "Bewaar je boosters voor cruciale momenten in de wedstrijd. De juiste booster op het juiste moment kan het hele spel veranderen."
+      },
+      "teamwork": {
+        "title": "Teamcoördinatie",
+        "description": "Coördineer met je team bij het activeren van boosters. Meerdere boosters samen gebruikt kunnen krachtige combinaties creëren."
+      },
+      "adaptation": {
+        "title": "Blijf Flexibel",
+        "description": "Wanneer Maddie-gebeurtenissen worden geactiveerd, blijf kalm en pas je strategie aan. Snel denken kan chaos in kansen veranderen."
+      },
+      "strategy": {
+        "title": "Ken het Spel",
+        "description": "Kijk naar het scorebord en bestudeer tegenstanderspatronen. Inzicht in de spelstroom helpt je betere beslissingen te nemen."
+      }
     }
   },
   "footer": {

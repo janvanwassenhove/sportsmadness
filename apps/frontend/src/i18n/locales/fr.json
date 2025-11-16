@@ -39,7 +39,8 @@
     "profile": "Profiel",
     "login": "Connexion",
     "logout": "Déconnexion",
-    "language": "Langue"
+    "language": "Langue",
+    "gameGuide": "Guide du Jeu"
   },
   "theme": {
     "switchTheme": "Changer de Thème",
@@ -552,6 +553,45 @@
     },
     "success": {
       "created": "Tournoi créé avec succès !"
+    }
+  },
+  "gameGuide": {
+    "title": "Guide du Jeu",
+    "subtitle": "Découvrez les boosters, les maddies et les mécaniques de jeu",
+    "loading": "Chargement des informations de jeu...",
+    "error": "Échec du chargement des données de jeu",
+    "retry": "Réessayer",
+    "duration": "Durée",
+    "instant": "Effet Instantané",
+    "backToDashboard": "Retour au Tableau de Bord",
+    "boosters": {
+      "title": "Boosters",
+      "description": "Des power-ups qui donnent à votre équipe des avantages stratégiques pendant les matchs. Utilisez-les judicieusement pour renverser le cours du jeu !",
+      "noBoosters": "Aucun booster disponible pour le moment"
+    },
+    "maddies": {
+      "title": "Maddies",
+      "description": "Des événements chaotiques qui ajoutent de l'imprévisibilité et de l'excitation au jeu. Embrassez la folie et adaptez votre stratégie !",
+      "noMaddies": "Aucune maddie disponible pour le moment"
+    },
+    "tips": {
+      "title": "Conseils Pro & Stratégie",
+      "timing": {
+        "title": "Timing Parfait",
+        "description": "Gardez vos boosters pour les moments cruciaux du match. Le bon booster au bon moment peut changer tout le jeu."
+      },
+      "teamwork": {
+        "title": "Coordination d'Équipe",
+        "description": "Coordonnez-vous avec votre équipe lors de l'activation des boosters. Plusieurs boosters utilisés ensemble peuvent créer des combinaisons puissantes."
+      },
+      "adaptation": {
+        "title": "Restez Flexible",
+        "description": "Lorsque les événements Maddie se déclenchent, restez calme et adaptez votre stratégie. Une réflexion rapide peut transformer le chaos en opportunité."
+      },
+      "strategy": {
+        "title": "Connaissez le Jeu",
+        "description": "Observez le tableau de bord et étudiez les schémas adverses. Comprendre le flux du jeu vous aide à prendre de meilleures décisions."
+      }
     }
   },
   "footer": {

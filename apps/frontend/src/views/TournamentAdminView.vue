@@ -271,6 +271,14 @@
                   <div class="flex space-x-2">
                     <button 
                       v-if="selectedTournament.status === 'setup'"
+                      @click="openAddMatchModal(division)" 
+                      class="btn btn-xs btn-success"
+                      title="Add individual match"
+                    >
+                      + Add Match
+                    </button>
+                    <button 
+                      v-if="selectedTournament.status === 'setup'"
                       @click="generateDivisionSchedule(division)" 
                       class="btn btn-xs btn-primary"
                     >
@@ -728,6 +736,17 @@
         <h3 class="text-xl font-bold text-white mb-4">Edit Match Settings</h3>
         
         <form @submit.prevent="saveMatchSettings" class="space-y-4">
+          <!-- Match Start Time -->
+          <div>
+            <label class="block text-blue-200 text-sm font-semibold mb-2">Match Start Time</label>
+            <input 
+              v-model="editMatchData.start_time"
+              type="time" 
+              class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+              required
+            />
+          </div>
+
           <!-- Match Duration Settings -->
           <div class="border border-white/20 rounded-lg p-4">
             <h4 class="text-blue-200 font-semibold mb-3">Match Duration</h4>
@@ -831,6 +850,222 @@
     </div>
   </div>
 
+  <!-- Add Match Modal -->
+  <div v-if="showAddMatchModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-gray-900 rounded-xl p-6 border border-white/20 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-xl font-bold text-white mb-4">Add New Match</h3>
+      
+      <form @submit.prevent="addMatch" class="space-y-4">
+        <!-- Division Selection -->
+        <div>
+          <label class="block text-blue-200 text-sm font-semibold mb-2">Division</label>
+          <select 
+            v-model="newMatch.division_id"
+            class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+            required
+            @change="newMatch.group_id = ''"
+          >
+            <option value="" disabled>Select a division</option>
+            <option 
+              v-for="division in divisions" 
+              :key="division.id" 
+              :value="division.id"
+              class="bg-gray-800"
+            >
+              {{ division.name }} ({{ division.type }})
+            </option>
+          </select>
+        </div>
+
+        <!-- Group Selection (only for group divisions) -->
+        <div v-if="newMatch.division_id && divisions.find(d => d.id === newMatch.division_id)?.type === 'group'">
+          <label class="block text-blue-200 text-sm font-semibold mb-2">Group (Optional)</label>
+          <select 
+            v-model="newMatch.group_id"
+            class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+          >
+            <option value="">No specific group</option>
+            <option 
+              v-for="group in divisionGroups[newMatch.division_id] || []" 
+              :key="group.id" 
+              :value="group.id"
+              class="bg-gray-800"
+            >
+              {{ group.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Team Selection -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-blue-200 text-sm font-semibold mb-2">Team A</label>
+            <select 
+              v-model="newMatch.team_a"
+              class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+              required
+            >
+              <option value="" disabled>Select Team A</option>
+              <template v-for="item in availableTeamsForMatch" :key="item.id">
+                <optgroup v-if="item.divider" :label="item.name"></optgroup>
+                <option 
+                  v-else
+                  :value="item.id"
+                  :disabled="item.id === newMatch.team_b"
+                  :class="item.isPlaceholder ? 'bg-purple-900' : 'bg-gray-800'"
+                >
+                  {{ item.isPlaceholder ? '📍 ' : '' }}{{ item.name }}
+                </option>
+              </template>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-blue-200 text-sm font-semibold mb-2">Team B</label>
+            <select 
+              v-model="newMatch.team_b"
+              class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+              required
+            >
+              <option value="" disabled>Select Team B</option>
+              <template v-for="item in availableTeamsForMatch" :key="item.id">
+                <optgroup v-if="item.divider" :label="item.name"></optgroup>
+                <option 
+                  v-else
+                  :value="item.id"
+                  :disabled="item.id === newMatch.team_a"
+                  :class="item.isPlaceholder ? 'bg-purple-900' : 'bg-gray-800'"
+                >
+                  {{ item.isPlaceholder ? '📍 ' : '' }}{{ item.name }}
+                </option>
+              </template>
+            </select>
+          </div>
+        </div>
+
+        <!-- Placeholder teams info -->
+        <div v-if="newMatch.team_a.includes('_position_') || newMatch.team_b.includes('_position_')" class="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3">
+          <div class="flex items-start space-x-2">
+            <span class="text-purple-300">💡</span>
+            <p class="text-xs text-purple-200">
+              You've selected placeholder team positions. These will be automatically replaced with actual teams once the previous phase is completed.
+            </p>
+          </div>
+        </div>
+
+        <!-- Match Start Time -->
+        <div>
+          <label class="block text-blue-200 text-sm font-semibold mb-2">Match Start Time</label>
+          <input 
+            v-model="newMatch.start_time"
+            type="time" 
+            class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+            required
+          />
+        </div>
+
+        <!-- Match Duration Settings -->
+        <div class="border border-white/20 rounded-lg p-4">
+          <h4 class="text-blue-200 font-semibold mb-3">Match Duration</h4>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-blue-200 text-xs font-semibold mb-1">
+                {{ newMatch.quarters_count === 2 ? 'Halves' : 'Quarters' }}
+              </label>
+              <input 
+                v-model.number="newMatch.quarters_count"
+                type="number" 
+                min="1" 
+                max="6"
+                class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                required
+              />
+            </div>
+            
+            <div>
+              <label class="block text-blue-200 text-xs font-semibold mb-1">
+                {{ newMatch.quarters_count === 2 ? 'Half Length (min)' : 'Quarter Length (min)' }}
+              </label>
+              <input 
+                v-model.number="newMatch.quarter_duration_minutes"
+                type="number" 
+                min="5" 
+                max="30"
+                class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                required
+              />
+            </div>
+            
+            <div v-if="newMatch.quarters_count > 2">
+              <label class="block text-blue-200 text-xs font-semibold mb-1">Break Time (min)</label>
+              <input 
+                v-model.number="newMatch.break_duration_minutes"
+                type="number" 
+                min="1" 
+                max="10"
+                class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                required
+              />
+            </div>
+            
+            <div v-if="newMatch.quarters_count > 1">
+              <label class="block text-blue-200 text-xs font-semibold mb-1">
+                {{ newMatch.quarters_count === 2 ? 'Halftime (min)' : 'Halftime (min)' }}
+              </label>
+              <input 
+                v-model.number="newMatch.halftime_duration_minutes"
+                type="number" 
+                min="0" 
+                max="20"
+                class="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+              />
+            </div>
+          </div>
+          
+          <div class="text-xs text-white/60 mt-2">
+            Total match time: {{ 
+              (() => {
+                const quarters = newMatch.quarters_count
+                const quarterDuration = newMatch.quarter_duration_minutes
+                const breakDuration = newMatch.break_duration_minutes
+                const halftimeDuration = newMatch.halftime_duration_minutes
+                
+                const totalPlayingTime = quarters * quarterDuration
+                let totalBreakTime = 0
+                
+                if (quarters === 1) {
+                  totalBreakTime = 0
+                } else if (quarters === 2) {
+                  totalBreakTime = halftimeDuration
+                } else if (quarters > 2) {
+                  const numberOfBreaks = quarters - 1
+                  const regularBreaks = numberOfBreaks - 1
+                  totalBreakTime = regularBreaks * breakDuration + halftimeDuration
+                }
+                
+                return totalPlayingTime + totalBreakTime
+              })()
+            }} minutes
+          </div>
+        </div>
+
+        <div class="flex space-x-3 pt-4">
+          <button type="submit" class="flex-1 btn btn-primary">
+            Add Match
+          </button>
+          <button 
+            type="button" 
+            @click="closeAddMatchModal"
+            class="flex-1 btn btn-secondary"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Team Selection Modal for Subsequent Phases -->
   <div v-if="showTeamSelectionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -920,7 +1155,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed, reactive } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, reactive, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 
@@ -1009,6 +1244,7 @@ const showCreateDivision = ref(false)
 const editingTournament = ref(false)
 const showEditMatchModal = ref(false)
 const showTeamSelectionModal = ref(false)
+const showAddMatchModal = ref(false)
 
 // Team selection for subsequent phases
 const selectedDivisionForTeamSelection = ref<Division | null>(null)
@@ -1062,7 +1298,74 @@ const editMatchData = reactive({
   quarters_count: 4,
   quarter_duration_minutes: 15,
   break_duration_minutes: 2,
+  halftime_duration_minutes: 10,
+  start_time: '09:00'
+})
+
+// Add match state
+const newMatch = reactive({
+  division_id: '',
+  group_id: '',
+  team_a: '',
+  team_b: '',
+  start_time: '09:00',
+  quarters_count: 4,
+  quarter_duration_minutes: 15,
+  break_duration_minutes: 2,
   halftime_duration_minutes: 10
+})
+
+// Computed property for available teams including placeholders
+const availableTeamsForMatch = computed(() => {
+  const result: Array<{ id: string; name: string; isPlaceholder?: boolean; divider?: boolean }> = []
+  
+  // Always include actual teams first
+  result.push({ id: 'divider-actual', name: '--- Actual Teams ---', divider: true })
+  teams.value.forEach(team => {
+    result.push({ id: team.id, name: team.name, isPlaceholder: false })
+  })
+  
+  // If a division is selected and it's not the first phase, add placeholder options
+  if (newMatch.division_id && divisions.value.length > 0) {
+    const selectedDivisionIndex = divisions.value.findIndex(d => d.id === newMatch.division_id)
+    
+    // Only show placeholders for subsequent phases (not the first division)
+    if (selectedDivisionIndex > 0) {
+      const previousDivision = divisions.value[selectedDivisionIndex - 1]
+      
+      if (previousDivision && previousDivision.type === 'group') {
+        // Add section divider
+        result.push({ id: 'divider-placeholder', name: '--- Team Positions from Previous Phase ---', divider: true })
+        
+        // Get groups from previous division
+        const previousGroups = divisionGroups.value[previousDivision.id] || []
+        
+        previousGroups.forEach(group => {
+          // Add positions 1st through 4th for each group
+          for (let position = 1; position <= 4; position++) {
+            const suffix = getPositionSuffix(position)
+            result.push({
+              id: `${group.id}_position_${position}`,
+              name: `${position}${suffix} from ${group.name}`,
+              isPlaceholder: true
+            })
+          }
+        })
+      }
+    }
+  }
+  
+  return result
+})
+
+// Watch for division changes in add match form to reset team selections
+watch(() => newMatch.division_id, (newDivisionId, oldDivisionId) => {
+  // Only reset if division actually changed and it's not the initial empty value
+  if (oldDivisionId && newDivisionId !== oldDivisionId) {
+    newMatch.team_a = ''
+    newMatch.team_b = ''
+    newMatch.group_id = ''
+  }
 })
 
 async function loadTournaments() {
@@ -1591,6 +1894,7 @@ function editMatch(match: Match) {
   const defaultQuarterDuration = selectedTournament.value?.quarter_duration_minutes || 15
   const defaultBreakDuration = selectedTournament.value?.break_duration_minutes || 2
   const defaultHalftimeDuration = selectedTournament.value?.halftime_duration_minutes || 10
+  const defaultStartTime = selectedTournament.value?.tournament_start_time || '09:00:00'
 
   // Populate edit form with current match values or smart defaults
   editMatchData.id = match.id
@@ -1598,19 +1902,24 @@ function editMatch(match: Match) {
   editMatchData.quarter_duration_minutes = match.quarter_duration_minutes || defaultQuarterDuration
   editMatchData.break_duration_minutes = match.break_duration_minutes || defaultBreakDuration
   editMatchData.halftime_duration_minutes = match.halftime_duration_minutes || defaultHalftimeDuration
+  editMatchData.start_time = formatTime(match.start_time) || formatTime(defaultStartTime) || '09:00'
 
   showEditMatchModal.value = true
 }
 
 async function saveMatchSettings() {
   try {
+    // Convert HH:MM to HH:MM:SS format for database
+    const startTimeForDb = editMatchData.start_time + ':00'
+    
     const { error } = await supabase
       .from('matches')
       .update({
         quarters_count: editMatchData.quarters_count,
         quarter_duration_minutes: editMatchData.quarter_duration_minutes,
         break_duration_minutes: editMatchData.break_duration_minutes,
-        halftime_duration_minutes: editMatchData.halftime_duration_minutes
+        halftime_duration_minutes: editMatchData.halftime_duration_minutes,
+        start_time: startTimeForDb
       })
       .eq('id', editMatchData.id)
 
@@ -1629,6 +1938,7 @@ async function saveMatchSettings() {
         match.quarter_duration_minutes = editMatchData.quarter_duration_minutes
         match.break_duration_minutes = editMatchData.break_duration_minutes
         match.halftime_duration_minutes = editMatchData.halftime_duration_minutes
+        match.start_time = startTimeForDb
       }
     }
 
@@ -1682,6 +1992,176 @@ async function deleteMatch(matchId: string) {
   } catch (error) {
     console.error('Error:', error)
     alert('Failed to delete match. Please try again.')
+  }
+}
+
+// Add new match individually
+function openAddMatchModal(division?: Division) {
+  if (!selectedTournament.value) return
+  
+  // Reset form with tournament defaults
+  const defaultQuarters = selectedTournament.value.quarters_count || 4
+  const defaultQuarterDuration = selectedTournament.value.quarter_duration_minutes || 15
+  const defaultBreakDuration = selectedTournament.value.break_duration_minutes || 2
+  const defaultHalftimeDuration = selectedTournament.value.halftime_duration_minutes || 10
+  const defaultStartTime = selectedTournament.value.tournament_start_time || '09:00:00'
+  
+  newMatch.division_id = division?.id || ''
+  newMatch.group_id = ''
+  newMatch.team_a = ''
+  newMatch.team_b = ''
+  newMatch.start_time = formatTime(defaultStartTime) || '09:00'
+  newMatch.quarters_count = defaultQuarters
+  newMatch.quarter_duration_minutes = defaultQuarterDuration
+  newMatch.break_duration_minutes = defaultBreakDuration
+  newMatch.halftime_duration_minutes = defaultHalftimeDuration
+  
+  showAddMatchModal.value = true
+}
+
+function closeAddMatchModal() {
+  showAddMatchModal.value = false
+  
+  // Reset form
+  newMatch.division_id = ''
+  newMatch.group_id = ''
+  newMatch.team_a = ''
+  newMatch.team_b = ''
+  newMatch.start_time = '09:00'
+  newMatch.quarters_count = 4
+  newMatch.quarter_duration_minutes = 15
+  newMatch.break_duration_minutes = 2
+  newMatch.halftime_duration_minutes = 10
+}
+
+async function addMatch() {
+  if (!selectedTournament.value) return
+  
+  try {
+    // Convert HH:MM to HH:MM:SS format for database
+    const startTimeForDb = newMatch.start_time + ':00'
+    
+    // Calculate total match duration in seconds
+    const totalMatchDuration = newMatch.quarters_count * newMatch.quarter_duration_minutes * 60
+    
+    // Determine match type based on division
+    const selectedDivision = divisions.value.find(d => d.id === newMatch.division_id)
+    const matchType = selectedDivision?.type === 'group' ? 'group' : 'knockout'
+    
+    // Check if teams are placeholders
+    const isTeamAPlaceholder = newMatch.team_a.includes('_position_')
+    const isTeamBPlaceholder = newMatch.team_b.includes('_position_')
+    
+    // For placeholder teams, we need to use the first available team as a temporary placeholder
+    // The actual team assignment will happen when resolvePlaceholderTeams is called
+    let teamAId = newMatch.team_a
+    let teamBId = newMatch.team_b
+    let teamAPlaceholderInfo = null
+    let teamBPlaceholderInfo = null
+    
+    if (isTeamAPlaceholder || isTeamBPlaceholder) {
+      // Use the first team in the tournament as a temporary placeholder
+      // This is just to satisfy the NOT NULL constraint
+      const firstTeam = teams.value[0]
+      if (!firstTeam) {
+        alert('No teams available. Please create teams first.')
+        return
+      }
+      
+      if (isTeamAPlaceholder) {
+        const teamAOption = availableTeamsForMatch.value.find(t => t.id === newMatch.team_a && t.isPlaceholder)
+        if (teamAOption) {
+          const parts = newMatch.team_a.split('_position_')
+          const groupId = parts[0]
+          const position = parseInt(parts[1] || '0')
+          teamAPlaceholderInfo = {
+            groupId: groupId,
+            position: position,
+            placeholderId: newMatch.team_a,
+            name: teamAOption.name
+          }
+          teamAId = firstTeam.id // Use first team as temporary placeholder
+        }
+      }
+      
+      if (isTeamBPlaceholder) {
+        const teamBOption = availableTeamsForMatch.value.find(t => t.id === newMatch.team_b && t.isPlaceholder)
+        if (teamBOption) {
+          const parts = newMatch.team_b.split('_position_')
+          const groupId = parts[0]
+          const position = parseInt(parts[1] || '0')
+          teamBPlaceholderInfo = {
+            groupId: groupId,
+            position: position,
+            placeholderId: newMatch.team_b,
+            name: teamBOption.name
+          }
+          teamBId = firstTeam.id // Use first team as temporary placeholder
+        }
+      }
+    }
+    
+    const matchData = {
+      tournament_id: selectedTournament.value.id,
+      division_id: newMatch.division_id,
+      group_id: newMatch.group_id || null,
+      team_a: teamAId,
+      team_b: teamBId,
+      start_time: startTimeForDb,
+      quarters_count: newMatch.quarters_count,
+      quarter_duration_minutes: newMatch.quarter_duration_minutes,
+      break_duration_minutes: newMatch.break_duration_minutes,
+      halftime_duration_minutes: newMatch.halftime_duration_minutes,
+      status: 'pending',
+      match_type: matchType,
+      score_a: 0,
+      score_b: 0,
+      time_left: totalMatchDuration,
+      maddie: false,
+      boosters: {
+        // Store placeholder information in boosters field
+        team_a_placeholder: teamAPlaceholderInfo?.name || null,
+        team_b_placeholder: teamBPlaceholderInfo?.name || null,
+        team_a_config: teamAPlaceholderInfo,
+        team_b_config: teamBPlaceholderInfo
+      },
+      cards: {}
+    }
+    
+    const { data, error } = await supabase
+      .from('matches')
+      .insert([matchData])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error adding match:', error)
+      alert('Failed to add match. Please try again.')
+      return
+    }
+    
+    if (data) {
+      // Add to local state
+      matches.value.push(data)
+      
+      // Add to division matches
+      if (!divisionMatches.value[newMatch.division_id]) {
+        divisionMatches.value[newMatch.division_id] = []
+      }
+      const divMatches = divisionMatches.value[newMatch.division_id]
+      if (divMatches) {
+        divMatches.push(data)
+      }
+      
+      console.log('✅ Match added successfully')
+      closeAddMatchModal()
+      
+      // Refresh the tournament data to show the new match
+      await refreshCurrentTournament()
+    }
+  } catch (error) {
+    console.error('Error adding match:', error)
+    alert('Failed to add match. Please try again.')
   }
 }
 
@@ -2219,6 +2699,13 @@ async function generateMatchesWithPlaceholders(division: Division, selectedTeams
   const quartersCount = selectedTournament.value.quarters_count || 4
   const totalMatchDuration = quarterDuration * quartersCount * 60 // in seconds
   
+  // Get first team to use as temporary placeholder for database constraint
+  const firstTeam = teams.value[0]
+  if (!firstTeam && selectedTeams.some(t => t.id.includes('_position_'))) {
+    alert('No teams available to use as placeholder. Please create teams first.')
+    return
+  }
+  
   if (division.type === 'knockout') {
     // Generate matches for knockout phases
     for (let i = 0; i < selectedTeams.length; i += 2) {
@@ -2229,9 +2716,9 @@ async function generateMatchesWithPlaceholders(division: Division, selectedTeams
       const matchStartTime = calculateDivisionMatchStartTime(division, matches.length)
       
       const matchData: any = {
-        // Use actual team IDs for real teams, null for placeholders  
-        team_a: teamA.id.includes('_position_') ? null : teamA.id,
-        team_b: teamB.id.includes('_position_') ? null : teamB.id,
+        // Use actual team IDs for real teams, first team ID as temporary placeholder
+        team_a: teamA.id.includes('_position_') ? (firstTeam?.id || teamA.id) : teamA.id,
+        team_b: teamB.id.includes('_position_') ? (firstTeam?.id || teamB.id) : teamB.id,
         status: 'pending',
         division_id: division.id,
         tournament_id: selectedTournament.value.id,

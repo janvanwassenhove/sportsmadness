@@ -105,8 +105,8 @@
             </div>
           </template>
 
-          <!-- User Dashboard Link (for regular users) -->
-          <template v-if="authStore.isAuthenticated && authStore.isUser">
+          <!-- User Dashboard Link (for regular users and team members) -->
+          <template v-if="authStore.isAuthenticated && (authStore.isUser || authStore.isTeam)">
             <RouterLink 
               to="/dashboard" 
               class="nav-link"
@@ -114,6 +114,14 @@
             >
               <span class="mr-2">📈</span>
               {{ $t('navigation.dashboard') }}
+            </RouterLink>
+            <RouterLink 
+              to="/game-guide" 
+              class="nav-link"
+              :class="{ 'nav-link-active': $route.name === 'game-guide' }"
+            >
+              <span class="mr-2">🎮</span>
+              {{ $t('navigation.gameGuide') }}
             </RouterLink>
           </template>
 
@@ -323,8 +331,8 @@
           </div>
         </template>
 
-        <!-- User Dashboard Links (for regular users) -->
-        <template v-if="authStore.isAuthenticated && authStore.isUser">
+        <!-- User Dashboard Links (for regular users and team members) -->
+        <template v-if="authStore.isAuthenticated && (authStore.isUser || authStore.isTeam)">
           <div class="border-t border-white/10 pt-2 mt-2">
             <div class="px-3 py-2 text-xs font-semibold text-blue-200 uppercase tracking-wider">
               {{ $t('navigation.dashboard') }}
@@ -337,6 +345,15 @@
             >
               <span class="text-lg mr-2">📈</span>
               {{ $t('navigation.dashboard') }}
+            </RouterLink>
+            <RouterLink 
+              to="/game-guide" 
+              class="mobile-nav-link"
+              :class="{ 'mobile-nav-link-active': $route.name === 'game-guide' }"
+              @click="showMobileMenu = false"
+            >
+              <span class="text-lg mr-2">🎮</span>
+              {{ $t('navigation.gameGuide') }}
             </RouterLink>
           </div>
         </template>

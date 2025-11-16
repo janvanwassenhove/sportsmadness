@@ -106,6 +106,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
       props: true,
     },
+    {
+      path: '/game-guide',
+      name: 'game-guide',
+      component: () => import('../views/GameExplanationView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
@@ -173,7 +179,7 @@ router.beforeEach(async (to, from, next) => {
 
     // Restrict team role users to specific routes only
     if (authStore.isTeam) {
-      const allowedRoutesForTeam = ['home', 'scoreboard', 'profile', 'user-dashboard', 'match-center']
+      const allowedRoutesForTeam = ['home', 'scoreboard', 'profile', 'user-dashboard', 'match-center', 'game-guide']
       if (!allowedRoutesForTeam.includes(to.name as string)) {
         console.log('🚏 Team user trying to access restricted route, redirecting to home')
         next({ name: 'home' })
