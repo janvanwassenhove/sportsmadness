@@ -4,6 +4,16 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { supabase } from '@/lib/supabase'
 import { soundManager, SoundManager } from '@/lib/soundManager'
+import type { 
+  TimelineEvent, 
+  GoalEvent, 
+  BoosterActivatedEvent, 
+  MaddieActivatedEvent, 
+  CardIssuedEvent,
+  MatchStatusEvent,
+  PenaltyCornerEvent
+} from '@/types/timeline'
+import { createTimelineEvent, addTimelineEvent, getEventsByType, getEventsByTeam } from '@/types/timeline'
 
 interface Props {
   id: string
@@ -57,6 +67,29 @@ const buttonStates = ref({
   spinners: false
 })
 
+// Watchdog timers to prevent stuck button states
+const buttonWatchdogTimers = ref<Record<string, number>>({})
+
+// Function to set button state with automatic timeout protection
+function setButtonState(button: 'play' | 'pause' | 'finish' | 'spinners', state: boolean) {
+  buttonStates.value[button] = state
+  
+  // Clear existing watchdog timer
+  if (buttonWatchdogTimers.value[button]) {
+    clearTimeout(buttonWatchdogTimers.value[button])
+    delete buttonWatchdogTimers.value[button]
+  }
+  
+  // If setting to true, create a watchdog timer to auto-reset after 15 seconds
+  if (state === true) {
+    buttonWatchdogTimers.value[button] = setTimeout(() => {
+      console.warn(`⚠️ Button state '${button}' was stuck - auto-resetting`)
+      buttonStates.value[button] = false
+      delete buttonWatchdogTimers.value[button]
+    }, 15000) as unknown as number
+  }
+}
+
 // Score update debouncing
 const scoreUpdateTimeouts = ref<Record<string, number>>({})
 
@@ -68,6 +101,11 @@ const currentPhase = ref<'quarter' | 'break' | 'halftime' | 'finished'>('quarter
 const currentPeriod = ref(1) // Current quarter/half number
 const phaseTimeLeft = ref(0) // Time left in current phase
 const totalMatchTime = ref(0) // Total match time in seconds
+
+// Stats dialog state
+const showStatsDialog = ref(false)
+const statsFilterType = ref<string>('all')
+const statsFilterTeam = ref<string>('all')
 
 // Booster selection state
 const showBoosterSelection = ref(false)
@@ -327,6 +365,74 @@ const formatTime = (seconds: number) => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
+// Stats computed properties
+const teamAStats = computed(() => {
+  if (!match.value || !teamA.value) return null
+  
+  const timeline = match.value.timeline || []
+  
+  return {
+    goals: getEventsByType(timeline, 'goal').filter(e => e.team === 'a').length,
+    penaltyCorners: getEventsByType(timeline, 'penalty_corner').filter(e => e.team === 'a').length,
+    boosters: getEventsByType(timeline, 'booster_activated').filter(e => e.team === 'a').length,
+    maddies: getEventsByType(timeline, 'maddie_activated').length,
+    yellowCards: getEventsByType(timeline, 'card_issued').filter(e => e.team === 'a' && (e as CardIssuedEvent).details.card_type === 'yellow').length,
+    greenCards: getEventsByType(timeline, 'card_issued').filter(e => e.team === 'a' && (e as CardIssuedEvent).details.card_type === 'green').length,
+    redCards: getEventsByType(timeline, 'card_issued').filter(e => e.team === 'a' && (e as CardIssuedEvent).details.card_type === 'red').length
+  }
+})
+
+const teamBStats = computed(() => {
+  if (!match.value || !teamB.value) return null
+  
+  const timeline = match.value.timeline || []
+  
+  return {
+    goals: getEventsByType(timeline, 'goal').filter(e => e.team === 'b').length,
+    penaltyCorners: getEventsByType(timeline, 'penalty_corner').filter(e => e.team === 'b').length,
+    boosters: getEventsByType(timeline, 'booster_activated').filter(e => e.team === 'b').length,
+    maddies: getEventsByType(timeline, 'maddie_activated').length,
+    yellowCards: getEventsByType(timeline, 'card_issued').filter(e => e.team === 'b' && (e as CardIssuedEvent).details.card_type === 'yellow').length,
+    greenCards: getEventsByType(timeline, 'card_issued').filter(e => e.team === 'b' && (e as CardIssuedEvent).details.card_type === 'green').length,
+    redCards: getEventsByType(timeline, 'card_issued').filter(e => e.team === 'b' && (e as CardIssuedEvent).details.card_type === 'red').length
+  }
+})
+
+const filteredTimeline = computed(() => {
+  if (!match.value) return []
+  
+  let timeline = match.value.timeline || []
+  
+  // Filter by event type
+  if (statsFilterType.value !== 'all') {
+    timeline = getEventsByType(timeline, statsFilterType.value as TimelineEvent['type'])
+  }
+  
+  // Filter by team
+  if (statsFilterTeam.value !== 'all') {
+    timeline = getEventsByTeam(timeline, statsFilterTeam.value as 'a' | 'b')
+  }
+  
+  return timeline
+})
+
+// Timeline event recording helper
+async function recordTimelineEvent(event: TimelineEvent) {
+  if (!match.value) return
+  
+  try {
+    const currentTimeline: TimelineEvent[] = match.value.timeline || []
+    const updatedTimeline = addTimelineEvent(currentTimeline, event)
+    
+    console.log('📝 Recording timeline event:', event.type, event)
+    
+    await updateMatch({ timeline: updatedTimeline })
+  } catch (error) {
+    console.error('❌ Failed to record timeline event:', error)
+    // Don't throw - timeline is non-critical
+  }
+}
+
 async function loadMatch() {
   try {
     console.log('� Loading match with id:', props.id)
@@ -525,7 +631,7 @@ async function loadTeams() {
 
     if (error) {
       console.error('Error loading teams:', error)
-      return
+      throw error // Re-throw to be caught in onMounted
     }
 
     const teamsMap: Record<string, any> = {}
@@ -534,7 +640,8 @@ async function loadTeams() {
     })
     teams.value = teamsMap
   } catch (error) {
-    console.error('Error loading teams:', error)
+    console.error('❌ Critical error loading teams:', error)
+    throw error // Re-throw to trigger outer error handling
   }
 }
 
@@ -574,6 +681,12 @@ async function updateMatch(updates: Partial<any>) {
   console.log('🔧 updateMatch function started')
   
   return new Promise((resolve, reject) => {
+    // Add timeout protection - reject after 10 seconds
+    const timeoutId = setTimeout(() => {
+      console.error('❌ updateMatch timeout - operation took too long')
+      reject(new Error('Update operation timed out after 10 seconds'))
+    }, 10000)
+    
     const updateFn = async () => {
       try {
         console.log('📝 Processing queued update with:', updates)
@@ -595,6 +708,7 @@ async function updateMatch(updates: Partial<any>) {
         
         if (result.error) {
           console.error('❌ Error updating match:', result.error)
+          clearTimeout(timeoutId)
           reject(result.error)
           return
         }
@@ -613,9 +727,11 @@ async function updateMatch(updates: Partial<any>) {
         // Add a small delay to ensure database changes propagate
         await new Promise(resolve => setTimeout(resolve, 100))
         
+        clearTimeout(timeoutId)
         resolve({ success: true })
       } catch (error) {
         console.error('❌ Exception updating match:', error)
+        clearTimeout(timeoutId)
         reject(error)
       }
     }
@@ -702,10 +818,20 @@ function stopPenaltyTimer() {
 async function playMatch() {
   if (buttonStates.value.play) return // Prevent double-clicks
   
-  buttonStates.value.play = true
+  setButtonState('play', true)
   try {
     console.log('▶️ Starting match...')
     await updateMatch({ status: 'active' })
+    
+    // Record timeline event
+    const event = createTimelineEvent<MatchStatusEvent>(
+      match.value?.score_a === 0 && match.value?.score_b === 0 ? 'match_started' : 'match_resumed',
+      null,
+      { status: 'active' },
+      match.value?.time_left || 0
+    )
+    await recordTimelineEvent(event)
+    
     startTimer()
     startPenaltyTimer()
     console.log('✅ Match started successfully')
@@ -713,17 +839,27 @@ async function playMatch() {
     console.error('❌ Failed to start match:', error)
     alert('Failed to start match. Please try again.')
   } finally {
-    buttonStates.value.play = false
+    setButtonState('play', false)
   }
 }
 
 async function pauseMatch() {
   if (buttonStates.value.pause) return // Prevent double-clicks
   
-  buttonStates.value.pause = true
+  setButtonState('pause', true)
   try {
     console.log('⏸️ Pausing match...')
     await updateMatch({ status: 'paused' })
+    
+    // Record timeline event
+    const event = createTimelineEvent<MatchStatusEvent>(
+      'match_paused',
+      null,
+      { status: 'paused' },
+      match.value?.time_left || 0
+    )
+    await recordTimelineEvent(event)
+    
     stopTimer()
     stopPenaltyTimer()
     console.log('✅ Match paused successfully')
@@ -731,17 +867,27 @@ async function pauseMatch() {
     console.error('❌ Failed to pause match:', error)
     alert('Failed to pause match. Please try again.')
   } finally {
-    buttonStates.value.pause = false
+    setButtonState('pause', false)
   }
 }
 
 async function finishMatch() {
   if (buttonStates.value.finish) return // Prevent double-clicks
   
-  buttonStates.value.finish = true
+  setButtonState('finish', true)
   try {
     console.log('🏁 Finishing match...')
     await updateMatch({ status: 'finished' })
+    
+    // Record timeline event
+    const event = createTimelineEvent<MatchStatusEvent>(
+      'match_finished',
+      null,
+      { status: 'finished' },
+      match.value?.time_left || 0
+    )
+    await recordTimelineEvent(event)
+    
     stopTimer()
     stopPenaltyTimer()
     console.log('✅ Match finished successfully')
@@ -749,7 +895,7 @@ async function finishMatch() {
     console.error('❌ Failed to finish match:', error)
     alert('Failed to finish match. Please try again.')
   } finally {
-    buttonStates.value.finish = false
+    setButtonState('finish', false)
   }
 }
 
@@ -788,6 +934,22 @@ async function updateScore(team: 'a' | 'b', increment: number) {
       
       console.log(`🔢 Sending score update to database:`, updates)
       await updateMatch(updates)
+      
+      // Record goal event in timeline (only on increment, not decrement)
+      if (increment > 0) {
+        const goalEvent = createTimelineEvent<GoalEvent>(
+          'goal',
+          team,
+          {
+            score_a: team === 'a' ? newScore : (match.value?.score_a || 0),
+            score_b: team === 'b' ? newScore : (match.value?.score_b || 0),
+            pc: false // We'll track PC goals separately
+          },
+          match.value?.time_left || 0
+        )
+        await recordTimelineEvent(goalEvent)
+      }
+      
       console.log(`✅ Score updated for team ${team.toUpperCase()}:`, updates)
     } catch (error) {
       console.error(`❌ Failed to update score for team ${team}:`, error)
@@ -839,6 +1001,21 @@ async function updatePC(team: 'a' | 'b', increment: number) {
       
       console.log(`🏒 Sending PC update to database:`, updates)
       await updateMatch(updates)
+      
+      // Record penalty corner event in timeline (only on increment, not decrement)
+      if (increment > 0) {
+        const pcEvent = createTimelineEvent<PenaltyCornerEvent>(
+          'penalty_corner',
+          team,
+          {
+            pc_a: team === 'a' ? newPC : (match.value?.pc_a || 0),
+            pc_b: team === 'b' ? newPC : (match.value?.pc_b || 0)
+          },
+          match.value?.time_left || 0
+        )
+        await recordTimelineEvent(pcEvent)
+      }
+      
       console.log(`✅ PC updated for team ${team.toUpperCase()}:`, updates)
     } catch (error) {
       console.error(`❌ Failed to update PC for team ${team}:`, error)
@@ -914,13 +1091,27 @@ async function addCardToPlayer(team: 'a' | 'b', player: Player, cardType: 'yello
   }
   
   await updateMatch({ cards })
+  
+  // Record card event in timeline
+  const cardEvent = createTimelineEvent<CardIssuedEvent>(
+    'card_issued',
+    team,
+    {
+      card_type: cardType,
+      player_name: player.name,
+      player_number: player.number,
+      duration: cardType === 'red' ? 'never' : (penaltyDuration / 1000)
+    },
+    match.value?.time_left || 0
+  )
+  await recordTimelineEvent(cardEvent)
 }
 
 // Booster selection functions
 async function startBoosterSelection() {
   if (buttonStates.value.spinners) return // Prevent double-clicks
   
-  buttonStates.value.spinners = true
+  setButtonState('spinners', true)
   try {
     console.log('🎰 Starting booster selection...', { match: match.value?.status })
     if (match.value?.status !== 'active' && match.value?.status !== 'pending') {
@@ -957,7 +1148,7 @@ async function startBoosterSelection() {
     alert('Failed to start booster selection. Please try again.')
     showBoosterSelection.value = false
   } finally {
-    buttonStates.value.spinners = false
+    setButtonState('spinners', false)
   }
 }
 
@@ -1452,6 +1643,20 @@ async function activateTeamBooster(team: 'a' | 'b', boosterIndex: number) {
         
         await updateMatch(updates)
         
+        // Record booster activation in timeline
+        const boosterEvent = createTimelineEvent<BoosterActivatedEvent>(
+          'booster_activated',
+          team,
+          {
+            booster_id: booster.id || '',
+            booster_name: booster.name || booster.title || 'Unknown Booster',
+            booster_icon: booster.icon || '⚡',
+            duration: booster.duration
+          },
+          match.value?.time_left || 0
+        )
+        await recordTimelineEvent(boosterEvent)
+        
         // For timed boosters, set up countdown timer with 1-second warning and auto-deactivation
         if (booster.duration && booster.duration > 0) {
           console.log(`⏰ Timed booster activated: ${booster.name} for ${booster.duration} minute(s)`)
@@ -1517,6 +1722,20 @@ async function triggerMaddie(selectedMaddie?: any) {
         await playMaddieSound()
         
         await updateMatch({ maddie: finalMaddieData })
+        
+        // Record maddie activation in timeline
+        const maddieEvent = createTimelineEvent<MaddieActivatedEvent>(
+          'maddie_activated',
+          null,
+          {
+            maddie_id: currentMaddie.id || '',
+            maddie_name: currentMaddie.name || currentMaddie.title || 'Unknown Maddie',
+            maddie_icon: currentMaddie.icon || '🎪',
+            duration: currentMaddie.duration ? currentMaddie.duration / 60 : undefined // Convert seconds to minutes
+          },
+          match.value?.time_left || 0
+        )
+        await recordTimelineEvent(maddieEvent)
         
         // Start maddie duration timer if the maddie has a duration
         if (currentMaddie.duration && currentMaddie.duration > 0) {
@@ -2136,18 +2355,35 @@ function clearAllBoosterTimers() {
 
 onMounted(async () => {
   loading.value = true
-  await Promise.all([loadMatch(), loadTeams(), loadBoostersAndMaddies()])
   
-  // Setup real-time subscriptions after match is loaded
-  setupRealtimeSubscription()
-  
-  // Start timers if match is active
-  if (match.value?.status === 'active') {
-    startTimer()
-    startPenaltyTimer()
+  // Reset all button states to prevent stuck states from previous sessions
+  buttonStates.value = {
+    play: false,
+    pause: false,
+    finish: false,
+    spinners: false
   }
+  console.log('🔄 Button states reset on mount')
   
-  loading.value = false
+  try {
+    await Promise.all([loadMatch(), loadTeams(), loadBoostersAndMaddies()])
+    
+    // Setup real-time subscriptions after match is loaded
+    setupRealtimeSubscription()
+    
+    // Start timers if match is active
+    if (match.value?.status === 'active') {
+      startTimer()
+      startPenaltyTimer()
+    }
+  } catch (error) {
+    console.error('❌ CRITICAL: Failed to initialize Match Control:', error)
+    alert('Failed to load match data. Please refresh the page or contact support.')
+  } finally {
+    // ALWAYS set loading to false, even if errors occurred
+    loading.value = false
+    console.log('✅ Match Control initialization complete (loading state cleared)')
+  }
 })
 
 onUnmounted(() => {
@@ -2157,6 +2393,16 @@ onUnmounted(() => {
   
   // Clean up score update timeouts
   Object.values(scoreUpdateTimeouts.value).forEach(timeoutId => {
+    clearTimeout(timeoutId)
+  })
+  
+  // Clean up PC update timeouts
+  Object.values(pcUpdateTimeouts.value).forEach(timeoutId => {
+    clearTimeout(timeoutId)
+  })
+  
+  // Clean up button watchdog timers
+  Object.values(buttonWatchdogTimers.value).forEach(timeoutId => {
     clearTimeout(timeoutId)
   })
   
@@ -2190,9 +2436,17 @@ onUnmounted(() => {
               {{ teamA?.name || 'Team A' }} vs {{ teamB?.name || 'Team B' }}
             </p>
           </div>
-          <RouterLink to="/admin" class="btn btn-secondary">
-            {{ $t('matchControl.backToAdmin') }}
-          </RouterLink>
+          <div class="flex gap-2">
+            <button 
+              @click="showStatsDialog = true" 
+              class="btn btn-info gap-2"
+            >
+              📊 Match Stats
+            </button>
+            <RouterLink to="/admin" class="btn btn-secondary">
+              {{ $t('matchControl.backToAdmin') }}
+            </RouterLink>
+          </div>
         </div>
 
         <!-- Match Not Initialized State -->
@@ -2732,7 +2986,10 @@ onUnmounted(() => {
             >
               📺 Open Scoreboard
             </RouterLink>
-            <button class="btn btn-secondary">
+            <button 
+              @click="showStatsDialog = true"
+              class="btn btn-secondary"
+            >
               📊 Match Stats
             </button>
             <button 
@@ -2923,6 +3180,174 @@ onUnmounted(() => {
           >
             ✅ Confirm Boosters
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Dialog Modal -->
+  <div v-if="showStatsDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showStatsDialog = false">
+    <div class="relative w-full max-w-5xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 rounded-2xl shadow-2xl border border-blue-500/30">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between p-6 border-b border-blue-500/30 bg-gradient-to-r from-blue-600/20 to-purple-600/20">
+        <h2 class="text-3xl font-bold text-white flex items-center gap-3">
+          📊 Match Statistics
+        </h2>
+        <button @click="showStatsDialog = false" class="btn btn-circle btn-sm">✕</button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 overflow-y-auto max-h-[calc(90vh-88px)]">
+        
+        <!-- Stats Summary Cards -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <!-- Team A Stats -->
+          <div v-if="teamAStats" class="bg-gradient-to-br from-blue-800/40 to-blue-900/40 rounded-xl p-6 border border-blue-500/30">
+            <h3 class="text-2xl font-bold text-white mb-4">{{ teamA?.name || 'Team A' }}</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-blue-900/50 rounded-lg p-3 text-center">
+                <div class="text-4xl font-bold text-blue-300">{{ teamAStats.goals }}</div>
+                <div class="text-sm text-blue-200 mt-1">Goals</div>
+              </div>
+              <div class="bg-blue-900/50 rounded-lg p-3 text-center">
+                <div class="text-4xl font-bold text-purple-300">{{ teamAStats.penaltyCorners }}</div>
+                <div class="text-sm text-purple-200 mt-1">Penalty Corners</div>
+              </div>
+              <div class="bg-blue-900/50 rounded-lg p-3 text-center">
+                <div class="text-4xl font-bold text-green-300">{{ teamAStats.boosters }}</div>
+                <div class="text-sm text-green-200 mt-1">Boosters</div>
+              </div>
+              <div class="bg-blue-900/50 rounded-lg p-3 text-center">
+                <div class="text-4xl font-bold text-yellow-300">{{ teamAStats.yellowCards }}</div>
+                <div class="text-sm text-yellow-200 mt-1">Yellow Cards</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team B Stats -->
+          <div v-if="teamBStats" class="bg-gradient-to-br from-purple-800/40 to-purple-900/40 rounded-xl p-6 border border-purple-500/30">
+            <h3 class="text-2xl font-bold text-white mb-4">{{ teamB?.name || 'Team B' }}</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-purple-900/50 rounded-lg p-3 text-center">
+                <div class="text-4xl font-bold text-purple-300">{{ teamBStats.goals }}</div>
+                <div class="text-sm text-purple-200 mt-1">Goals</div>
+              </div>
+              <div class="bg-purple-900/50 rounded-lg p-3 text-center">
+                <div class="text-4xl font-bold text-blue-300">{{ teamBStats.penaltyCorners }}</div>
+                <div class="text-sm text-blue-200 mt-1">Penalty Corners</div>
+              </div>
+              <div class="bg-purple-900/50 rounded-lg p-3 text-center">
+                <div class="text-4xl font-bold text-green-300">{{ teamBStats.boosters }}</div>
+                <div class="text-sm text-green-200 mt-1">Boosters</div>
+              </div>
+              <div class="bg-purple-900/50 rounded-lg p-3 text-center">
+                <div class="text-4xl font-bold text-yellow-300">{{ teamBStats.yellowCards }}</div>
+                <div class="text-sm text-yellow-200 mt-1">Yellow Cards</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="flex gap-4 mb-6 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+          <div class="flex-1">
+            <label class="text-sm text-slate-300 mb-2 block">Event Type</label>
+            <select v-model="statsFilterType" class="select select-bordered w-full bg-slate-900/80 text-white">
+              <option value="all">All Events</option>
+              <option value="goal">⚽ Goals</option>
+              <option value="penalty_corner">🏑 Penalty Corners</option>
+              <option value="booster_activated">⚡ Boosters</option>
+              <option value="maddie_activated">🎰 Maddies</option>
+              <option value="card_issued">🟨 Cards</option>
+              <option value="match_started">▶️ Match Started</option>
+              <option value="match_paused">⏸️ Match Paused</option>
+              <option value="match_resumed">▶️ Match Resumed</option>
+              <option value="match_finished">🏁 Match Finished</option>
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="text-sm text-slate-300 mb-2 block">Team</label>
+            <select v-model="statsFilterTeam" class="select select-bordered w-full bg-slate-900/80 text-white">
+              <option value="all">All Teams</option>
+              <option value="a">{{ teamA?.name || 'Team A' }}</option>
+              <option value="b">{{ teamB?.name || 'Team B' }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
+          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            📋 Event Timeline
+            <span class="text-sm text-slate-400">({{ filteredTimeline.length }} events)</span>
+          </h3>
+          
+          <div v-if="filteredTimeline.length === 0" class="text-center py-8 text-slate-400">
+            No events found
+          </div>
+          
+          <div v-else class="space-y-3 max-h-96 overflow-y-auto">
+            <div 
+              v-for="(event, index) in filteredTimeline" 
+              :key="index"
+              class="flex items-start gap-4 p-3 rounded-lg border transition-colors"
+              :class="{
+                'bg-blue-900/30 border-blue-500/30': event.team === 'a',
+                'bg-purple-900/30 border-purple-500/30': event.team === 'b',
+                'bg-slate-900/30 border-slate-500/30': !event.team
+              }"
+            >
+              <div class="text-2xl">
+                {{ event.type === 'goal' ? '⚽' : 
+                   event.type === 'penalty_corner' ? '🏑' : 
+                   event.type === 'booster_activated' ? '⚡' : 
+                   event.type === 'maddie_activated' ? '🎰' : 
+                   event.type === 'card_issued' ? '🟨' : 
+                   event.type === 'match_started' ? '▶️' : 
+                   event.type === 'match_paused' ? '⏸️' : 
+                   event.type === 'match_resumed' ? '▶️' : '🏁' }}
+              </div>
+              <div class="flex-1">
+                <div class="text-white font-semibold">
+                  {{ event.type === 'goal' ? 'Goal Scored' :
+                     event.type === 'penalty_corner' ? 'Penalty Corner' :
+                     event.type === 'booster_activated' ? 'Booster Activated' :
+                     event.type === 'maddie_activated' ? 'Maddie Activated' :
+                     event.type === 'card_issued' ? `${(event as CardIssuedEvent).details.card_type.toUpperCase()} Card Issued` :
+                     event.type === 'match_started' ? 'Match Started' :
+                     event.type === 'match_paused' ? 'Match Paused' :
+                     event.type === 'match_resumed' ? 'Match Resumed' : 'Match Finished' }}
+                </div>
+                <div class="text-sm text-slate-300 mt-1">
+                  <span v-if="event.team === 'a'">{{ teamA?.name }}</span>
+                  <span v-else-if="event.team === 'b'">{{ teamB?.name }}</span>
+                  <span v-if="event.matchTime !== undefined" class="ml-2">
+                    • Time: {{ formatTime(event.matchTime) }}
+                  </span>
+                </div>
+                <div v-if="event.type === 'goal'" class="text-xs text-slate-400 mt-1">
+                  Score: {{ (event as GoalEvent).details.score_a }} - {{ (event as GoalEvent).details.score_b }}
+                  <span v-if="(event as GoalEvent).details.pc"> (from PC)</span>
+                </div>
+                <div v-else-if="event.type === 'penalty_corner'" class="text-xs text-slate-400 mt-1">
+                  PC Count: {{ (event as PenaltyCornerEvent).details.pc_a }} - {{ (event as PenaltyCornerEvent).details.pc_b }}
+                </div>
+                <div v-else-if="event.type === 'booster_activated'" class="text-xs text-slate-400 mt-1">
+                  {{ (event as BoosterActivatedEvent).details.booster_name }}
+                </div>
+                <div v-else-if="event.type === 'maddie_activated'" class="text-xs text-slate-400 mt-1">
+                  {{ (event as MaddieActivatedEvent).details.maddie_name }}
+                </div>
+                <div v-else-if="event.type === 'card_issued'" class="text-xs text-slate-400 mt-1">
+                  Player: {{ (event as CardIssuedEvent).details.player_name }} (#{{ (event as CardIssuedEvent).details.player_number }})
+                </div>
+              </div>
+              <div class="text-xs text-slate-400 whitespace-nowrap">
+                {{ new Date(event.timestamp).toLocaleTimeString() }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

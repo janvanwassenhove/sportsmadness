@@ -62,11 +62,44 @@ async function handleSubmit() {
     console.log('🔐 Login form: Final state - isAuthenticated:', authStore.isAuthenticated, 'isAdmin:', authStore.isAdmin)
 
     // Redirect to intended page or appropriate dashboard based on role
-    const redirectPath = route.query.redirect as string || (authStore.isAdmin ? '/admin' : '/dashboard')
+    let redirectPath = route.query.redirect as string
+    
+    // Clean up redirect path if it came from GitHub Pages query string conversion
+    if (redirectPath && redirectPath.startsWith('/?/')) {
+      redirectPath = redirectPath.substring(2) // Remove /? prefix
+    }
+    
+    // Default redirect based on role if no redirect specified
+    if (!redirectPath) {
+      redirectPath = authStore.isAdmin ? '/admin' : '/dashboard'
+    }
+    
     console.log('🔐 Login form: Redirecting to:', redirectPath)
     
-    // Use Vue Router for navigation
-    await router.push(redirectPath)
+    // Use window.location for reliable navigation in GitHub Pages deployment
+    // This ensures the base path is properly respected
+    const baseUrl = import.meta.env.BASE_URL || '/'
+    
+    // Construct full path, avoiding double slashes
+    let fullPath: string
+    if (redirectPath.startsWith('/')) {
+      // Absolute path - combine with base
+      fullPath = baseUrl === '/' ? redirectPath : baseUrl + redirectPath.slice(1)
+    } else {
+      // Relative path - just add to base
+      fullPath = baseUrl + redirectPath
+    }
+    
+    // Normalize path (remove double slashes)
+    fullPath = fullPath.replace(/\/+/g, '/')
+    // Restore protocol slashes if present
+    fullPath = fullPath.replace(/:\//g, '://')
+    
+    console.log('🔐 Login form: Full redirect URL:', fullPath)
+    console.log('🔐 Login form: Base URL:', baseUrl)
+    
+    // Use location.href for reliable navigation across different deployment environments
+    window.location.href = fullPath
   } catch (err: any) {
     console.error('🔐 Login form: Exception:', err)
     error.value = err.message || 'An error occurred'

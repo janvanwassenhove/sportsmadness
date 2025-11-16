@@ -83,11 +83,19 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       console.log('🔍 Loading profile for user:', user.value.id)
-      const { data, error } = await supabase
+      
+      // Add timeout to prevent hanging on profile load
+      const profilePromise = supabase
         .from('users')
         .select('*')
         .eq('id', user.value.id)
         .single()
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile load timeout')), 5000)
+      )
+      
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any
 
       if (error) {
         console.error('🔍 Error loading profile:', error)
@@ -102,10 +110,16 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       profile.value = data
-      console.log('🔍 Profile loaded successfully:', data?.email)
+      console.log('🔍 Profile loaded successfully:', data?.email, 'Role:', data?.role)
     } catch (error) {
       console.error('🔍 Exception loading profile:', error)
-      // Don't throw - continue without profile
+      // Set default profile on timeout or error
+      profile.value = {
+        id: user.value.id,
+        email: user.value.email || '',
+        role: 'user'
+      }
+      console.log('🔍 Using default profile due to error')
     }
   }
 

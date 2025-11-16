@@ -1833,9 +1833,18 @@ watch(() => currentMatch.value?.id, (newId, oldId) => {
 
 onMounted(async () => {
   loading.value = true
-  await Promise.all([loadCurrentMatch(), loadTeams(), loadBoostersAndMaddies()])
-  // setupRealtimeSubscription() is now handled by the watch
-  loading.value = false
+  try {
+    await Promise.all([loadCurrentMatch(), loadTeams(), loadBoostersAndMaddies()])
+    // setupRealtimeSubscription() is now handled by the watch
+  } catch (error) {
+    console.error('❌ CRITICAL: Failed to initialize Scoreboard:', error)
+    console.log('⚠️ Scoreboard will attempt to continue with limited functionality')
+    // Don't show alert on scoreboard as it's public-facing
+  } finally {
+    // ALWAYS set loading to false, even if errors occurred
+    loading.value = false
+    console.log('✅ Scoreboard initialization complete (loading state cleared)')
+  }
 })
 
 onUnmounted(() => {

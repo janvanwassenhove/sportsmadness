@@ -51,6 +51,13 @@ const router = createRouter({
       props: true,
     },
     {
+      path: '/admin/match/:id/stats',
+      name: 'match-stats',
+      component: () => import('../views/MatchStatsView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      props: true,
+    },
+    {
       path: '/admin/teams',
       name: 'teams-admin',
       component: () => import('../views/TeamsAdminView.vue'),
@@ -138,25 +145,41 @@ router.beforeEach(async (to, from, next) => {
     // Wait for auth to initialize only for protected routes
     if (authStore.loading) {
       console.log('🚏 Protected route - waiting for auth to finish loading...')
-      try {
-        await Promise.race([
-          new Promise(resolve => {
-            const unwatch = authStore.$subscribe(() => {
+      
+      // Immediate check if auth is already loaded (prevents race condition)
+      if (!authStore.loading) {
+        console.log('🚏 Auth already loaded (race condition avoided)')
+      } else {
+        try {
+          // Wait for auth with multiple fallback strategies
+          await Promise.race([
+            // Strategy 1: Subscribe to store changes
+            new Promise(resolve => {
+              const unwatch = authStore.$subscribe(() => {
+                if (!authStore.loading) {
+                  console.log('🚏 Auth loading completed via subscription!')
+                  unwatch()
+                  resolve(undefined)
+                }
+              })
+              // Immediately check in case it already finished
               if (!authStore.loading) {
-                console.log('🚏 Auth loading completed via subscription!')
+                console.log('🚏 Auth already completed before subscription')
                 unwatch()
                 resolve(undefined)
               }
-            })
-          }),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Auth loading timeout')), 8000)
-          )
-        ])
-      } catch (error) {
-        console.warn('🚏 Auth loading timed out for protected route:', error)
-        next({ name: 'home' })
-        return
+            }),
+            // Strategy 2: Timeout after 8 seconds
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Auth loading timeout')), 8000)
+            )
+          ])
+        } catch (error) {
+          console.warn('🚏 Auth loading timed out for protected route:', error)
+          // Don't redirect to home if user might be authenticated
+          // Instead, let them through and the auth check below will handle it
+          console.log('🚏 Proceeding despite timeout - auth state will be checked below')
+        }
       }
     }
 
