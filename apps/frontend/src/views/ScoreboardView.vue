@@ -1148,7 +1148,7 @@ function startBoosterCountdown(teamKey: 'teamA' | 'teamB', booster: any, teamNam
     boosterName: booster.name,
     boosterIcon: booster.icon,
     teamColor: teamKey === 'teamA' ? 'blue' : 'red',
-    countdown: 7,
+    countdown: 10,
     teamKey,
     boosterIndex
   }
@@ -1199,7 +1199,7 @@ function startMaddieCountdown(maddie: any) {
     maddieIcon: maddie.icon || '🎪',
     maddieDescription: maddie.description || maddie.subtitle || 'A special effect will be activated',
     maddieDuration: maddie.duration || null,
-    countdown: 7
+    countdown: 10
   }
   
   // Start countdown timer
@@ -1724,7 +1724,7 @@ async function playSpinningSound() {
 async function playBoosterSelectionSound() {
   try {
     // Play a selection/ding sound when booster is chosen
-    await SoundManager.playSound('/sounds/selection.mp3', 0.7)
+    await SoundManager.playSound('/sounds/selection.mp3', 1)
     console.log('🔊 Playing booster selection sound on scoreboard')
   } catch (error) {
     console.log('🔊 Selection sound not available, trying fallback')
@@ -1749,7 +1749,7 @@ async function playTickSound() {
 async function playCountdownSound() {
   try {
     // Play countdown start sound when booster or maddie countdown begins
-    await SoundManager.playSound('/sounds/countdown.wav', 0.7)
+    await SoundManager.playSound('/sounds/countdown.wav', 1)
     console.log('🔊 Playing countdown start sound')
   } catch (error) {
     console.log('🔊 Countdown sound not available, trying fallback')

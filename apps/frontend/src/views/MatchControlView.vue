@@ -1463,7 +1463,7 @@ async function activateTeamBooster(team: 'a' | 'b', boosterIndex: number) {
       } catch (error) {
         console.error('Error during booster activation after countdown:', error)
       }
-    }, 7000) // 7 seconds countdown
+    }, 10000) // 10 seconds countdown
   }
 }
 
@@ -1556,7 +1556,7 @@ async function triggerMaddie(selectedMaddie?: any) {
       } catch (error) {
         console.error('Error during maddie activation after countdown:', error)
       }
-    }, 7000) // 7 seconds countdown
+    }, 10000) // 10 seconds countdown
     
   } else {
     // Legacy system: Toggle boolean maddie state
@@ -1832,7 +1832,7 @@ async function playSpinningSound() {
 async function playBoosterSelectionSound() {
   try {
     // Play a selection/ding sound when booster is chosen
-    await SoundManager.playSound('/sounds/selection.mp3', 0.7)
+    await SoundManager.playSound('/sounds/selection.mp3', 1)
     console.log('🔊 Playing booster selection sound')
   } catch (error) {
     console.log('🔊 Selection sound not available, trying fallback')
