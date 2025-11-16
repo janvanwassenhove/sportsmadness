@@ -45,37 +45,15 @@ async function handleSubmit() {
     console.log('🔐 Login form: isAuthenticated:', authStore.isAuthenticated)
     console.log('🔐 Login form: isAdmin:', authStore.isAdmin)
 
-    // Wait for authentication state to be properly updated
-    // Use a more robust waiting mechanism
-    let attempts = 0
-    const maxAttempts = 10
-    while (!authStore.isAuthenticated && attempts < maxAttempts) {
-      console.warn(`🔐 Login form: Waiting for auth state (attempt ${attempts + 1}/${maxAttempts})...`)
-      await new Promise(resolve => setTimeout(resolve, 300))
-      attempts++
-    }
-
-    if (!authStore.isAuthenticated) {
-      console.error('🔐 Login form: Authentication state never updated after successful login')
-      // Force a page reload to ensure auth state is properly set
-      window.location.href = route.query.redirect as string || '/dashboard'
-      return
-    }
-
-    console.log('🔐 Login form: Final auth state - isAuthenticated:', authStore.isAuthenticated)
-    console.log('🔐 Login form: Final auth state - isAdmin:', authStore.isAdmin)
+    // Give the auth state time to update
+    await new Promise(resolve => setTimeout(resolve, 100))
 
     // Redirect to intended page or appropriate dashboard based on role
-    // Admin -> /admin, User/Team -> /dashboard
-    let redirectTo = route.query.redirect as string
-    if (!redirectTo) {
-      redirectTo = authStore.isAdmin ? '/admin' : '/dashboard'
-    }
+    const redirectTo = route.query.redirect as string || (authStore.isAdmin ? '/admin' : '/dashboard')
     console.log('🔐 Login form: Redirecting to:', redirectTo)
     
-    // Use replace instead of push to avoid login page in history
-    await router.replace(redirectTo)
-    console.log('🔐 Login form: Redirect completed')
+    // Use window.location for a clean navigation that triggers all route guards
+    window.location.href = redirectTo
   } catch (err: any) {
     console.error('🔐 Login form: Exception:', err)
     error.value = err.message || 'An error occurred'

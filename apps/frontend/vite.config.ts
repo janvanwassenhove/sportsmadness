@@ -5,7 +5,7 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     vueDevTools(),
@@ -15,7 +15,8 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  base: '/sportsmadness/',
+  // Use /sportsmadness/ for production (GitHub Pages), / for development
+  base: mode === 'production' ? '/sportsmadness/' : '/',
   build: {
     outDir: 'dist',
     sourcemap: false,
@@ -38,4 +39,4 @@ export default defineConfig({
   },
   // Enable environment variable loading
   envPrefix: 'VITE_'
-})
+}))
