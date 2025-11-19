@@ -50,9 +50,17 @@
   "home": {
     "title": "Hockey Madness",
     "subtitle": "Real-time toernooibeheer voor hockeykampioenschappen",
+    "upcomingMatches": {
+      "title": "Komende Wedstrijden",
+      "loadingMatches": "Wedstrijden laden..."
+    },
     "liveScoreboard": {
       "title": "Live Scorebord",
       "description": "Bekijk live wedstrijden met real-time updates"
+    },
+    "gameGuide": {
+      "title": "Spelgids",
+      "description": "Leer over regels, boosters en hoe te spelen"
     },
     "tournamentAdmin": {
       "title": "Toernooi Beheer", 

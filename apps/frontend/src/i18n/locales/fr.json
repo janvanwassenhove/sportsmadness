@@ -50,9 +50,17 @@
   "home": {
     "title": "Hockey Madness",
     "subtitle": "Gestion de tournois en temps réel pour les championnats de hockey",
+    "upcomingMatches": {
+      "title": "Matchs à Venir",
+      "loadingMatches": "Chargement des matchs..."
+    },
     "liveScoreboard": {
       "title": "Tableau de Bord en Direct",
       "description": "Regardez les matchs en direct avec des mises à jour temps réel"
+    },
+    "gameGuide": {
+      "title": "Guide du Jeu",
+      "description": "Apprenez les règles, les boosters et comment jouer"
     },
     "tournamentAdmin": {
       "title": "Administration de Tournoi", 

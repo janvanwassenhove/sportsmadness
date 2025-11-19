@@ -50,9 +50,17 @@
   "home": {
     "title": "Hockey Madness",
     "subtitle": "Real-time tournament management for hockey championships",
+    "upcomingMatches": {
+      "title": "Upcoming Matches",
+      "loadingMatches": "Loading matches..."
+    },
     "liveScoreboard": {
       "title": "Live Scoreboard",
       "description": "Watch live matches with real-time updates"
+    },
+    "gameGuide": {
+      "title": "Game Guide",
+      "description": "Learn about rules, boosters, and how to play"
     },
     "tournamentAdmin": {
       "title": "Tournament Admin", 

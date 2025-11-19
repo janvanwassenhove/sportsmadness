@@ -2,13 +2,53 @@
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { RouterLink, useRouter } from 'vue-router'
-import { onMounted, watch } from 'vue'
+import { onMounted, watch, ref, computed } from 'vue'
+import { supabase } from '@/lib/supabase'
 
 console.log('🏠 HomeView component loading...')
 
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const router = useRouter()
+
+interface Match {
+  id: string
+  team_a: string
+  team_b: string
+  score_a: number
+  score_b: number
+  status: 'pending' | 'active' | 'paused' | 'finished'
+  time_left: number
+  match_date?: string
+  start_time?: string
+  created_at?: string
+  tournament_id?: string
+  division_id?: string
+  match_type?: string
+  boosters?: any
+}
+
+interface Tournament {
+  id: string
+  name: string
+}
+
+interface Division {
+  id: string
+  name: string
+  tournament_id: string
+}
+
+interface Team {
+  id: string
+  name: string
+}
+
+const upcomingMatches = ref<Match[]>([])
+const teams = ref<Record<string, Team>>({})
+const tournaments = ref<Record<string, Tournament>>({})
+const divisions = ref<Record<string, Division>>({})
+const loadingMatches = ref(true)
 
 // Get role badge class for styling
 function getRoleBadgeClass(role?: string) {
@@ -21,6 +61,158 @@ function getRoleBadgeClass(role?: string) {
       return 'role-badge-user'
     default:
       return 'role-badge-default'
+  }
+}
+
+// Load teams for reference
+async function loadTeams() {
+  try {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('id, name')
+
+    if (error) throw error
+    
+    const teamsMap: Record<string, Team> = {}
+    data?.forEach(team => {
+      teamsMap[team.id] = team
+    })
+    teams.value = teamsMap
+  } catch (error) {
+    console.error('Error loading teams:', error)
+  }
+}
+
+// Load tournaments and divisions
+async function loadTournamentsAndDivisions() {
+  try {
+    // Load tournaments
+    const { data: tournamentsData, error: tournamentsError } = await supabase
+      .from('tournaments')
+      .select('id, name')
+
+    if (tournamentsError) throw tournamentsError
+    
+    const tournamentsMap: Record<string, Tournament> = {}
+    tournamentsData?.forEach(tournament => {
+      tournamentsMap[tournament.id] = tournament
+    })
+    tournaments.value = tournamentsMap
+
+    // Load divisions
+    const { data: divisionsData, error: divisionsError } = await supabase
+      .from('tournament_divisions')
+      .select('id, name, tournament_id')
+
+    if (divisionsError) throw divisionsError
+    
+    const divisionsMap: Record<string, Division> = {}
+    divisionsData?.forEach(division => {
+      divisionsMap[division.id] = division
+    })
+    divisions.value = divisionsMap
+  } catch (error) {
+    console.error('Error loading tournaments and divisions:', error)
+  }
+}
+
+// Load upcoming matches for public view
+async function loadUpcomingMatches() {
+  try {
+    loadingMatches.value = true
+    const { data, error } = await supabase
+      .from('matches')
+      .select('*')
+      .in('status', ['pending', 'active'])
+      .order('start_time', { ascending: true })
+      .limit(10)
+
+    if (error) throw error
+
+    console.log('📅 Loaded upcoming matches:', data)
+    upcomingMatches.value = data || []
+  } catch (error) {
+    console.error('Error loading upcoming matches:', error)
+  } finally {
+    loadingMatches.value = false
+  }
+}
+
+// Get team name from ID
+function getTeamName(teamId: string, match?: Match): string {
+  // Check if this team is a placeholder in the match context
+  if (match && match.boosters) {
+    if (match.team_a === teamId && match.boosters.team_a_placeholder) {
+      // This is a placeholder - show placeholder text
+      return match.boosters.team_a_placeholder
+    }
+    if (match.team_b === teamId && match.boosters.team_b_placeholder) {
+      // This is a placeholder - show placeholder text
+      return match.boosters.team_b_placeholder
+    }
+  }
+  
+  // Regular team lookup
+  return teams.value[teamId]?.name || 'Unknown Team'
+}
+
+// Get match category (tournament or standalone)
+function getMatchCategory(match: Match): { label: string; class: string } {
+  if (match.tournament_id) {
+    const tournament = tournaments.value[match.tournament_id]
+    const division = match.division_id ? divisions.value[match.division_id] : null
+    
+    let label = tournament?.name || 'Tournament'
+    if (division) {
+      label += ` - ${division.name}`
+    }
+    
+    return {
+      label,
+      class: 'bg-purple-500/80 text-white'
+    }
+  }
+  
+  return {
+    label: 'Standalone Match',
+    class: 'bg-gray-500/80 text-white'
+  }
+}
+
+// Format match date
+function formatMatchDate(dateString?: string): string {
+  if (!dateString) return 'Date TBD'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+// Format time left
+function formatTimeLeft(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+// Format start time (removes seconds from HH:MM:SS)
+function formatStartTime(timeString?: string): string {
+  if (!timeString) return ''
+  // Time string is in format HH:MM:SS, we want HH:MM
+  return timeString.substring(0, 5)
+}
+
+// Get match status badge class
+function getMatchStatusClass(status: string): string {
+  switch (status) {
+    case 'active':
+      return 'bg-green-500 text-white'
+    case 'pending':
+      return 'bg-blue-500 text-white'
+    case 'paused':
+      return 'bg-yellow-500 text-white'
+    case 'finished':
+      return 'bg-gray-500 text-white'
+    default:
+      return 'bg-gray-400 text-white'
   }
 }
 
@@ -58,6 +250,14 @@ function redirectUserToDefaultPage() {
 
 onMounted(() => {
   console.log('🏠 HomeView mounted successfully!')
+  
+  // Load data for displaying upcoming matches
+  Promise.all([
+    loadTeams(),
+    loadTournamentsAndDivisions()
+  ]).then(() => {
+    loadUpcomingMatches()
+  })
   
   // Small delay to ensure auth is fully loaded
   setTimeout(() => {
@@ -99,7 +299,7 @@ watch(() => authStore.profile?.role, (newRole) => {
       </div>
 
       <!-- Navigation Cards -->
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
         <!-- Public Scoreboard -->
         <RouterLink 
           to="/scoreboard" 
@@ -109,6 +309,18 @@ watch(() => authStore.profile?.role, (newRole) => {
           <h2 class="nav-card-title">{{ $t('home.liveScoreboard.title') }}</h2>
           <p class="nav-card-description">
             {{ $t('home.liveScoreboard.description') }}
+          </p>
+        </RouterLink>
+
+        <!-- Game Guide -->
+        <RouterLink 
+          to="/game-guide" 
+          class="nav-card"
+        >
+          <div class="text-4xl mb-4">�</div>
+          <h2 class="nav-card-title">{{ $t('home.gameGuide.title') }}</h2>
+          <p class="nav-card-description">
+            {{ $t('home.gameGuide.description') }}
           </p>
         </RouterLink>
 
@@ -208,6 +420,81 @@ watch(() => authStore.profile?.role, (newRole) => {
             {{ authStore.profile?.role }}
           </span>
         </RouterLink>
+      </div>
+
+      <!-- Upcoming Matches List (for non-authenticated users) -->
+      <div v-if="!authStore.isAuthenticated" class="mt-16 max-w-6xl mx-auto">
+        <h2 class="text-3xl font-bold text-center mb-8 font-theme-title" 
+            :style="{ color: themeStore.currentTheme?.colors.primary }">
+          📅 {{ $t('home.upcomingMatches.title') }}
+        </h2>
+        
+        <!-- Loading State -->
+        <div v-if="loadingMatches" class="text-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-2"
+               :style="{ borderColor: themeStore.currentTheme?.colors.primary }"></div>
+          <p :style="{ color: themeStore.currentTheme?.colors.text }">{{ $t('home.upcomingMatches.loadingMatches') }}</p>
+        </div>
+
+        <!-- No Matches -->
+        <div v-else-if="upcomingMatches.length === 0" class="text-center py-8">
+          <div class="text-6xl mb-4">📊</div>
+          <p class="text-xl" :style="{ color: themeStore.currentTheme?.colors.text }">
+            No upcoming matches at the moment
+          </p>
+        </div>
+
+        <!-- Matches List -->
+        <div v-else class="space-y-4">
+          <RouterLink
+            v-for="match in upcomingMatches" 
+            :key="match.id"
+            :to="{ name: 'scoreboard', params: { id: match.id } }"
+            class="nav-card block hover:scale-[1.02] transition-transform duration-300"
+          >
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <!-- Match Info -->
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2 flex-wrap">
+                  <!-- Start Time - More Prominent -->
+                  <span v-if="match.start_time" class="text-lg font-bold opacity-90">
+                    ⏰ {{ formatStartTime(match.start_time) }}
+                  </span>
+                  <span 
+                    class="px-3 py-1 rounded-full text-xs font-semibold uppercase"
+                    :class="getMatchStatusClass(match.status)"
+                  >
+                    {{ match.status }}
+                  </span>
+                  <span 
+                    class="px-3 py-1 rounded-full text-xs font-semibold"
+                    :class="getMatchCategory(match).class"
+                  >
+                    {{ getMatchCategory(match).label }}
+                  </span>
+                  <span v-if="match.match_date" class="text-sm opacity-70">
+                    {{ formatMatchDate(match.match_date) }}
+                  </span>
+                </div>
+                <h3 class="text-xl md:text-2xl font-bold font-theme-title">
+                  {{ getTeamName(match.team_a, match) }} <span class="opacity-50 mx-2">vs</span> {{ getTeamName(match.team_b, match) }}
+                </h3>
+              </div>
+              
+              <!-- Score -->
+              <div class="flex items-center gap-6">
+                <div class="flex items-center gap-4">
+                  <span class="text-4xl font-bold">{{ match.score_a }}</span>
+                  <span class="text-2xl opacity-50">-</span>
+                  <span class="text-4xl font-bold">{{ match.score_b }}</span>
+                </div>
+                <div v-if="match.time_left && match.status === 'active'" class="text-sm opacity-70 min-w-[80px] text-right">
+                  ⏱️ {{ formatTimeLeft(match.time_left) }}
+                </div>
+              </div>
+            </div>
+          </RouterLink>
+        </div>
       </div>
 
       <!-- Features -->
