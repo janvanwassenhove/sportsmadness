@@ -70,6 +70,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
+      path: '/admin/rules',
+      name: 'rules-admin',
+      component: () => import('../views/RulesAdminView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
       path: '/admin/tournaments',
       name: 'tournaments-admin',
       component: () => import('../views/TournamentAdminView.vue'),
@@ -116,8 +122,7 @@ const router = createRouter({
     {
       path: '/game-guide',
       name: 'game-guide',
-      component: () => import('../views/GameExplanationView.vue'),
-      meta: { requiresAuth: true },
+      component: () => import('../views/GameGuideView.vue'),
     },
   ],
 })

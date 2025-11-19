@@ -11,6 +11,7 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const success = ref('')
 const isSignUp = ref(false)
 
 async function handleSubmit() {
@@ -21,6 +22,7 @@ async function handleSubmit() {
 
   loading.value = true
   error.value = ''
+  success.value = ''
 
   try {
     console.log('🔐 Login form: Starting authentication process')
@@ -37,7 +39,11 @@ async function handleSubmit() {
     }
 
     if (isSignUp.value) {
-      error.value = 'Check your email for confirmation link' // TODO: Use $t('auth.checkEmail') when available in script
+      success.value = 'Account created successfully! You can now sign in.'
+      // Switch to login mode after successful signup
+      isSignUp.value = false
+      // Clear password for security
+      password.value = ''
       return
     }
 
@@ -110,6 +116,7 @@ async function handleSubmit() {
 function toggleMode() {
   isSignUp.value = !isSignUp.value
   error.value = ''
+  success.value = ''
 }
 </script>
 
@@ -156,6 +163,10 @@ function toggleMode() {
 
         <div v-if="error" class="bg-red-500/20 border border-red-500/50 rounded-lg p-3">
           <p class="text-red-100 text-sm">{{ error }}</p>
+        </div>
+
+        <div v-if="success" class="bg-green-500/20 border border-green-500/50 rounded-lg p-3">
+          <p class="text-green-100 text-sm">{{ success }}</p>
         </div>
 
         <button

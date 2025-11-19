@@ -35,6 +35,13 @@
           >
             {{ $t('navigation.scoreboard') }}
           </button>
+          <RouterLink 
+            to="/game-guide" 
+            class="nav-link"
+            :class="{ 'nav-link-active': $route.name === 'game-guide' }"
+          >
+            {{ $t('navigation.gameGuide') }}
+          </RouterLink>
 
           <!-- Admin Links (when authenticated) -->
           <template v-if="authStore.isAuthenticated && authStore.isAdmin">
@@ -92,6 +99,14 @@
                 >
                   <span class="text-lg mr-2">⚡</span>
                   {{ $t('navigation.boosters') }}
+                </RouterLink>
+                <RouterLink 
+                  to="/admin/rules"
+                  class="dropdown-link"
+                  @click="showAdminDropdown = false"
+                >
+                  <span class="text-lg mr-2">📋</span>
+                  {{ $t('navigation.rules') }}
                 </RouterLink>
                 <RouterLink 
                   to="/admin/users"
@@ -281,6 +296,15 @@
           <span class="text-lg mr-2">📊</span>
           {{ $t('navigation.scoreboard') }}
         </button>
+        <RouterLink 
+          to="/game-guide" 
+          class="mobile-nav-link"
+          :class="{ 'mobile-nav-link-active': $route.name === 'game-guide' }"
+          @click="showMobileMenu = false"
+        >
+          <span class="text-lg mr-2">🎮</span>
+          {{ $t('navigation.gameGuide') }}
+        </RouterLink>
 
         <!-- Admin Links (when authenticated) -->
         <template v-if="authStore.isAuthenticated && authStore.isAdmin">
@@ -319,6 +343,14 @@
             >
               <span class="text-lg mr-2">⚡</span>
               {{ $t('navigation.boosters') }}
+            </RouterLink>
+            <RouterLink 
+              to="/admin/rules"
+              class="mobile-nav-link"
+              @click="showMobileMenu = false"
+            >
+              <span class="text-lg mr-2">📋</span>
+              {{ $t('navigation.rules') }}
             </RouterLink>
             <RouterLink 
               to="/admin/users"

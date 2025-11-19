@@ -35,6 +35,7 @@
     "tournaments": "Tournaments",
     "teams": "Teams",
     "boosters": "Boosters & Maddies",
+    "rules": "Rules",
     "userManagement": "User Management",
     "profile": "Profile",
     "login": "Login",
@@ -99,7 +100,7 @@
     "demoCredentials": "Demo Credentials:",
     "demoNote": "(You'll need to create this account first)",
     "emailRequired": "Email and password are required",
-    "checkEmail": "Check your email for confirmation link"
+    "accountCreated": "Account created successfully! You can now sign in."
   },
   "scoreboard": {
     "title": "Live Scoreboard",
@@ -557,42 +558,44 @@
   },
   "gameGuide": {
     "title": "Game Guide",
-    "subtitle": "Learn about boosters, maddies, and game mechanics",
-    "loading": "Loading game information...",
-    "error": "Failed to load game data",
-    "retry": "Try Again",
+    "subtitle": "Learn about boosters, maddies, and game rules",
+    "tabs": {
+      "boosters": "Boosters",
+      "maddies": "Maddies",
+      "rules": "Rules"
+    },
+    "boostersTitle": "⚡ Boosters - Strategic Power-ups",
+    "boostersDescription": "Power-ups that give your team strategic advantages during matches. Teams can activate boosters at any time to gain temporary benefits. Use them wisely!",
+    "maddiesTitle": "✨ Maddies - Random Events",
+    "maddiesDescription": "Unpredictable random events that can occur during matches, affecting both teams. Embrace the chaos and adapt your strategy!",
+    "rulesTitle": "📋 Game Rules",
+    "rulesDescription": "Official rules and regulations for hockey matches in this tournament.",
     "duration": "Duration",
-    "instant": "Instant Effect",
-    "backToDashboard": "Back to Dashboard",
-    "boosters": {
-      "title": "Boosters",
-      "description": "Power-ups that give your team strategic advantages during matches. Use them wisely to turn the tide of the game!",
-      "noBoosters": "No boosters available at the moment"
-    },
-    "maddies": {
-      "title": "Maddies",
-      "description": "Chaotic events that add unpredictability and excitement to the game. Embrace the madness and adapt your strategy!",
-      "noMaddies": "No maddies available at the moment"
-    },
-    "tips": {
-      "title": "Pro Tips & Strategy",
-      "timing": {
-        "title": "Perfect Timing",
-        "description": "Save your boosters for crucial moments in the match. The right booster at the right time can change the entire game."
-      },
-      "teamwork": {
-        "title": "Team Coordination",
-        "description": "Coordinate with your team when activating boosters. Multiple boosters used together can create powerful combinations."
-      },
-      "adaptation": {
-        "title": "Stay Flexible",
-        "description": "When Maddie events trigger, stay calm and adapt your strategy. Quick thinking can turn chaos into opportunity."
-      },
-      "strategy": {
-        "title": "Know the Game",
-        "description": "Watch the scoreboard and study opponent patterns. Understanding the game flow helps you make better decisions."
-      }
-    }
+    "countdown": "Has Countdown",
+    "categoryBasic": "Basic Rules",
+    "categoryGameplay": "Gameplay",
+    "categoryScoring": "Scoring",
+    "categoryPenalties": "Penalties",
+    "categoryGeneral": "General"
+  },
+  "rulesAdmin": {
+    "title": "Rules Management",
+    "subtitle": "Manage game rules and regulations",
+    "manageRules": "Manage Rules",
+    "addRule": "Add Rule",
+    "addNewRule": "Add New Rule",
+    "editRule": "Edit Rule",
+    "ruleTitle": "Rule Title",
+    "ruleTitlePlaceholder": "e.g., Game Duration",
+    "ruleDescription": "Rule Description",
+    "ruleDescriptionPlaceholder": "Describe this rule in detail...",
+    "category": "Category",
+    "iconEmoji": "Icon/Emoji",
+    "orderIndex": "Display Order",
+    "orderIndexHelp": "Lower numbers appear first",
+    "isActive": "Rule is Active",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "footer": {
     "subtitle": "Real-time tournament management for hockey championships",

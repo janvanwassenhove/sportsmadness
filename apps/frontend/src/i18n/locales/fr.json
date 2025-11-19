@@ -35,6 +35,7 @@
     "tournaments": "Tournois",
     "teams": "Équipes",
     "boosters": "Boosters et Maddies",
+    "rules": "Règles",
     "userManagement": "Gestion des Utilisateurs",
     "profile": "Profiel",
     "login": "Connexion",
@@ -99,7 +100,7 @@
     "demoCredentials": "Identifiants de Démo:",
     "demoNote": "(Vous devez d'abord créer ce compte)",
     "emailRequired": "L'e-mail et le mot de passe sont requis",
-    "checkEmail": "Vérifiez votre e-mail pour le lien de confirmation"
+    "accountCreated": "Compte créé avec succès! Vous pouvez maintenant vous connecter."
   },
   "scoreboard": {
     "title": "Tableau de Bord en Direct",
@@ -557,42 +558,44 @@
   },
   "gameGuide": {
     "title": "Guide du Jeu",
-    "subtitle": "Découvrez les boosters, les maddies et les mécaniques de jeu",
-    "loading": "Chargement des informations de jeu...",
-    "error": "Échec du chargement des données de jeu",
-    "retry": "Réessayer",
+    "subtitle": "Découvrez les boosters, les maddies et les règles du jeu",
+    "tabs": {
+      "boosters": "Boosters",
+      "maddies": "Maddies",
+      "rules": "Règles"
+    },
+    "boostersTitle": "⚡ Boosters - Power-ups Stratégiques",
+    "boostersDescription": "Des power-ups qui donnent à votre équipe des avantages stratégiques pendant les matchs. Les équipes peuvent activer des boosters à tout moment pour obtenir des avantages temporaires. Utilisez-les judicieusement !",
+    "maddiesTitle": "✨ Maddies - Événements Aléatoires",
+    "maddiesDescription": "Des événements aléatoires imprévisibles qui peuvent se produire pendant les matchs, affectant les deux équipes. Embrassez le chaos et adaptez votre stratégie !",
+    "rulesTitle": "📋 Règles du Jeu",
+    "rulesDescription": "Règles et règlements officiels pour les matchs de hockey dans ce tournoi.",
     "duration": "Durée",
-    "instant": "Effet Instantané",
-    "backToDashboard": "Retour au Tableau de Bord",
-    "boosters": {
-      "title": "Boosters",
-      "description": "Des power-ups qui donnent à votre équipe des avantages stratégiques pendant les matchs. Utilisez-les judicieusement pour renverser le cours du jeu !",
-      "noBoosters": "Aucun booster disponible pour le moment"
-    },
-    "maddies": {
-      "title": "Maddies",
-      "description": "Des événements chaotiques qui ajoutent de l'imprévisibilité et de l'excitation au jeu. Embrassez la folie et adaptez votre stratégie !",
-      "noMaddies": "Aucune maddie disponible pour le moment"
-    },
-    "tips": {
-      "title": "Conseils Pro & Stratégie",
-      "timing": {
-        "title": "Timing Parfait",
-        "description": "Gardez vos boosters pour les moments cruciaux du match. Le bon booster au bon moment peut changer tout le jeu."
-      },
-      "teamwork": {
-        "title": "Coordination d'Équipe",
-        "description": "Coordonnez-vous avec votre équipe lors de l'activation des boosters. Plusieurs boosters utilisés ensemble peuvent créer des combinaisons puissantes."
-      },
-      "adaptation": {
-        "title": "Restez Flexible",
-        "description": "Lorsque les événements Maddie se déclenchent, restez calme et adaptez votre stratégie. Une réflexion rapide peut transformer le chaos en opportunité."
-      },
-      "strategy": {
-        "title": "Connaissez le Jeu",
-        "description": "Observez le tableau de bord et étudiez les schémas adverses. Comprendre le flux du jeu vous aide à prendre de meilleures décisions."
-      }
-    }
+    "countdown": "A un Compte à Rebours",
+    "categoryBasic": "Règles de Base",
+    "categoryGameplay": "Gameplay",
+    "categoryScoring": "Marquage",
+    "categoryPenalties": "Pénalités",
+    "categoryGeneral": "Général"
+  },
+  "rulesAdmin": {
+    "title": "Gestion des Règles",
+    "subtitle": "Gérer les règles et règlements du jeu",
+    "manageRules": "Gérer les Règles",
+    "addRule": "Ajouter une Règle",
+    "addNewRule": "Ajouter une Nouvelle Règle",
+    "editRule": "Modifier la Règle",
+    "ruleTitle": "Titre de la Règle",
+    "ruleTitlePlaceholder": "ex., Durée du Match",
+    "ruleDescription": "Description de la Règle",
+    "ruleDescriptionPlaceholder": "Décrivez cette règle en détail...",
+    "category": "Catégorie",
+    "iconEmoji": "Icône/Emoji",
+    "orderIndex": "Ordre d'Affichage",
+    "orderIndexHelp": "Les numéros inférieurs apparaissent en premier",
+    "isActive": "La Règle est Active",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "footer": {
     "subtitle": "Gestion de tournoi en temps réel pour les championnats de hockey",

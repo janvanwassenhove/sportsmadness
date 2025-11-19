@@ -35,6 +35,7 @@
     "tournaments": "Toernooien",
     "teams": "Teams",
     "boosters": "Boosters & Maddies",
+    "rules": "Regels",
     "userManagement": "Gebruikersbeheer",
     "profile": "Profiel",
     "login": "Inloggen",
@@ -99,7 +100,7 @@
     "demoCredentials": "Demo Inloggegevens:",
     "demoNote": "(Je moet dit account eerst aanmaken)",
     "emailRequired": "E-mail en wachtwoord zijn verplicht",
-    "checkEmail": "Controleer je e-mail voor de bevestigingslink"
+    "accountCreated": "Account succesvol aangemaakt! Je kunt nu inloggen."
   },
   "scoreboard": {
     "title": "Live Scorebord",
@@ -557,42 +558,44 @@
   },
   "gameGuide": {
     "title": "Spelgids",
-    "subtitle": "Leer over boosters, maddies en spelmechanismen",
-    "loading": "Spelinformatie laden...",
-    "error": "Kan spelgegevens niet laden",
-    "retry": "Opnieuw Proberen",
+    "subtitle": "Leer over boosters, maddies en spelregels",
+    "tabs": {
+      "boosters": "Boosters",
+      "maddies": "Maddies",
+      "rules": "Regels"
+    },
+    "boostersTitle": "⚡ Boosters - Strategische Power-ups",
+    "boostersDescription": "Power-ups die je team strategische voordelen geven tijdens wedstrijden. Teams kunnen boosters op elk moment activeren voor tijdelijke voordelen. Gebruik ze verstandig!",
+    "maddiesTitle": "✨ Maddies - Willekeurige Gebeurtenissen",
+    "maddiesDescription": "Onvoorspelbare willekeurige gebeurtenissen die tijdens wedstrijden kunnen optreden en beide teams beïnvloeden. Omarm de chaos en pas je strategie aan!",
+    "rulesTitle": "📋 Spelregels",
+    "rulesDescription": "Officiële regels en voorschriften voor hockeywedstrijden in dit toernooi.",
     "duration": "Duur",
-    "instant": "Direct Effect",
-    "backToDashboard": "Terug naar Dashboard",
-    "boosters": {
-      "title": "Boosters",
-      "description": "Power-ups die je team strategische voordelen geven tijdens wedstrijden. Gebruik ze verstandig om het tij te keren!",
-      "noBoosters": "Momenteel geen boosters beschikbaar"
-    },
-    "maddies": {
-      "title": "Maddies",
-      "description": "Chaotische gebeurtenissen die onvoorspelbaarheid en spanning aan het spel toevoegen. Omarm de gekte en pas je strategie aan!",
-      "noMaddies": "Momenteel geen maddies beschikbaar"
-    },
-    "tips": {
-      "title": "Pro Tips & Strategie",
-      "timing": {
-        "title": "Perfecte Timing",
-        "description": "Bewaar je boosters voor cruciale momenten in de wedstrijd. De juiste booster op het juiste moment kan het hele spel veranderen."
-      },
-      "teamwork": {
-        "title": "Teamcoördinatie",
-        "description": "Coördineer met je team bij het activeren van boosters. Meerdere boosters samen gebruikt kunnen krachtige combinaties creëren."
-      },
-      "adaptation": {
-        "title": "Blijf Flexibel",
-        "description": "Wanneer Maddie-gebeurtenissen worden geactiveerd, blijf kalm en pas je strategie aan. Snel denken kan chaos in kansen veranderen."
-      },
-      "strategy": {
-        "title": "Ken het Spel",
-        "description": "Kijk naar het scorebord en bestudeer tegenstanderspatronen. Inzicht in de spelstroom helpt je betere beslissingen te nemen."
-      }
-    }
+    "countdown": "Heeft Aftelling",
+    "categoryBasic": "Basisregels",
+    "categoryGameplay": "Gameplay",
+    "categoryScoring": "Scoren",
+    "categoryPenalties": "Straffen",
+    "categoryGeneral": "Algemeen"
+  },
+  "rulesAdmin": {
+    "title": "Regelsbeheer",
+    "subtitle": "Beheer spelregels en voorschriften",
+    "manageRules": "Beheer Regels",
+    "addRule": "Regel Toevoegen",
+    "addNewRule": "Nieuwe Regel Toevoegen",
+    "editRule": "Regel Bewerken",
+    "ruleTitle": "Regeltitel",
+    "ruleTitlePlaceholder": "bijv., Spelduur",
+    "ruleDescription": "Regelbeschrijving",
+    "ruleDescriptionPlaceholder": "Beschrijf deze regel in detail...",
+    "category": "Categorie",
+    "iconEmoji": "Icoon/Emoji",
+    "orderIndex": "Weergavevolgorde",
+    "orderIndexHelp": "Lagere nummers verschijnen eerst",
+    "isActive": "Regel is Actief",
+    "active": "Actief",
+    "inactive": "Inactief"
   },
   "footer": {
     "subtitle": "Real-time toernooibeheer voor hockeykampioenschappen",
