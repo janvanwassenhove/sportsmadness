@@ -506,6 +506,11 @@
   .text-yellow-400 {
     color: #f59e0b !important; /* Stronger yellow */
   }
+
+  .text-yellow-300 {
+    color: #854d0e !important; /* Dark gold for much better contrast on light backgrounds */
+    font-weight: 700 !important;
+  }
   
   .text-green-400 {
     color: #22c55e !important; /* Stronger green */
@@ -779,6 +784,11 @@
 
   .match-center-card .text-yellow-400 {
     color: #ca8a04 !important;
+  }
+
+  .match-center-card .text-yellow-300 {
+    color: #854d0e !important; /* Much darker yellow/gold for better contrast */
+    font-weight: 700 !important;
   }
 
   .match-center-card .text-green-400 {

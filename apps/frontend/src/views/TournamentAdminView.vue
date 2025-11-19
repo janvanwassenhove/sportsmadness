@@ -179,7 +179,7 @@
                   <div class="text-white/80 font-semibold mb-1">{{ division.name }}:</div>
                   <div class="grid grid-cols-2 gap-2 ml-2">
                     <div v-for="(match, index) in getDivisionMatches(division).slice(0, 2)" :key="match.id" class="text-white/60">
-                      {{ formatTime(calculateDivisionMatchStartTime(division, index)) }} - {{ getTeamName(match.team_a) }} vs {{ getTeamName(match.team_b) }}
+                      {{ formatTime(match.start_time) || formatTime(calculateDivisionMatchStartTime(division, index)) }} - {{ getTeamName(match.team_a, match) }} vs {{ getTeamName(match.team_b, match) }}
                     </div>
                     <div v-if="getDivisionMatches(division).length === 0" class="text-white/40 col-span-2">
                       No matches scheduled
@@ -310,10 +310,10 @@
                     <div class="flex justify-between items-center">
                       <div class="flex items-center space-x-4">
                         <div class="text-blue-200 font-mono">
-                          {{ formatTime(calculateDivisionMatchStartTime(division, matchIndex)) }}
+                          {{ formatTime(match.start_time) || formatTime(calculateDivisionMatchStartTime(division, matchIndex)) }}
                         </div>
                         <div class="text-white">
-                          {{ getTeamName(match.team_a) }} vs {{ getTeamName(match.team_b) }}
+                          {{ getTeamName(match.team_a, match) }} vs {{ getTeamName(match.team_b, match) }}
                         </div>
                       </div>
                       <div class="flex items-center space-x-2">
@@ -1331,26 +1331,33 @@ const availableTeamsForMatch = computed(() => {
     
     // Only show placeholders for subsequent phases (not the first division)
     if (selectedDivisionIndex > 0) {
-      const previousDivision = divisions.value[selectedDivisionIndex - 1]
-      
-      if (previousDivision && previousDivision.type === 'group') {
-        // Add section divider
-        result.push({ id: 'divider-placeholder', name: '--- Team Positions from Previous Phase ---', divider: true })
+      // Loop through ALL previous divisions (from most recent to oldest)
+      for (let i = selectedDivisionIndex - 1; i >= 0; i--) {
+        const previousDivision = divisions.value[i]
         
-        // Get groups from previous division
-        const previousGroups = divisionGroups.value[previousDivision.id] || []
-        
-        previousGroups.forEach(group => {
-          // Add positions 1st through 4th for each group
-          for (let position = 1; position <= 4; position++) {
-            const suffix = getPositionSuffix(position)
-            result.push({
-              id: `${group.id}_position_${position}`,
-              name: `${position}${suffix} from ${group.name}`,
-              isPlaceholder: true
-            })
-          }
-        })
+        if (previousDivision && previousDivision.type === 'group') {
+          // Add section divider with phase name
+          result.push({ 
+            id: `divider-placeholder-${i}`, 
+            name: `--- Team Positions from ${previousDivision.name} ---`, 
+            divider: true 
+          })
+          
+          // Get groups from this previous division
+          const previousGroups = divisionGroups.value[previousDivision.id] || []
+          
+          previousGroups.forEach(group => {
+            // Add positions 1st through 4th for each group
+            for (let position = 1; position <= 4; position++) {
+              const suffix = getPositionSuffix(position)
+              result.push({
+                id: `${group.id}_position_${position}`,
+                name: `${position}${suffix} from ${group.name}`,
+                isPlaceholder: true
+              })
+            }
+          })
+        }
       }
     }
   }
@@ -2060,13 +2067,16 @@ async function addMatch() {
     let teamBPlaceholderInfo = null
     
     if (isTeamAPlaceholder || isTeamBPlaceholder) {
-      // Use the first team in the tournament as a temporary placeholder
+      // Use teams from the tournament as temporary placeholders
       // This is just to satisfy the NOT NULL constraint
-      const firstTeam = teams.value[0]
-      if (!firstTeam) {
+      // Use different teams if both are placeholders to avoid confusion
+      if (teams.value.length === 0) {
         alert('No teams available. Please create teams first.')
         return
       }
+      
+      const firstTeam = teams.value[0]!
+      const secondTeam = teams.value.length > 1 ? teams.value[1]! : firstTeam
       
       if (isTeamAPlaceholder) {
         const teamAOption = availableTeamsForMatch.value.find(t => t.id === newMatch.team_a && t.isPlaceholder)
@@ -2080,7 +2090,8 @@ async function addMatch() {
             placeholderId: newMatch.team_a,
             name: teamAOption.name
           }
-          teamAId = firstTeam.id // Use first team as temporary placeholder
+          // Use first team as temporary placeholder for Team A
+          teamAId = firstTeam.id
         }
       }
       
@@ -2096,7 +2107,8 @@ async function addMatch() {
             placeholderId: newMatch.team_b,
             name: teamBOption.name
           }
-          teamBId = firstTeam.id // Use first team as temporary placeholder
+          // Use second team as temporary placeholder for Team B (or first if only one team exists)
+          teamBId = secondTeam.id
         }
       }
     }
@@ -2332,7 +2344,20 @@ function getTotalTournamentMatches(): number {
   }, 0)
 }
 
-function getTeamName(teamId: string): string {
+function getTeamName(teamId: string, match?: Match): string {
+  // Check if this team is a placeholder in the match context
+  if (match && match.boosters) {
+    if (match.team_a === teamId && match.boosters.team_a_placeholder) {
+      // This is a placeholder - show placeholder text
+      return match.boosters.team_a_placeholder
+    }
+    if (match.team_b === teamId && match.boosters.team_b_placeholder) {
+      // This is a placeholder - show placeholder text
+      return match.boosters.team_b_placeholder
+    }
+  }
+  
+  // Regular team lookup
   const team = teams.value.find(t => t.id === teamId)
   return team ? team.name : `Team ${teamId.substring(0, 8)}`
 }
@@ -2931,8 +2956,8 @@ async function resolvePlaceholderTeams(divisionId: string) {
       let needsUpdate = false
       const updates: any = {}
       
-      // Check if team_a is a placeholder
-      if (!match.team_a && match.boosters?.team_a_placeholder) {
+      // Check if team_a is a placeholder (check if placeholder info exists in boosters)
+      if (match.boosters?.team_a_placeholder) {
         const config = match.boosters.team_a_config
         if (config) {
           const actualTeam = await getTeamByGroupPosition(config.groupId, config.position)
@@ -2943,8 +2968,8 @@ async function resolvePlaceholderTeams(divisionId: string) {
         }
       }
       
-      // Check if team_b is a placeholder
-      if (!match.team_b && match.boosters?.team_b_placeholder) {
+      // Check if team_b is a placeholder (check if placeholder info exists in boosters)
+      if (match.boosters?.team_b_placeholder) {
         const config = match.boosters.team_b_config
         if (config) {
           const actualTeam = await getTeamByGroupPosition(config.groupId, config.position)
@@ -3012,8 +3037,18 @@ async function getTeamByGroupPosition(groupId: string, position: number) {
 function hasPlaceholderTeams(division: Division): boolean {
   const matches = divisionMatches.value[division.id] || []
   return matches.some(match => 
-    (!match.team_a && match.boosters?.team_a_placeholder) ||
-    (!match.team_b && match.boosters?.team_b_placeholder)
+    (match.boosters?.team_a_placeholder) ||
+    (match.boosters?.team_b_placeholder)
+  )
+}
+
+function isDivisionComplete(division: Division): boolean {
+  const matches = divisionMatches.value[division.id] || []
+  if (matches.length === 0) return false
+  
+  // Check if all matches are finished
+  return matches.every(match => 
+    match.status === 'finished'
   )
 }
 

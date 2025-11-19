@@ -681,13 +681,13 @@ async function updateMatch(updates: Partial<any>) {
   console.log('🔧 updateMatch function started')
   
   return new Promise((resolve, reject) => {
-    // Add timeout protection - reject after 10 seconds
-    const timeoutId = setTimeout(() => {
-      console.error('❌ updateMatch timeout - operation took too long')
-      reject(new Error('Update operation timed out after 10 seconds'))
-    }, 10000)
-    
     const updateFn = async () => {
+      // Move timeout inside the queued function so it only starts when actually processing
+      const timeoutId = setTimeout(() => {
+        console.error('❌ updateMatch timeout - operation took too long')
+        reject(new Error('Update operation timed out after 10 seconds'))
+      }, 10000)
+      
       try {
         console.log('📝 Processing queued update with:', updates)
         console.log('📝 Match ID:', props.id)
@@ -1179,13 +1179,6 @@ async function spinCurrentPhase() {
   isSpinning.value = true
   spinningSlot.value = 0
   
-  // Backup timeout to ensure spinning never gets stuck longer than 5 seconds
-  const backupTimeout = setTimeout(() => {
-    console.warn('⚠️ Backup timeout triggered - force resetting spin state after 5 seconds')
-    isSpinning.value = false
-    currentTeamSpinning.value = null
-  }, 5000) // Increased to 5 seconds to allow for database updates
-  
   // Play spinning sound effect
   try {
     await playSpinningSound()
@@ -1224,17 +1217,14 @@ async function spinCurrentPhase() {
       console.warn('⚠️ team-b-second phase called again - selection should be complete')
       boosterPhase.value = 'complete'
       isSpinning.value = false
-      clearTimeout(backupTimeout)
       return
     case 'complete':
       console.warn('⚠️ Spin called but selection is already complete')
       isSpinning.value = false
-      clearTimeout(backupTimeout)
       return
     default:
       console.error('❌ Unknown booster phase:', boosterPhase.value)
       isSpinning.value = false
-      clearTimeout(backupTimeout)
       return
   }
   
@@ -1246,52 +1236,30 @@ async function spinCurrentPhase() {
   
   currentTeamSpinning.value = targetTeam
   
-  // Update database to show spinning state on scoreboard
+  // Update database to show spinning state on scoreboard (non-blocking)
   const currentBoosters = match.value?.boosters || {}
-  try {
-    await updateMatch({
-      boosters: {
-        ...currentBoosters,
-        selection_active: true,
-        selection_phase: boosterPhase.value,
-        is_spinning: true,
-        current_team: targetTeam,
-        spinning_slot: 0
-      }
-    })
-    console.log('✅ Database updated with spinning state')
-  } catch (error) {
-    console.error('❌ Failed to update database with spinning state:', error)
-    // Reset spinning state on database error
-    isSpinning.value = false
-    clearTimeout(backupTimeout)
-    return
-  }
   
-  // Animate slot spinning with periodic DB updates for scoreboard sync
-  const spinInterval = setInterval(async () => {
+  // Start the database update but don't wait for it - let animation proceed
+  updateMatch({
+    boosters: {
+      ...currentBoosters,
+      selection_active: true,
+      selection_phase: boosterPhase.value,
+      is_spinning: true,
+      current_team: targetTeam,
+      spinning_slot: 0
+    }
+  }).then(() => {
+    console.log('✅ Database updated with spinning state')
+  }).catch(error => {
+    console.error('❌ Failed to update database with spinning state:', error)
+  })
+  
+  // Animate slot spinning - just update local state, no DB calls during animation
+  // This prevents flooding the update queue
+  const spinInterval = setInterval(() => {
     const newSlot = Math.floor(Math.random() * availableBoosters.value.length)
     spinningSlot.value = newSlot
-    
-    // Update database every few spins to keep scoreboard in sync
-    // Use modulo to reduce database calls while still providing visual updates
-    if (newSlot % 3 === 0) {
-      try {
-        await updateMatch({
-          boosters: {
-            ...currentBoosters,
-            selection_active: true,
-            selection_phase: boosterPhase.value,
-            is_spinning: true,
-            current_team: targetTeam,
-            spinning_slot: newSlot
-          }
-        })
-      } catch (error) {
-        // Silently fail on update errors during spinning to avoid interrupting animation
-        console.log('⚠️ Spin update failed (continuing):', error)
-      }
-    }
   }, 100)
   
   // Stop spinning after 2 seconds and assign booster
@@ -1299,7 +1267,6 @@ async function spinCurrentPhase() {
     try {
       console.log('🎰 Timeout triggered - stopping spin...')
       clearInterval(spinInterval)
-      clearTimeout(backupTimeout) // Clear the backup timeout since we're handling completion properly
       
       // Get available boosters (excluding already selected ones)
       const excludeIds = [...selectedBoosters.value.teamA, ...selectedBoosters.value.teamB].map(b => b.id)
@@ -1393,9 +1360,6 @@ async function spinCurrentPhase() {
       // Always reset spinning state on error
       isSpinning.value = false
       currentTeamSpinning.value = null
-    } finally {
-      // Always clear the backup timeout
-      clearTimeout(backupTimeout)
     }
   }, 2000)
 }

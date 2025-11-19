@@ -267,7 +267,7 @@
                   <div class="flex-1">
                     <div class="flex items-center space-x-4">
                       <div class="text-sm text-blue-200 font-mono min-w-[80px]">
-                        {{ match.start_time || `Match ${index + 1}` }}
+                        {{ formatTime(match.start_time) || `Match ${index + 1}` }}
                       </div>
                       <div class="flex-1">
                         <div class="text-white font-semibold">
@@ -360,6 +360,19 @@
 
           <!-- Settings Form -->
           <div class="space-y-4">
+            <!-- Match Start Time -->
+            <div>
+              <label class="block text-sm font-medium text-blue-200 mb-2">
+                Match Start Time
+              </label>
+              <input
+                v-model="editingMatch.start_time"
+                type="time"
+                class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+              <div class="text-xs text-white/60 mt-1">Time when the match starts</div>
+            </div>
+
             <!-- Quarters Count -->
             <div>
               <label class="block text-sm font-medium text-blue-200 mb-2">
@@ -1103,6 +1116,12 @@ function getTeamName(teamId: string): string {
   return team?.name || 'Unknown Team'
 }
 
+function formatTime(timeString?: string): string {
+  if (!timeString) return ''
+  // Handle both HH:MM:SS and HH:MM formats
+  return timeString.substring(0, 5)
+}
+
 function formatMatchStatus(status: string): string {
   switch (status) {
     case 'pending': return 'Scheduled'
@@ -1116,6 +1135,11 @@ function formatMatchStatus(status: string): string {
 // Match editing functions
 function editMatch(match: Match) {
   editingMatch.value = match
+  
+  // Format start_time for the time input (HH:MM format)
+  if (match.start_time) {
+    match.start_time = formatTime(match.start_time) || match.start_time
+  }
   
   // Load settings from match or use defaults
   const defaultSettings = getDefaultMatchSettings(match)
@@ -1161,9 +1185,16 @@ async function saveMatchSettings() {
   if (!editingMatch.value) return
   
   try {
+    // Convert HH:MM to HH:MM:SS format for database if needed
+    let startTimeForDb = editingMatch.value.start_time
+    if (startTimeForDb && startTimeForDb.length === 5) {
+      startTimeForDb = startTimeForDb + ':00'
+    }
+
     const { error } = await supabase
       .from('matches')
       .update({
+        start_time: startTimeForDb,
         quarters_count: editMatchSettings.quarters_count,
         quarter_duration_minutes: editMatchSettings.quarter_duration_minutes,
         break_duration_minutes: editMatchSettings.break_duration_minutes,
@@ -1181,6 +1212,7 @@ async function saveMatchSettings() {
     const matchIndex = matches.value.findIndex(m => m.id === editingMatch.value!.id)
     if (matchIndex >= 0 && matches.value[matchIndex]) {
       const match = matches.value[matchIndex]
+      match.start_time = startTimeForDb
       match.quarters_count = editMatchSettings.quarters_count
       match.quarter_duration_minutes = editMatchSettings.quarter_duration_minutes
       match.break_duration_minutes = editMatchSettings.break_duration_minutes
