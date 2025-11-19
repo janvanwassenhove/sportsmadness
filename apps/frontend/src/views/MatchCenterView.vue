@@ -1237,10 +1237,10 @@ async function activateUserBooster(boosterIndex: number) {
     // Update database with countdown state - USE THE SAME UPDATEMATCH AS MATCHCONTROL
     await updateMatch({ boosters })
     
-    // Start 10-second countdown before actual activation
+    // Start 20-second countdown before actual activation
     setTimeout(async () => {
       try {
-        console.log('⏰ 10-second countdown timer fired!')
+        console.log('⏰ 20-second countdown timer fired!')
         console.log('⏰ Re-fetching match state from database to verify countdown...')
         
         // Double-check booster still exists and countdown is still active (same as Match Control)
@@ -1342,7 +1342,7 @@ async function activateUserBooster(boosterIndex: number) {
       } catch (error) {
         console.error('Error during user booster activation after countdown:', error)
       }
-    }, 10000) // 10 seconds countdown
+    }, 20000) // 10 seconds countdown
     
   } else {
     console.log('❌ Booster activation conditions not met:', {
