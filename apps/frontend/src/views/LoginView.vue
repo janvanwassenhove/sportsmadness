@@ -77,34 +77,14 @@ async function handleSubmit() {
     
     // Default redirect based on role if no redirect specified
     if (!redirectPath) {
-      redirectPath = authStore.isAdmin ? '/admin' : '/dashboard'
+      redirectPath = '/' // Redirect all users to home page after login
     }
     
     console.log('🔐 Login form: Redirecting to:', redirectPath)
     
-    // Use window.location for reliable navigation in GitHub Pages deployment
-    // This ensures the base path is properly respected
-    const baseUrl = import.meta.env.BASE_URL || '/'
-    
-    // Construct full path, avoiding double slashes
-    let fullPath: string
-    if (redirectPath.startsWith('/')) {
-      // Absolute path - combine with base, ensuring no double slashes
-      if (baseUrl.endsWith('/')) {
-        fullPath = baseUrl + redirectPath.slice(1)
-      } else {
-        fullPath = baseUrl + redirectPath
-      }
-    } else {
-      // Relative path - ensure base ends with slash
-      fullPath = baseUrl.endsWith('/') ? baseUrl + redirectPath : baseUrl + '/' + redirectPath
-    }
-    
-    console.log('🔐 Login form: Full redirect URL:', fullPath)
-    console.log('🔐 Login form: Base URL:', baseUrl)
-    
-    // Use location.href for reliable navigation across different deployment environments
-    window.location.href = fullPath
+    // Use Vue Router for navigation to avoid page reload and maintain auth state
+    // This works correctly with both local development and GitHub Pages
+    await router.push(redirectPath)
   } catch (err: any) {
     console.error('🔐 Login form: Exception:', err)
     error.value = err.message || 'An error occurred'
