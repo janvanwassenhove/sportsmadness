@@ -22,18 +22,28 @@ onErrorCaptured((err, instance, info) => {
   // Check if it's a chunk loading error
   if (errorMsg.includes('Failed to fetch') || 
       errorMsg.includes('dynamically imported module') ||
-      errorMsg.includes('ERR_ABORTED')) {
+      errorMsg.includes('ERR_ABORTED') ||
+      errorMsg.includes('Loading chunk') ||
+      errorMsg.includes('ChunkLoadError')) {
     console.warn('🔄 Chunk loading error in component, attempting reload...')
     
     const hasReloaded = sessionStorage.getItem('chunk-load-reload')
     if (!hasReloaded) {
       sessionStorage.setItem('chunk-load-reload', 'true')
+      console.log('🔄 Reloading page due to chunk loading error...')
       window.location.reload()
       return false // Prevent error from propagating
     } else {
       hasError.value = true
-      errorMessage.value = 'Failed to load application resources. Please clear your browser cache and refresh the page.'
+      errorMessage.value = 'Failed to load application resources. This may be due to a recent update. Please clear your browser cache and refresh the page.'
+      console.error('🚨 Chunk loading failed even after reload')
+      sessionStorage.removeItem('chunk-load-reload')
     }
+  } else {
+    // Other types of errors
+    hasError.value = true
+    errorMessage.value = `Application error: ${errorMsg}`
+    console.error('🚨 General application error:', err)
   }
   
   return false // Prevent error from propagating to parent

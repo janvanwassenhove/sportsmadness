@@ -61,8 +61,6 @@ const themeStore = useThemeStore()
 const currentMatch = ref<Match | null>(null)
 const teams = ref<Record<string, Team>>({})
 const loading = ref(true)
-const error = ref<string | null>(null)
-const isDemoMode = ref(false)
 const maddieFlash = ref(false)
 const showMatchSelector = ref(false)
 const availableMatches = ref<Match[]>([])
@@ -113,39 +111,6 @@ const activeTimerIntervals = ref<Record<string, number>>({})
 let realtimeSubscription: any = null
 let pollingInterval: number | null = null
 let realtimeWorking = false
-
-// Demo data for when Supabase is unavailable (like on GitHub Pages)
-const createDemoMatch = (): Match => ({
-  id: 'demo-match',
-  team_a: 'team-a',
-  team_b: 'team-b', 
-  score_a: 2,
-  score_b: 1,
-  pc_a: 3,
-  pc_b: 1,
-  status: 'active',
-  time_left: 1245, // 20:45
-  maddie: false,
-  boosters: { teamA: [], teamB: [] },
-  cards: {},
-  quarters_count: 4,
-  quarter_duration_minutes: 15,
-  break_duration_minutes: 2,
-  halftime_duration_minutes: 10
-})
-
-const createDemoTeams = (): Record<string, Team> => ({
-  'team-a': {
-    id: 'team-a',
-    name: 'HC Lokeren',
-    players: []
-  },
-  'team-b': {
-    id: 'team-b', 
-    name: 'Racing Club',
-    players: []
-  }
-})
 
 // Reactive variables for debug panel
 const subscriptionStatus = ref<string>('Not connected')
@@ -390,12 +355,6 @@ const lastSyncTime = ref<number>(0) // Timestamp of last database sync
 
 // Load boosters and maddies from database
 async function loadBoostersAndMaddies() {
-  // Skip loading if in demo mode
-  if (isDemoMode.value) {
-    console.log('🎭 Demo mode - skipping boosters and maddies loading')
-    return
-  }
-  
   try {
     console.log('📡 Loading boosters and maddies...')
     
@@ -804,29 +763,6 @@ function calculateCurrentPhase() {
   phaseTimeLeft.value = 0
 }
 
-// Initialize demo mode when Supabase is unavailable
-function initializeDemoMode() {
-  console.log('🎭 Initializing demo mode for GitHub Pages...')  
-  isDemoMode.value = true
-  error.value = null
-  
-  // Set up demo data
-  currentMatch.value = createDemoMatch()
-  teams.value = createDemoTeams()
-  
-  console.log('🎭 Demo mode initialized with sample match data')
-  initializeMatchPhase()
-}
-
-// Check if we're likely running on GitHub Pages (no backend available)
-function isLikelyGitHubPages(): boolean {
-  const isProduction = !import.meta.env.DEV
-  const hasLocalHost = window.location.hostname === 'localhost'
-  const isGitHubDomain = window.location.hostname.includes('github.io')
-  
-  return isProduction && !hasLocalHost && (isGitHubDomain || !window.location.hostname.includes('supabase'))
-}
-
 async function loadCurrentMatch() {
   try {
     console.log('📡 Loading current match...')
@@ -942,18 +878,8 @@ async function loadCurrentMatch() {
 
     console.log('📡 No matches found to display')
     currentMatch.value = null
-  } catch (err) {
-    console.error('Error loading current match:', err)
-    
-    // Check if this looks like a connection/auth error and we're on GitHub Pages
-    if (isLikelyGitHubPages()) {
-      console.log('🎭 Detected GitHub Pages deployment - switching to demo mode')
-      initializeDemoMode()
-      return
-    }
-    
-    // For other environments, show error state
-    error.value = `Unable to connect to database: ${err instanceof Error ? err.message : 'Unknown error'}`
+  } catch (error) {
+    console.error('Error loading current match:', error)
     currentMatch.value = null
   }
 }
@@ -1032,13 +958,6 @@ async function loadTeams() {
     console.log('📡 Teams loaded:', Object.keys(teamsMap).length)
   } catch (error) {
     console.error('Error loading teams (auth-related):', error)
-    
-    // If we're in demo mode, teams are already loaded
-    if (isDemoMode.value) {
-      console.log('🎭 Demo mode active - using demo teams')
-      return
-    }
-    
     console.log('📡 Continuing without team names - check RLS policies for public access')
   }
 }
@@ -1914,23 +1833,36 @@ watch(() => currentMatch.value?.id, (newId, oldId) => {
 
 onMounted(async () => {
   loading.value = true
-  error.value = null
+  
+  // Add debug logging for production routing
+  console.log('🏒 Scoreboard mounting on:', {
+    url: window.location.href,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    base_url: import.meta.env.BASE_URL,
+    is_production: import.meta.env.PROD,
+    props_id: props.id
+  })
   
   try {
     await Promise.all([loadCurrentMatch(), loadTeams(), loadBoostersAndMaddies()])
+    console.log('✅ Scoreboard data loaded successfully')
     // setupRealtimeSubscription() is now handled by the watch
-  } catch (err) {
-    console.error('❌ CRITICAL: Failed to initialize Scoreboard:', err)
+  } catch (error) {
+    console.error('❌ CRITICAL: Failed to initialize Scoreboard:', error)
+    console.log('⚠️ Scoreboard will attempt to continue with limited functionality')
     
-    // If we're not already in demo mode and this looks like GitHub Pages, try demo mode
-    if (!isDemoMode.value && isLikelyGitHubPages()) {
-      console.log('🎭 Fallback to demo mode due to initialization error')
-      initializeDemoMode()
-    } else if (!isDemoMode.value) {
-      // Show error for other environments
-      error.value = `Failed to initialize scoreboard: ${err instanceof Error ? err.message : 'Unknown error'}`
-      console.log('⚠️ Scoreboard failed to initialize')
+    // Add more specific error handling for GitHub Pages
+    if (error instanceof Error) {
+      console.log('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.split('\n')[0]
+      })
     }
+    
+    // Don't show alert on scoreboard as it's public-facing
   } finally {
     // ALWAYS set loading to false, even if errors occurred
     loading.value = false
@@ -1973,19 +1905,6 @@ onUnmounted(() => {
   >
     <div v-if="loading" class="flex items-center justify-center h-screen">
       <div class="text-4xl font-bold animate-pulse">{{ $t('scoreboard.loading') }}</div>
-    </div>
-
-    <!-- Error state -->
-    <div v-else-if="error && !isDemoMode" class="flex items-center justify-center h-screen text-center">
-      <div class="max-w-2xl mx-auto px-4">
-        <div class="text-6xl mb-4">⚠️</div>
-        <h2 class="text-3xl font-bold mb-4 text-red-400">{{ $t('scoreboard.connectionError') }}</h2>
-        <p class="text-xl mb-6 text-gray-300">{{ $t('scoreboard.databaseUnavailable') }}</p>
-        <div class="text-sm text-gray-400">
-          <p>{{ error }}</p>
-          <p class="mt-2">{{ $t('scoreboard.developerNote') }}</p>
-        </div>
-      </div>
     </div>
 
     <div v-else-if="!currentMatch" class="flex items-center justify-center h-screen text-center">
@@ -2112,17 +2031,12 @@ onUnmounted(() => {
               class="w-12 h-12"
             />
           </div>
-          <div v-else class="text-3xl mr-3">🏒</div>
+          <div v-else class="text-3xl mr-3">�</div>
           
           <!-- Title with clean HC Lokeren styling -->
           <h1 class="text-2xl font-bold">
             {{ themeStore.currentTheme?.name || $t('home.title') }}
           </h1>
-          
-          <!-- Demo mode indicator -->
-          <div v-if="isDemoMode" class="bg-yellow-600 text-yellow-100 px-2 py-1 rounded text-xs font-medium ml-2">
-            {{ $t('scoreboard.demoMode') }}
-          </div>
         </div>
         
         <!-- Live indicator -->

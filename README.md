@@ -117,33 +117,7 @@ See [THEME_SYSTEM.md](./THEME_SYSTEM.md) for detailed documentation.
 
 ## 🚀 Deployment
 
-### GitHub Pages (Static Demo)
-
-The frontend automatically deploys to GitHub Pages on push to main branch. When deployed to GitHub Pages without a connected Supabase instance, the application will automatically enter **Demo Mode**.
-
-**Demo Mode Features:**
-- Shows a sample match with realistic data
-- No database connection required
-- Perfect for showcasing the scoreboard interface
-- Clearly marked with "DEMO MODE" indicator
-
-To deploy with full functionality:
-
-1. **Set up Supabase project** with your schema
-2. **Configure GitHub Secrets**:
-   - `VITE_SUPABASE_URL`: Your Supabase project URL
-   - `VITE_SUPABASE_ANON_KEY`: Your Supabase public anon key
-3. **Push to main branch** - GitHub Actions will build and deploy
-
-### Full Production Deployment
-
-For a complete deployment with database functionality:
-
-1. Create a Supabase project
-2. Run the migrations from `supabase/migrations/`
-3. Configure environment variables
-4. Deploy frontend to your preferred hosting platform
-5. Set up Row Level Security (RLS) policies for public scoreboard access
+The frontend automatically deploys to GitHub Pages on push to main branch.
 
 ## 📝 License
 

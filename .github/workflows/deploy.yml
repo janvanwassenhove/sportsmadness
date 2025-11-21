@@ -51,6 +51,11 @@ jobs:
           ls -la dist/assets/ || echo "No assets directory found"
           echo "=== Checking for index.html ==="
           test -f dist/index.html && echo "✓ index.html exists" || echo "✗ index.html missing"
+          echo "=== Checking for 404.html ==="
+          test -f dist/404.html && echo "✓ 404.html exists" || echo "✗ 404.html missing"
+          echo "=== Checking router files ==="
+          find dist -name "*scoreboard*" -o -name "*router*" | head -10
+          echo "=== Build completed for base: /sportsmadness/ ==="
 
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'

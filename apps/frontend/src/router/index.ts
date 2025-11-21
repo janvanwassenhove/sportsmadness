@@ -2,8 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import TournamentBuilderView from '@/views/TournamentBuilderView.vue'
 
+// Ensure proper base URL handling for GitHub Pages
+const baseUrl = import.meta.env.BASE_URL || '/'
+console.log('🚏 Router base URL:', baseUrl)
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(baseUrl),
   routes: [
     {
       path: '/',
@@ -29,12 +33,20 @@ const router = createRouter({
     {
       path: '/scoreboard',
       name: 'scoreboard',
-      component: () => import('../views/ScoreboardView.vue'),
+      component: () => import('../views/ScoreboardView.vue').catch(error => {
+        console.error('Failed to load ScoreboardView:', error)
+        // Retry loading or show error
+        return import('../views/ScoreboardView.vue')
+      }),
     },
     {
       path: '/scoreboard/:id',
       name: 'scoreboard-match',
-      component: () => import('../views/ScoreboardView.vue'),
+      component: () => import('../views/ScoreboardView.vue').catch(error => {
+        console.error('Failed to load ScoreboardView for match:', error)
+        // Retry loading or show error
+        return import('../views/ScoreboardView.vue')
+      }),
       props: true,
     },
     {
@@ -131,6 +143,16 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   try {
     console.log('🚏 Router guard triggered for:', to.path, 'from:', from.path)
+    console.log('🚏 Full route info:', {
+      to_name: to.name,
+      to_path: to.path,
+      to_fullPath: to.fullPath,
+      from_name: from.name,
+      from_path: from.path,
+      base_url: baseUrl,
+      is_production: import.meta.env.PROD
+    })
+    
     const authStore = useAuthStore()
     console.log('🚏 Auth loading state:', authStore.loading)
     console.log('🚏 Auth authenticated state:', authStore.isAuthenticated)

@@ -21,15 +21,18 @@
       // When the single page app is loaded further down in this file,
       // the correct url will be waiting in the browser's history for
       // the single page app to route accordingly.
-      // Only run on GitHub Pages, not localhost
       (function(l) {
+        console.log('SPA redirect script running for:', l.href);
+        // Only run on GitHub Pages, not localhost
         if (l.hostname === 'localhost' || l.hostname === '127.0.0.1') {
+          console.log('Localhost detected, skipping redirect logic');
           return; // Skip redirect logic on localhost
         }
         if (l.search[1] === '/' ) {
           var decoded = l.search.slice(1).split('&').map(function(s) { 
             return s.replace(/~and~/g, '&')
           }).join('?');
+          console.log('Redirecting from:', l.href, 'to:', l.pathname + decoded + l.hash);
           window.history.replaceState(null, null,
               l.pathname + decoded + l.hash
           );
