@@ -369,83 +369,86 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-3 md:px-4 py-4 md:py-8">
       <!-- Page Header -->
-      <div class="mb-8">
-        <h1 class="text-4xl font-bold text-white mb-2">{{ $t('admin.title') }}</h1>
-        <p class="text-blue-100">{{ $t('admin.subtitle') }}</p>
+      <div class="mb-4 md:mb-8">
+        <h1 class="text-2xl md:text-4xl font-bold text-white mb-1 md:mb-2">{{ $t('admin.title') }}</h1>
+        <p class="text-sm md:text-base text-blue-100">{{ $t('admin.subtitle') }}</p>
       </div>
 
       <!-- Quick Actions -->
-      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 mb-4 md:mb-8">
         <RouterLink 
           to="/admin/tournaments"
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
+          class="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
         >
-          <div class="text-3xl mb-3">🏆</div>
-          <h3 class="text-xl font-bold text-white mb-2">{{ $t('admin.quickActions.tournaments.title') }}</h3>
-          <p class="text-blue-100">{{ $t('admin.quickActions.tournaments.description') }}</p>
+          <div class="text-xl md:text-3xl mb-1 md:mb-3">🏆</div>
+          <h3 class="text-sm md:text-xl font-bold text-white mb-1 md:mb-2">{{ $t('admin.quickActions.tournaments.title') }}</h3>
+          <p class="text-xs md:text-sm text-blue-100 hidden md:block">{{ $t('admin.quickActions.tournaments.description') }}</p>
         </RouterLink>
 
         <RouterLink 
           to="/admin/teams"
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
+          class="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
         >
-          <div class="text-3xl mb-3">👥</div>
-          <h3 class="text-xl font-bold text-white mb-2">{{ $t('admin.quickActions.teams.title') }}</h3>
-          <p class="text-blue-100">{{ $t('admin.quickActions.teams.description') }}</p>
+          <div class="text-xl md:text-3xl mb-1 md:mb-3">👥</div>
+          <h3 class="text-sm md:text-xl font-bold text-white mb-1 md:mb-2">{{ $t('admin.quickActions.teams.title') }}</h3>
+          <p class="text-xs md:text-sm text-blue-100 hidden md:block">{{ $t('admin.quickActions.teams.description') }}</p>
         </RouterLink>
 
         <RouterLink 
           to="/admin/boosters"
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
+          class="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
         >
-          <div class="text-3xl mb-3">⚡</div>
-          <h3 class="text-xl font-bold text-white mb-2">{{ $t('admin.quickActions.boosters.title') }}</h3>
-          <p class="text-blue-100">{{ $t('admin.quickActions.boosters.description') }}</p>
+          <div class="text-xl md:text-3xl mb-1 md:mb-3">⚡</div>
+          <h3 class="text-sm md:text-xl font-bold text-white mb-1 md:mb-2">{{ $t('admin.quickActions.boosters.title') }}</h3>
+          <p class="text-xs md:text-sm text-blue-100 hidden md:block">{{ $t('admin.quickActions.boosters.description') }}</p>
         </RouterLink>
 
         <RouterLink 
           to="/scoreboard"
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
+          class="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
         >
-          <div class="text-3xl mb-3">📺</div>
-          <h3 class="text-xl font-bold text-white mb-2">{{ $t('admin.quickActions.scoreboard.title') }}</h3>
-          <p class="text-blue-100">{{ $t('admin.quickActions.scoreboard.description') }}</p>
+          <div class="text-xl md:text-3xl mb-1 md:mb-3">📺</div>
+          <h3 class="text-sm md:text-xl font-bold text-white mb-1 md:mb-2">{{ $t('admin.quickActions.scoreboard.title') }}</h3>
+          <p class="text-xs md:text-sm text-blue-100 hidden md:block">{{ $t('admin.quickActions.scoreboard.description') }}</p>
         </RouterLink>
 
         <RouterLink 
           to="/"
-          class="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
+          class="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-6 text-center hover:bg-white/20 transition-all duration-300 border border-white/20 block"
         >
-          <div class="text-3xl mb-3">🏠</div>
-          <h3 class="text-xl font-bold text-white mb-2">{{ $t('admin.quickActions.backHome.title') }}</h3>
-          <p class="text-blue-100">{{ $t('admin.quickActions.backHome.description') }}</p>
+          <div class="text-xl md:text-3xl mb-1 md:mb-3">🏠</div>
+          <h3 class="text-sm md:text-xl font-bold text-white mb-1 md:mb-2">{{ $t('admin.quickActions.backHome.title') }}</h3>
+          <p class="text-xs md:text-sm text-blue-100 hidden md:block">{{ $t('admin.quickActions.backHome.description') }}</p>
         </RouterLink>
       </div>
 
       <!-- Matches Section -->
       <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
           <div>
-            <h2 class="text-2xl font-bold text-white mb-2">{{ $t('admin.matches.title') }}</h2>
+            <h2 class="text-xl md:text-2xl font-bold text-white mb-2">{{ $t('admin.matches.title') }}</h2>
             <!-- Match Type Filter -->
-            <div class="flex space-x-2">
+            <div class="flex flex-wrap gap-2">
               <button 
                 @click="showMatchType = 'all'"
                 :class="showMatchType === 'all' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
+                class="text-xs md:text-sm px-2 md:px-3 py-1"
               >
                 {{ $t('admin.matches.filters.all') }} ({{ matches.length }})
               </button>
               <button 
                 @click="showMatchType = 'tournament'"
                 :class="showMatchType === 'tournament' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
+                class="text-xs md:text-sm px-2 md:px-3 py-1"
               >
                 {{ $t('admin.matches.filters.tournament') }} ({{ tournamentMatches.length }})
               </button>
               <button 
                 @click="showMatchType = 'standalone'"
                 :class="showMatchType === 'standalone' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
+                class="text-xs md:text-sm px-2 md:px-3 py-1"
               >
                 {{ $t('admin.matches.filters.standalone') }} ({{ standaloneMatches.length }})
               </button>
@@ -453,7 +456,7 @@ onMounted(() => {
           </div>
           <button 
             @click="createNewMatch"
-            class="btn btn-primary"
+            class="btn btn-primary w-full md:w-auto"
           >
             {{ $t('admin.matches.newMatch') }}
           </button>
@@ -473,11 +476,11 @@ onMounted(() => {
           <div 
             v-for="match in displayedMatches" 
             :key="match.id"
-            class="bg-white/5 rounded-lg p-4 border border-white/10"
+            class="bg-white/5 rounded-lg p-3 md:p-4 border border-white/10"
           >
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div class="flex-1">
-                <div class="flex items-center space-x-4 mb-2">
+                <div class="flex flex-wrap items-center gap-2 mb-2">
                   <div 
                     class="px-3 py-1 rounded-full text-white text-sm font-bold"
                     :class="getStatusColor(match.status)"
@@ -494,41 +497,41 @@ onMounted(() => {
                     {{ formatTime(match.time_left) }}
                   </div>
                   <!-- Date and Time Display -->
-                  <div class="text-gray-400 text-sm">
+                  <div class="text-gray-400 text-xs md:text-sm">
                     📅 {{ formatMatchDate(match) }}
                   </div>
-                  <div class="text-gray-400 text-sm">
+                  <div class="text-gray-400 text-xs md:text-sm">
                     🕒 {{ formatMatchStartTime(match) }}
                   </div>
                 </div>
                 
-                <div class="flex items-center space-x-6">
+                <div class="flex items-center justify-center md:justify-start gap-3 md:gap-6">
                   <div class="text-center">
-                    <div class="text-blue-300 font-semibold">
+                    <div class="text-blue-300 font-semibold text-sm md:text-base">
                       {{ getTeamName(match.team_a) }}
                     </div>
-                    <div class="text-2xl font-bold text-white">
+                    <div class="text-xl md:text-2xl font-bold text-white">
                       {{ match.score_a }}
                     </div>
                   </div>
                   
-                  <div class="text-yellow-400 font-bold">VS</div>
+                  <div class="text-yellow-400 font-bold text-sm md:text-base">VS</div>
                   
                   <div class="text-center">
-                    <div class="text-red-300 font-semibold">
+                    <div class="text-red-300 font-semibold text-sm md:text-base">
                       {{ getTeamName(match.team_b) }}
                     </div>
-                    <div class="text-2xl font-bold text-white">
+                    <div class="text-xl md:text-2xl font-bold text-white">
                       {{ match.score_b }}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="flex space-x-2">
+              <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                 <RouterLink 
                   :to="`/admin/match/${match.id}`"
-                  class="btn btn-primary"
+                  class="btn btn-primary text-xs md:text-sm px-3 py-2 w-full md:w-auto text-center"
                 >
                   {{ match.status === 'active' || match.status === 'paused' ? $t('admin.matches.actions.controlMatch') : $t('admin.matches.actions.viewMatch') }}
                 </RouterLink>
@@ -536,16 +539,16 @@ onMounted(() => {
                 <button 
                   v-if="match.status === 'pending'"
                   @click="editMatch(match)"
-                  class="btn btn-secondary"
+                  class="btn btn-secondary text-xs md:text-sm px-3 py-2 w-full md:w-auto"
                   :title="$t('admin.matches.actions.editSettings')"
                 >
-                  ⚙️
+                  ⚙️ Settings
                 </button>
                 
                 <button 
                   v-if="match.status === 'pending'"
                   @click="startMatch(match.id)"
-                  class="btn btn-success"
+                  class="btn btn-success text-xs md:text-sm px-3 py-2 w-full md:w-auto"
                 >
                   {{ $t('admin.matches.actions.startMatch') }}
                 </button>
@@ -553,10 +556,10 @@ onMounted(() => {
                 <button 
                   v-if="match.status === 'pending' || match.status === 'finished'"
                   @click="deleteMatch(match.id)"
-                  class="btn btn-xs bg-red-600 hover:bg-red-700 text-white"
+                  class="btn bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm px-3 py-2 w-full md:w-auto"
                   :title="$t('admin.matches.actions.deleteMatch')"
                 >
-                  🗑️
+                  🗑️ Delete
                 </button>
               </div>
             </div>
@@ -565,22 +568,22 @@ onMounted(() => {
       </div>
 
       <!-- Teams Overview -->
-      <div class="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-bold text-white">{{ $t('admin.teams.title') }}</h2>
-          <RouterLink to="/admin/teams" class="btn btn-primary">
+      <div class="mt-4 md:mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-6 border border-white/20">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-3">
+          <h2 class="text-xl md:text-2xl font-bold text-white">{{ $t('admin.teams.title') }}</h2>
+          <RouterLink to="/admin/teams" class="btn btn-primary w-full md:w-auto text-center">
             {{ $t('admin.teams.manageTeams') }}
           </RouterLink>
         </div>
 
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <div 
             v-for="team in Object.values(teams)" 
             :key="team.id"
-            class="bg-white/5 rounded-lg p-4 text-center border border-white/10"
+            class="bg-white/5 rounded-lg p-3 text-center border border-white/10"
           >
-            <h3 class="text-lg font-bold text-white mb-2">{{ team.name }}</h3>
-            <p class="text-blue-200">{{ team.players?.length || 0 }} {{ $t('admin.teams.playersCount') }}</p>
+            <h3 class="text-sm md:text-lg font-bold text-white mb-1 md:mb-2">{{ team.name }}</h3>
+            <p class="text-xs md:text-sm text-blue-200">{{ team.players?.length || 0 }} {{ $t('admin.teams.playersCount') }}</p>
           </div>
         </div>
       </div>

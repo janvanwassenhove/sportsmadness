@@ -280,26 +280,26 @@ watch(() => authStore.profile?.role, (newRole) => {
        :style="{ 
          background: `linear-gradient(to bottom right, ${themeStore.currentTheme?.colors.background}, ${themeStore.currentTheme?.colors.surface})` 
        }">
-    <div class="container mx-auto px-4 py-16">
+    <div class="container mx-auto px-3 md:px-4 py-8 md:py-16">
       <!-- Header -->
-      <div class="text-center mb-16">
-        <h1 class="home-title font-theme-title">
+      <div class="text-center mb-8 md:mb-16">
+        <h1 class="home-title font-theme-title text-4xl md:text-6xl">
           <img 
             v-if="themeStore.currentTheme?.logo" 
             :src="themeStore.currentTheme.logo" 
             :alt="themeStore.currentTheme.name"
-            class="inline w-16 h-16 mr-4"
+            class="inline w-12 h-12 md:w-16 md:h-16 mr-2 md:mr-4"
           />
-          <span v-else class="text-6xl">🏑</span>
+          <span v-else class="text-4xl md:text-6xl">🏑</span>
           {{ $t('home.title') }}
         </h1>
-        <p class="home-subtitle font-theme-subtitle">
+        <p class="home-subtitle font-theme-subtitle text-base md:text-lg">
           {{ $t('home.subtitle') }}
         </p>
       </div>
 
       <!-- Navigation Cards -->
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 max-w-6xl mx-auto mb-8 md:mb-16">
         <!-- Public Scoreboard -->
         <RouterLink 
           to="/scoreboard" 
@@ -423,8 +423,8 @@ watch(() => authStore.profile?.role, (newRole) => {
       </div>
 
       <!-- Upcoming Matches List (for non-authenticated users) -->
-      <div v-if="!authStore.isAuthenticated" class="mt-16 max-w-6xl mx-auto">
-        <h2 class="text-3xl font-bold text-center mb-8 font-theme-title" 
+      <div v-if="!authStore.isAuthenticated" class="mt-8 md:mt-16 max-w-6xl mx-auto">
+        <h2 class="text-2xl md:text-3xl font-bold text-center mb-4 md:mb-8 font-theme-title" 
             :style="{ color: themeStore.currentTheme?.colors.primary }">
           📅 {{ $t('home.upcomingMatches.title') }}
         </h2>
@@ -445,14 +445,66 @@ watch(() => authStore.profile?.role, (newRole) => {
         </div>
 
         <!-- Matches List -->
-        <div v-else class="space-y-4">
+        <div v-else class="space-y-3 md:space-y-4">
           <RouterLink
             v-for="match in upcomingMatches" 
             :key="match.id"
             :to="{ name: 'scoreboard', params: { id: match.id } }"
-            class="nav-card block hover:scale-[1.02] transition-transform duration-300"
+            class="nav-card block hover:scale-[1.02] transition-transform duration-300 !p-3 md:!p-6"
           >
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <!-- Mobile Layout -->
+            <div class="block md:hidden">
+              <!-- Teams and Score -->
+              <div class="mb-3">
+                <h3 class="text-lg font-bold font-theme-title leading-tight mb-2">
+                  {{ getTeamName(match.team_a, match) }} 
+                  <span class="opacity-50 mx-1">vs</span> 
+                  {{ getTeamName(match.team_b, match) }}
+                </h3>
+                <div class="flex items-center justify-center gap-3 mb-3">
+                  <span class="text-3xl font-bold">{{ match.score_a }}</span>
+                  <span class="text-xl opacity-50">-</span>
+                  <span class="text-3xl font-bold">{{ match.score_b }}</span>
+                </div>
+              </div>
+              
+              <!-- Match Details Below Score on Mobile -->
+              <div class="flex flex-wrap gap-2 justify-center text-center">
+                <!-- Start Time -->
+                <span v-if="match.start_time" class="text-sm font-semibold opacity-90 px-2 py-1 bg-black/10 rounded">
+                  ⏰ {{ formatStartTime(match.start_time) }}
+                </span>
+                
+                <!-- Status -->
+                <span 
+                  class="px-2 py-1 rounded text-xs font-semibold uppercase"
+                  :class="getMatchStatusClass(match.status)"
+                >
+                  {{ match.status }}
+                </span>
+                
+                <!-- Category -->
+                <span 
+                  class="px-2 py-1 rounded text-xs font-semibold"
+                  :class="getMatchCategory(match).class"
+                >
+                  {{ getMatchCategory(match).label }}
+                </span>
+                
+                <!-- Time Left -->
+                <span v-if="match.time_left && match.status === 'active'" class="text-xs opacity-70 px-2 py-1 bg-black/10 rounded">
+                  ⏱️ {{ formatTimeLeft(match.time_left) }}
+                </span>
+                
+                <!-- Date -->
+                <span v-if="match.match_date" class="text-xs opacity-70 px-2 py-1 bg-black/10 rounded">
+                  {{ formatMatchDate(match.match_date) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Desktop Layout (unchanged) -->
+            <div class="hidden md:flex md:items-center md:justify-between gap-4">
               <!-- Match Info -->
               <div class="flex-1">
                 <div class="flex items-center gap-3 mb-2 flex-wrap">
@@ -498,23 +550,23 @@ watch(() => authStore.profile?.role, (newRole) => {
       </div>
 
       <!-- Features -->
-      <div class="mt-20 text-center">
-        <h3 class="features-title">{{ $t('features.title') }}</h3>
-        <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          <div class="feature-item text-center">
-            <div class="text-3xl mb-4">⏱️</div>
-            <h4>{{ $t('features.liveTimer.title') }}</h4>
-            <p>{{ $t('features.liveTimer.description') }}</p>
+      <div class="mt-12 md:mt-20 text-center">
+        <h3 class="features-title text-xl md:text-2xl">{{ $t('features.title') }}</h3>
+        <div class="grid md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
+          <div class="feature-item text-center p-4">
+            <div class="text-2xl md:text-3xl mb-2 md:mb-4">⏱️</div>
+            <h4 class="text-base md:text-lg">{{ $t('features.liveTimer.title') }}</h4>
+            <p class="text-sm md:text-base">{{ $t('features.liveTimer.description') }}</p>
           </div>
-          <div class="feature-item text-center">
-            <div class="text-3xl mb-4">🎯</div>
-            <h4>{{ $t('features.scoreTracking.title') }}</h4>
-            <p>{{ $t('features.scoreTracking.description') }}</p>
+          <div class="feature-item text-center p-4">
+            <div class="text-2xl md:text-3xl mb-2 md:mb-4">🎯</div>
+            <h4 class="text-base md:text-lg">{{ $t('features.scoreTracking.title') }}</h4>
+            <p class="text-sm md:text-base">{{ $t('features.scoreTracking.description') }}</p>
           </div>
-          <div class="feature-item text-center">
-            <div class="text-3xl mb-4">🎪</div>
-            <h4>{{ $t('features.specialEffects.title') }}</h4>
-            <p>{{ $t('features.specialEffects.description') }}</p>
+          <div class="feature-item text-center p-4">
+            <div class="text-2xl md:text-3xl mb-2 md:mb-4">🎪</div>
+            <h4 class="text-base md:text-lg">{{ $t('features.specialEffects.title') }}</h4>
+            <p class="text-sm md:text-base">{{ $t('features.specialEffects.description') }}</p>
           </div>
         </div>
       </div>

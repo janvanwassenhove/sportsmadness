@@ -12,10 +12,25 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: var(--theme-text);
   }
+
+  /* Mobile-specific nav-card styles */
+  @media (max-width: 768px) {
+    .nav-card {
+      padding: 1rem;
+      border-radius: 0.5rem;
+    }
+  }
   
   .nav-card:hover {
     background-color: rgba(255, 255, 255, 0.2);
     transform: scale(1.05);
+  }
+
+  /* Reduce hover effect on mobile */
+  @media (max-width: 768px) {
+    .nav-card:hover {
+      transform: scale(1.02);
+    }
   }
   
   .nav-card-title {

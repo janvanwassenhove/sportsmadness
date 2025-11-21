@@ -1148,7 +1148,7 @@ function startBoosterCountdown(teamKey: 'teamA' | 'teamB', booster: any, teamNam
     boosterName: booster.name,
     boosterIcon: booster.icon,
     teamColor: teamKey === 'teamA' ? 'blue' : 'red',
-    countdown: 20,
+    countdown: 15,
     teamKey,
     boosterIndex
   }
@@ -1199,7 +1199,7 @@ function startMaddieCountdown(maddie: any) {
     maddieIcon: maddie.icon || '🎪',
     maddieDescription: maddie.description || maddie.subtitle || 'A special effect will be activated',
     maddieDuration: maddie.duration || null,
-    countdown: 20
+    countdown: 15
   }
   
   // Start countdown timer
@@ -1724,7 +1724,7 @@ async function playSpinningSound() {
 async function playBoosterSelectionSound() {
   try {
     // Play a selection/ding sound when booster is chosen
-    await SoundManager.playSound('/sounds/selection.mp3', 2)
+    await SoundManager.playSound('/sounds/selection.mp3', 1.5)
     console.log('🔊 Playing booster selection sound on scoreboard')
   } catch (error) {
     console.log('🔊 Selection sound not available, trying fallback')
@@ -1749,7 +1749,7 @@ async function playTickSound() {
 async function playCountdownSound() {
   try {
     // Play countdown start sound when booster or maddie countdown begins
-    await SoundManager.playSound('/sounds/countdown.wav', 2)
+    await SoundManager.playSound('/sounds/countdown.wav', 1.5)
     console.log('🔊 Playing countdown start sound')
   } catch (error) {
     console.log('🔊 Countdown sound not available, trying fallback')
@@ -1996,30 +1996,30 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-else class="container mx-auto px-4 py-8 h-screen flex flex-col">
-      <!-- Header -->
-      <div class="header-section text-center mb-8">
-        <div class="flex items-center justify-center mb-4">
+    <div v-else class="h-screen flex flex-col">
+      <!-- Minimal Header -->
+      <div class="header-section text-center py-2">
+        <div class="flex items-center justify-center mb-2">
           <!-- Theme Logo with proper background for dark logos -->
-          <div v-if="themeStore.currentTheme?.logo" class="logo-bg-light mr-4">
+          <div v-if="themeStore.currentTheme?.logo" class="logo-bg-light mr-3">
             <img 
               :src="themeStore.currentTheme.logo" 
               :alt="themeStore.currentTheme.name"
-              class="w-16 h-16"
+              class="w-12 h-12"
             />
           </div>
-          <div v-else class="text-4xl mr-4">�</div>
+          <div v-else class="text-3xl mr-3">�</div>
           
           <!-- Title with clean HC Lokeren styling -->
-          <h1 class="hc-title">
+          <h1 class="text-2xl font-bold">
             {{ themeStore.currentTheme?.name || $t('home.title') }}
           </h1>
         </div>
         
         <!-- Live indicator -->
-        <div class="flex items-center justify-center space-x-2 mb-4">
+        <div class="flex items-center justify-center space-x-2">
           <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-          <span class="text-lg font-medium font-theme-text"
+          <span class="text-base font-medium font-theme-text"
                 :style="{ color: themeStore.currentTheme?.colors.textSecondary }">
             {{ $t('scoreboard.liveUpdate') || 'LIVE' }}
           </span>
@@ -2037,65 +2037,70 @@ onUnmounted(() => {
         </div>-->
       </div>
 
-      <!-- Active Boosters Banner -->
+      <!-- Active Boosters Overlay (Full Screen) -->
       <div v-if="currentMatch?.boosters && (currentMatch.boosters.teamA?.some((b: any) => b.activated && !b.expired) || currentMatch.boosters.teamB?.some((b: any) => b.activated && !b.expired))" 
-           class="mb-8">
-        <div class="max-w-6xl mx-auto">
-          <!-- Banner Header -->
-          <div class="text-center mb-4">
-            <h3 class="text-2xl font-bold text-yellow-400 animate-pulse">⚡ ACTIVE BOOSTERS ⚡</h3>
+           class="fixed inset-0 flex items-center justify-center pointer-events-none z-44">
+        <!-- Enhanced gradient backdrop -->
+        <div class="absolute inset-0 bg-gradient-to-br from-green-900/80 to-emerald-600/80 backdrop-blur-md"></div>
+        
+        <!-- Main content container - Full width/height -->
+        <div class="relative text-center w-full h-full flex flex-col justify-center px-8">
+          <!-- Title - Much larger -->
+          <div class="text-8xl lg:text-9xl xl:text-[8rem] font-bold text-white mb-12 drop-shadow-2xl animate-pulse"
+               style="text-shadow: 6px 6px 12px rgba(0,0,0,0.9)">
+            ⚡ ACTIVE BOOSTERS ⚡
           </div>
           
-          <!-- Active Boosters Grid -->
-          <div class="space-y-4">
+          <!-- Grid for multiple boosters - Full width -->
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-12 w-full max-w-none px-4">
             <!-- Team A Active Boosters -->
             <div v-if="currentMatch.boosters.teamA?.some((b: any) => b.activated && !b.expired)" 
-                 class="w-full bg-gradient-to-r from-[#121238]/80 to-[#478dcb]/80 backdrop-blur-sm rounded-xl p-4 border-2 border-[#478dcb]">
-              <div class="text-center mb-3">
-                <h4 class="text-lg font-bold text-white">{{ teamA?.name || 'Team A' }}</h4>
+                 class="space-y-8">
+              <div class="text-6xl lg:text-7xl xl:text-8xl font-bold text-blue-300 mb-8 drop-shadow-xl"
+                   style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
+                {{ teamA?.name || 'Team A' }}
               </div>
-              <div class="space-y-2">
-                <template v-for="booster in currentMatch.boosters.teamA" :key="`banner-a-${booster.id}`">
+              <div class="space-y-8">
+                <template v-for="booster in currentMatch.boosters.teamA" :key="`overlay-a-${booster.id}`">
                   <div v-if="booster.activated && !booster.expired" 
-                       class="bg-green-600/95 rounded-lg p-3 border-2 border-green-300 shadow-lg relative overflow-hidden">
-                    <!-- Enhanced sparkle overlay with better contrast -->
-                    <div class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 animate-pulse rounded-lg"></div>
-                    <!-- Dark backdrop for text readability -->
-                    <div class="absolute inset-0 bg-black/30 rounded-lg"></div>
+                       class="bg-green-700/95 rounded-3xl p-8 lg:p-12 border-4 border-green-300 shadow-2xl relative overflow-hidden transform hover:scale-105 transition-transform">
+                    <!-- Enhanced sparkle overlay -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-green-500/30 to-emerald-500/30 animate-pulse rounded-3xl"></div>
+                    <div class="absolute inset-0 bg-black/20 rounded-3xl"></div>
                     
                     <div class="relative z-10 flex items-center justify-between text-white">
-                      <div class="flex items-center space-x-3">
-                        <span class="text-3xl animate-bounce drop-shadow-lg" 
-                              style="filter: drop-shadow(0 0 8px rgba(255,255,255,0.6))">
+                      <div class="flex items-center space-x-6 lg:space-x-8">
+                        <span class="text-8xl lg:text-9xl xl:text-[8rem] animate-bounce drop-shadow-2xl" 
+                              style="filter: drop-shadow(0 0 30px rgba(255,255,255,0.8))">
                           {{ booster.icon }}
                         </span>
-                        <div>
-                          <div class="font-bold text-lg drop-shadow-lg" 
-                               style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8)">
+                        <div class="text-left">
+                          <div class="text-4xl lg:text-5xl xl:text-6xl font-bold drop-shadow-xl" 
+                               style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
                             {{ booster.name }}
                           </div>
-                          <div class="text-sm opacity-90 drop-shadow-md" 
-                               style="text-shadow: 1px 1px 2px rgba(0,0,0,0.7)">
+                          <div class="text-2xl lg:text-3xl xl:text-4xl opacity-90 drop-shadow-lg mt-2" 
+                               style="text-shadow: 3px 3px 6px rgba(0,0,0,0.8)">
                             {{ booster.description || 'Active boost effect' }}
                           </div>
                         </div>
                       </div>
                       
-                      <!-- Timer or Status with enhanced contrast -->
+                      <!-- Enhanced timer display -->
                       <div class="text-right">
                         <div v-if="booster.duration && getBoosterTimer('teamA', booster.id)" 
-                             class="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold font-mono animate-pulse shadow-md border border-yellow-400">
+                             class="bg-yellow-500 text-black px-8 py-4 lg:px-10 lg:py-6 rounded-3xl text-3xl lg:text-4xl xl:text-5xl font-bold font-mono animate-pulse shadow-xl border-4 border-yellow-300">
                           ⏰ {{ formatBoosterTime(getBoosterTimer('teamA', booster.id)?.remainingTime || 0) }}
                         </div>
                         <div v-else-if="!booster.duration" 
-                             class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce shadow-md border border-orange-400">
+                             class="bg-orange-500 text-white px-8 py-4 lg:px-10 lg:py-6 rounded-3xl text-3xl lg:text-4xl xl:text-5xl font-bold animate-bounce shadow-xl border-4 border-orange-300">
                           ⚡ INSTANT
                         </div>
                       </div>
                     </div>
                     
                     <!-- Enhanced visual effects -->
-                    <div class="absolute top-1 right-1 text-yellow-200 animate-spin drop-shadow-lg">✨</div>
+                    <div class="absolute top-4 right-4 text-yellow-300 text-4xl lg:text-5xl animate-spin drop-shadow-xl">✨</div>
                   </div>
                 </template>
               </div>
@@ -2103,52 +2108,52 @@ onUnmounted(() => {
             
             <!-- Team B Active Boosters -->
             <div v-if="currentMatch.boosters.teamB?.some((b: any) => b.activated && !b.expired)" 
-                 class="w-full bg-gradient-to-r from-[#478dcb]/80 to-[#121238]/80 backdrop-blur-sm rounded-xl p-4 border-2 border-[#121238]">
-              <div class="text-center mb-3">
-                <h4 class="text-lg font-bold text-white">{{ teamB?.name || 'Team B' }}</h4>
+                 class="space-y-8">
+              <div class="text-6xl lg:text-7xl xl:text-8xl font-bold text-red-300 mb-8 drop-shadow-xl"
+                   style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
+                {{ teamB?.name || 'Team B' }}
               </div>
-              <div class="space-y-2">
-                <template v-for="booster in currentMatch.boosters.teamB" :key="`banner-b-${booster.id}`">
+              <div class="space-y-8">
+                <template v-for="booster in currentMatch.boosters.teamB" :key="`overlay-b-${booster.id}`">
                   <div v-if="booster.activated && !booster.expired" 
-                       class="bg-green-600/95 rounded-lg p-3 border-2 border-green-300 shadow-lg relative overflow-hidden">
-                    <!-- Enhanced sparkle overlay with better contrast -->
-                    <div class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 animate-pulse rounded-lg"></div>
-                    <!-- Dark backdrop for text readability -->
-                    <div class="absolute inset-0 bg-black/30 rounded-lg"></div>
+                       class="bg-green-700/95 rounded-3xl p-8 lg:p-12 border-4 border-green-300 shadow-2xl relative overflow-hidden transform hover:scale-105 transition-transform">
+                    <!-- Enhanced sparkle overlay -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-green-500/30 to-emerald-500/30 animate-pulse rounded-3xl"></div>
+                    <div class="absolute inset-0 bg-black/20 rounded-3xl"></div>
                     
                     <div class="relative z-10 flex items-center justify-between text-white">
-                      <div class="flex items-center space-x-3">
-                        <span class="text-3xl animate-bounce drop-shadow-lg" 
-                              style="filter: drop-shadow(0 0 8px rgba(255,255,255,0.6))">
+                      <div class="flex items-center space-x-6 lg:space-x-8">
+                        <span class="text-8xl lg:text-9xl xl:text-[8rem] animate-bounce drop-shadow-2xl" 
+                              style="filter: drop-shadow(0 0 30px rgba(255,255,255,0.8))">
                           {{ booster.icon }}
                         </span>
-                        <div>
-                          <div class="font-bold text-lg drop-shadow-lg" 
-                               style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8)">
+                        <div class="text-left">
+                          <div class="text-4xl lg:text-5xl xl:text-6xl font-bold drop-shadow-xl" 
+                               style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
                             {{ booster.name }}
                           </div>
-                          <div class="text-sm opacity-90 drop-shadow-md" 
-                               style="text-shadow: 1px 1px 2px rgba(0,0,0,0.7)">
+                          <div class="text-2xl lg:text-3xl xl:text-4xl opacity-90 drop-shadow-lg mt-2" 
+                               style="text-shadow: 3px 3px 6px rgba(0,0,0,0.8)">
                             {{ booster.description || 'Active boost effect' }}
                           </div>
                         </div>
                       </div>
                       
-                      <!-- Timer or Status with enhanced contrast -->
+                      <!-- Enhanced timer display -->
                       <div class="text-right">
                         <div v-if="booster.duration && getBoosterTimer('teamB', booster.id)" 
-                             class="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold font-mono animate-pulse shadow-md border border-yellow-400">
+                             class="bg-yellow-500 text-black px-8 py-4 lg:px-10 lg:py-6 rounded-3xl text-3xl lg:text-4xl xl:text-5xl font-bold font-mono animate-pulse shadow-xl border-4 border-yellow-300">
                           ⏰ {{ formatBoosterTime(getBoosterTimer('teamB', booster.id)?.remainingTime || 0) }}
                         </div>
                         <div v-else-if="!booster.duration" 
-                             class="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce shadow-md border border-orange-400">
+                             class="bg-orange-500 text-white px-8 py-4 lg:px-10 lg:py-6 rounded-3xl text-3xl lg:text-4xl xl:text-5xl font-bold animate-bounce shadow-xl border-4 border-orange-300">
                           ⚡ INSTANT
                         </div>
                       </div>
                     </div>
                     
                     <!-- Enhanced visual effects -->
-                    <div class="absolute top-1 right-1 text-yellow-200 animate-spin drop-shadow-lg">✨</div>
+                    <div class="absolute top-4 right-4 text-yellow-300 text-4xl lg:text-5xl animate-spin drop-shadow-xl">✨</div>
                   </div>
                 </template>
               </div>
@@ -2157,233 +2162,122 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Maddie Information Display (Above Main Scoreboard) -->
+      <!-- Maddie Active Overlay (Full Screen) -->
       <div 
         v-if="currentMatch?.maddie && ((typeof currentMatch.maddie === 'object' && currentMatch.maddie.activated) || (typeof currentMatch.maddie === 'boolean' && currentMatch.maddie))"
-        class="flex justify-center mb-6"
+        class="fixed inset-0 flex items-center justify-center pointer-events-none z-45"
       >
-        <div class="bg-purple-600/90 backdrop-blur-sm rounded-xl border-2 border-purple-400 p-6 shadow-lg w-full max-w-6xl mx-4">
-          <div class="flex items-center justify-center mb-3">
-            <span class="text-4xl mr-3 animate-pulse">
-              {{ (currentMatch && typeof currentMatch.maddie === 'object') ? currentMatch.maddie.icon || '🎪' : '🎪' }}
-            </span>
-            <div class="text-lg font-bold text-purple-200 uppercase tracking-wide">Maddie Effect Active</div>
+        <!-- Enhanced gradient backdrop for full screen impact -->
+        <div class="absolute inset-0 bg-gradient-to-br from-purple-900/90 to-purple-600/90 backdrop-blur-xl"></div>
+        
+        <!-- Main content container - Full width/height -->
+        <div class="relative text-center w-full h-full flex flex-col justify-center px-4 py-4">
+          <!-- Massive maddie icon with enhanced glow -->
+          <div class="text-[12rem] lg:text-[15rem] xl:text-[18rem] mb-6 lg:mb-8 animate-pulse drop-shadow-2xl" 
+               style="filter: drop-shadow(0 0 50px rgba(255,255,255,0.9)) drop-shadow(0 0 100px rgba(255,255,255,0.5))">
+            {{ (currentMatch && typeof currentMatch.maddie === 'object') ? currentMatch.maddie.icon || '📢' : '📢' }}
           </div>
-          <div class="text-2xl font-bold text-white mb-2 text-center">
+          
+          <!-- "MADDIE EFFECT ACTIVE" - Massive text -->
+          <div class="text-6xl lg:text-8xl xl:text-9xl font-bold text-white mb-6 lg:mb-8 drop-shadow-2xl animate-pulse"
+               style="text-shadow: 6px 6px 12px rgba(0,0,0,0.9)">
+            MADDIE EFFECT ACTIVE
+          </div>
+          
+          <!-- Maddie name container - Enhanced and large -->
+          <div class="text-4xl lg:text-6xl xl:text-7xl font-bold px-12 py-6 lg:px-16 lg:py-8 rounded-4xl border-6 mb-6 lg:mb-8 backdrop-blur-lg bg-purple-700/90 border-purple-200 text-white shadow-2xl max-w-5xl mx-auto"
+               style="box-shadow: 0 16px 64px rgba(0,0,0,0.7)">
             {{ (currentMatch && typeof currentMatch.maddie === 'object') ? (currentMatch.maddie.name || currentMatch.maddie.title || 'Special Effect') : 'Special Effect' }}
           </div>
+          
+          <!-- Description - Large if available -->
           <div 
             v-if="currentMatch && typeof currentMatch.maddie === 'object' && (currentMatch.maddie.description || currentMatch.maddie.subtitle)"
-            class="text-lg text-purple-100 leading-relaxed text-center mb-2"
+            class="text-3xl lg:text-4xl xl:text-5xl text-purple-100 mb-6 lg:mb-8 drop-shadow-xl max-w-6xl mx-auto"
+            style="text-shadow: 4px 4px 8px rgba(0,0,0,0.8)"
           >
             {{ currentMatch.maddie.description || currentMatch.maddie.subtitle }}
           </div>
+          
+          <!-- Timer display - Enhanced size -->
           <div 
             v-if="activeMaddieTimer"
-            class="text-lg text-purple-100 font-semibold text-center bg-purple-800/90 rounded-lg px-4 py-2 border-2 border-purple-300 backdrop-blur-sm"
-            style="box-shadow: 0 4px 16px rgba(0,0,0,0.4)"
+            class="text-4xl lg:text-5xl xl:text-6xl text-purple-100 font-semibold text-center bg-purple-800/90 rounded-3xl px-12 py-6 lg:px-16 lg:py-8 border-4 border-purple-300 shadow-2xl max-w-4xl mx-auto"
+            style="box-shadow: 0 16px 64px rgba(0,0,0,0.6)"
           >
-            <div class="flex items-center justify-center space-x-2">
-              <span class="text-yellow-300 animate-pulse drop-shadow-lg">⏰</span>
-              <span class="font-mono text-xl text-white drop-shadow-lg" 
-                    style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)">
+            <div class="flex items-center justify-center space-x-6 lg:space-x-8">
+              <span class="text-yellow-300 animate-pulse text-6xl lg:text-7xl xl:text-8xl drop-shadow-2xl">⏰</span>
+              <span class="font-mono text-7xl lg:text-8xl xl:text-9xl text-white drop-shadow-2xl" 
+                    style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
                 {{ formatMaddieTime(activeMaddieTimer.remainingTime) }}
               </span>
-              <span class="text-sm text-purple-200 drop-shadow-sm">remaining</span>
+              <span class="text-3xl lg:text-4xl xl:text-5xl text-purple-200 drop-shadow-lg">remaining</span>
             </div>
           </div>
           <div 
             v-else-if="currentMatch && typeof currentMatch.maddie === 'object' && currentMatch.maddie.duration"
-            class="text-md text-purple-200 font-semibold text-center"
+            class="text-3xl lg:text-4xl xl:text-5xl text-purple-200 font-semibold text-center drop-shadow-xl"
+            style="text-shadow: 4px 4px 8px rgba(0,0,0,0.8)"
           >
             ⏱️ Duration: {{ currentMatch.maddie.duration }}s
           </div>
         </div>
       </div>
 
-      <!-- Maddie Flash Overlay (Above Main Scoreboard) -->
-      <div 
-        v-if="maddieFlash"
-        class="flex justify-center mb-4"
-      >
-        <div class="bg-yellow-400/80 backdrop-blur-sm rounded-2xl border-4 border-yellow-300 p-6 shadow-2xl animate-pulse">
-          <div class="flex items-center justify-center space-x-4">
-            <div class="text-6xl animate-bounce">🎪</div>
-            <div class="text-3xl font-bold text-yellow-900">SPECIAL EFFECT ACTIVATED!</div>
-            <div class="text-6xl animate-bounce">🎪</div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Main Scoreboard -->
-      <div class="flex-1 flex items-center justify-center">
-        <div class="grid grid-cols-3 gap-8 w-full max-w-6xl">
+
+      <!-- Main Scoreboard - Full Screen -->
+      <div class="flex-1 flex items-center justify-center px-4">
+        <div class="grid grid-cols-3 gap-4 w-full h-full max-h-96">
           <!-- Team A -->
-          <div class="text-center">
-            <div class="scoreboard-card">
-              <h2 class="team-name hc-subtitle">
+          <div class="text-center flex flex-col justify-center">
+            <div class="p-6">
+              <h2 class="text-4xl lg:text-6xl xl:text-8xl font-bold mb-4">
                 {{ teamA?.name || 'Team A' }}
               </h2>
-              <div class="score-display">
+              <div class="text-8xl lg:text-9xl xl:text-[12rem] font-black mb-4">
                 {{ currentMatch?.score_a || 0 }}
               </div>
               
               <!-- Team A Penalty Corners -->
-              <div class="text-yellow-300 text-lg font-semibold mb-2">
+              <div class="text-yellow-300 text-2xl lg:text-4xl xl:text-6xl font-bold mb-4">
                 PC: {{ currentMatch?.pc_a || 0 }}
               </div>
               
-              <!-- Team A Boosters (Under Score) -->
-              <div v-if="currentMatch?.boosters?.teamA?.length > 0" class="mb-4">
-                <div class="space-y-2">
-                  <div 
-                    v-for="booster in currentMatch?.boosters?.teamA || []" 
-                    :key="booster.id"
-                    class="text-xs px-3 py-2 rounded-lg shadow-md border mx-auto max-w-xs relative overflow-hidden transition-all duration-300"
-                    :class="[
-                      booster.expired ? 'bg-gradient-to-r from-gray-600 to-gray-700 border-gray-500 text-gray-300 opacity-75' :
-                      booster.activated ? 
-                      'bg-gradient-to-r from-green-700 to-emerald-700 border-green-400 text-white shadow-lg shadow-green-500/50' : 
-                      'bg-gradient-to-r from-[#121238] to-[#478dcb] border-[#478dcb] text-white'
-                    ]"
-                  >
-                    <!-- Enhanced animated background for activated boosters with better contrast -->
-                    <div 
-                      v-if="booster.activated && !booster.expired"
-                      class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 animate-pulse"
-                    ></div>
-                    
-                    <!-- Stronger backdrop for better text readability -->
-                    <div 
-                      v-if="booster.activated && !booster.expired"
-                      class="absolute inset-0 bg-black/20"
-                    ></div>
-                    
-                    <!-- Strikethrough overlay for expired boosters -->
-                    <div 
-                      v-if="booster.expired"
-                      class="absolute inset-0 flex items-center justify-center z-20"
-                    >
-                      <div class="w-full h-0.5 bg-red-500 transform rotate-12"></div>
-                      <div class="w-full h-0.5 bg-red-500 transform -rotate-12 absolute"></div>
-                    </div>
-                    
-                    <div class="font-bold text-center flex items-center justify-center space-x-1 relative z-10 drop-shadow-lg" 
-                         :class="[
-                           booster.expired ? 'line-through' : '',
-                           booster.activated ? 'text-white' : ''
-                         ]"
-                         :style="booster.activated ? 'text-shadow: 2px 2px 4px rgba(0,0,0,0.8)' : ''"
-                    >
-                      <span>{{ booster.icon }}</span>
-                      <span>{{ booster.name }}</span>
-                      <span v-if="booster.activated && booster.duration && !booster.expired" class="text-yellow-300 animate-bounce">⏰</span>
-                      <span v-if="booster.expired" class="text-red-400">🚫</span>
-                    </div>
-                    
-                    <!-- Show countdown for timed activated boosters -->
-                    <div 
-                      v-if="booster.activated && booster.duration && getBoosterTimer('teamA', booster.id)"
-                      class="text-center mt-1 relative z-10"
-                    >
-                      <div class="text-yellow-200 font-mono text-xs animate-pulse font-bold drop-shadow-lg"
-                           style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
-                        {{ formatBoosterTime(getBoosterTimer('teamA', booster.id)?.remainingTime || 0) }} remaining
-                      </div>
-                    </div>
-                    
-                    <!-- Status indicator with enhanced contrast -->
-                    <div class="text-center mt-1 relative z-10">
-                      <span 
-                        v-if="booster.expired"
-                        class="status-expired text-xs px-2 py-1 rounded-full font-semibold"
-                      >
-                        🚫 EXPIRED
-                      </span>
-                      <span 
-                        v-else-if="booster.activated"
-                        class="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold animate-pulse drop-shadow-lg border border-green-400"
-                        style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)"
-                      >
-                        🟢 ACTIVE
-                      </span>
-                      <span 
-                        v-else
-                        class="status-ready text-xs px-2 py-1 rounded-full font-semibold"
-                      >
-                        💤 READY
-                      </span>
-                    </div>
-                  </div>
+              <!-- Team A Active Penalties (simplified) -->
+              <div v-if="getActivePenalties('team_a').length > 0" class="space-y-2">
+                <div class="text-lg lg:text-2xl xl:text-3xl font-semibold text-red-300 mb-2">PENALTIES</div>
+                <div 
+                  v-for="penalty in getActivePenalties('team_a')" 
+                  :key="penalty.playerId"
+                  class="text-sm lg:text-lg xl:text-xl px-3 py-2 rounded-lg font-bold"
+                  :class="{
+                    'bg-yellow-500 text-black': penalty.type === 'yellow',
+                    'bg-green-600 text-white': penalty.type === 'green',
+                    'bg-red-600 text-white': penalty.type === 'red'
+                  }"
+                >
+                  #{{ penalty.playerNumber }} {{ penalty.playerName }}
                 </div>
-              </div>
-              
-              <div class="space-y-3">
-                <!-- Total Cards -->
-                <div v-if="currentMatch?.cards?.team_a" class="flex justify-center space-x-2">
-                  <div 
-                    v-for="[cardType, count] in Object.entries(currentMatch.cards.team_a)" 
-                    :key="cardType"
-                    class="flex items-center space-x-1"
-                  >
-                    <div 
-                      class="w-4 h-6 rounded-sm"
-                      :class="{
-                        'bg-yellow-400': cardType === 'yellow',
-                        'bg-green-500': cardType === 'green',
-                        'bg-red-500': cardType === 'red'
-                      }"
-                    ></div>
-                    <span class="text-sm">{{ count }}</span>
-                  </div>
-                </div>
-                
-                <!-- Active Player Penalties -->
-                <div v-if="getActivePenalties('team_a').length > 0" class="space-y-1">
-                  <div class="text-xs font-semibold text-blue-300">PENALTIES:</div>
-                  <div 
-                    v-for="penalty in getActivePenalties('team_a')" 
-                    :key="penalty.playerId"
-                    class="text-xs px-2 py-1 rounded"
-                    :class="{
-                      'bg-yellow-500 text-black': penalty.type === 'yellow',
-                      'bg-green-600 text-white': penalty.type === 'green',
-                      'bg-red-600 text-white': penalty.type === 'red'
-                    }"
-                  >
-                    #{{ penalty.playerNumber }} {{ penalty.playerName }} - {{ penalty.timeRemaining }}
-                  </div>
-                </div>
-
-
               </div>
             </div>
           </div>
 
-          <!-- VS / Timer -->
+          <!-- Timer and Match Status -->
           <div class="text-center flex flex-col justify-center">
             <!-- Timer and Phase -->
-            <div class="vs-section mb-4">
-              <div class="hc-subtitle text-white mb-2">
+            <div class="mb-6">
+              <div class="text-2xl lg:text-4xl xl:text-6xl font-bold text-white mb-4" style="color: grey;">
                 {{ currentPhaseLabel }}
               </div>
-              <div class="text-4xl font-mono text-white">
+              <div class="bg-gradient-to-r from-[#1e3a8a] to-[#1e40af] text-6xl lg:text-8xl xl:text-[8rem] font-mono text-white mb-6 px-8 py-4 rounded-2xl border-2 border-blue-300 shadow-lg">
                 {{ formatTime(phaseTimeLeft) }}
               </div>
             </div>
 
-
-
-            <!-- VS Section -->
-            <div class="vs-section mb-4">
-              <div class="text-6xl font-bold mb-2 hc-link">
-                VS
-              </div>
-            </div>
-
-            <!-- Match Status -->
+            <!-- Match Status (replaces VS) -->
             <div 
-              class="px-6 py-3 rounded-full text-white font-bold text-xl font-theme-links"
+              class="px-8 py-6 rounded-3xl text-white font-bold text-2xl lg:text-4xl xl:text-6xl"
               :class="currentMatch ? getStatusColor(currentMatch.status) : 'bg-gray-500'"
             >
               {{ currentMatch ? getStatusText(currentMatch.status) : 'LOADING' }}
@@ -2391,167 +2285,52 @@ onUnmounted(() => {
           </div>
 
           <!-- Team B -->
-          <div class="text-center">
-            <div class="scoreboard-card">
-              <h2 class="team-name secondary-team hc-subtitle">
+          <div class="text-center flex flex-col justify-center">
+            <div class="p-6">
+              <h2 class="text-4xl lg:text-6xl xl:text-8xl font-bold mb-4">
                 {{ teamB?.name || 'Team B' }}
               </h2>
-              <div class="score-display">
+              <div class="text-8xl lg:text-9xl xl:text-[12rem] font-black mb-4">
                 {{ currentMatch?.score_b || 0 }}
               </div>
               
               <!-- Team B Penalty Corners -->
-              <div class="text-yellow-300 text-lg font-semibold mb-2">
+              <div class="text-yellow-300 text-2xl lg:text-4xl xl:text-6xl font-bold mb-4">
                 PC: {{ currentMatch?.pc_b || 0 }}
               </div>
               
-              <!-- Team B Boosters (Under Score) -->
-              <div v-if="currentMatch?.boosters?.teamB?.length > 0" class="mb-4">
-                <div class="space-y-2">
-                  <div 
-                    v-for="booster in currentMatch?.boosters?.teamB || []" 
-                    :key="booster.id"
-                    class="text-xs px-3 py-2 rounded-lg shadow-md border mx-auto max-w-xs relative overflow-hidden transition-all duration-300"
-                    :class="[
-                      booster.expired ? 'bg-gradient-to-r from-gray-600 to-gray-700 border-gray-500 text-gray-300 opacity-75' :
-                      booster.activated ? 
-                      'bg-gradient-to-r from-green-700 to-emerald-700 border-green-400 text-white shadow-lg shadow-green-500/50' : 
-                      'bg-gradient-to-r from-red-700 to-rose-700 border-red-300 text-red-100'
-                    ]"
-                  >
-                    <!-- Enhanced animated background for activated boosters with better contrast -->
-                    <div 
-                      v-if="booster.activated && !booster.expired"
-                      class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 animate-pulse"
-                    ></div>
-                    
-                    <!-- Stronger backdrop for better text readability -->
-                    <div 
-                      v-if="booster.activated && !booster.expired"
-                      class="absolute inset-0 bg-black/20"
-                    ></div>
-                    
-                    <!-- Strikethrough overlay for expired boosters -->
-                    <div 
-                      v-if="booster.expired"
-                      class="absolute inset-0 flex items-center justify-center z-20"
-                    >
-                      <div class="w-full h-0.5 bg-red-500 transform rotate-12"></div>
-                      <div class="w-full h-0.5 bg-red-500 transform -rotate-12 absolute"></div>
-                    </div>
-                    
-                    <div class="font-bold text-center flex items-center justify-center space-x-1 relative z-10 drop-shadow-lg" 
-                         :class="[
-                           booster.expired ? 'line-through' : '',
-                           booster.activated ? 'text-white' : ''
-                         ]"
-                         :style="booster.activated ? 'text-shadow: 2px 2px 4px rgba(0,0,0,0.8)' : ''"
-                    >
-                      <span>{{ booster.icon }}</span>
-                      <span>{{ booster.name }}</span>
-                      <span v-if="booster.activated && booster.duration && !booster.expired" class="text-yellow-300 animate-bounce">⏰</span>
-                      <span v-if="booster.expired" class="text-red-400">🚫</span>
-                    </div>
-                    
-                    <!-- Show countdown for timed activated boosters -->
-                    <div 
-                      v-if="booster.activated && booster.duration && getBoosterTimer('teamB', booster.id)"
-                      class="text-center mt-1 relative z-10"
-                    >
-                      <div class="text-yellow-200 font-mono text-xs animate-pulse font-bold drop-shadow-lg"
-                           style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
-                        {{ formatBoosterTime(getBoosterTimer('teamB', booster.id)?.remainingTime || 0) }} remaining
-                      </div>
-                    </div>
-                    
-                    <!-- Status indicator with enhanced contrast -->
-                    <div class="text-center mt-1 relative z-10">
-                      <span 
-                        v-if="booster.expired"
-                        class="status-expired text-xs px-2 py-1 rounded-full font-semibold"
-                      >
-                        🚫 EXPIRED
-                      </span>
-                      <span 
-                        v-else-if="booster.activated"
-                        class="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold animate-pulse drop-shadow-lg border border-green-400"
-                        style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)"
-                      >
-                        🟢 ACTIVE
-                      </span>
-                      <span 
-                        v-else
-                        class="status-ready text-xs px-2 py-1 rounded-full font-semibold"
-                      >
-                        💤 READY
-                      </span>
-                    </div>
-                  </div>
+              <!-- Team B Active Penalties (simplified) -->
+              <div v-if="getActivePenalties('team_b').length > 0" class="space-y-2">
+                <div class="text-lg lg:text-2xl xl:text-3xl font-semibold text-red-300 mb-2">PENALTIES</div>
+                <div 
+                  v-for="penalty in getActivePenalties('team_b')" 
+                  :key="penalty.playerId"
+                  class="text-sm lg:text-lg xl:text-xl px-3 py-2 rounded-lg font-bold"
+                  :class="{
+                    'bg-yellow-500 text-black': penalty.type === 'yellow',
+                    'bg-green-600 text-white': penalty.type === 'green',
+                    'bg-red-600 text-white': penalty.type === 'red'
+                  }"
+                >
+                  #{{ penalty.playerNumber }} {{ penalty.playerName }}
                 </div>
-              </div>
-              
-              <div class="space-y-3">
-                <!-- Total Cards -->
-                <div v-if="currentMatch?.cards?.team_b" class="flex justify-center space-x-2">
-                  <div 
-                    v-for="[cardType, count] in Object.entries(currentMatch.cards.team_b)" 
-                    :key="cardType"
-                    class="flex items-center space-x-1"
-                  >
-                    <div 
-                      class="w-4 h-6 rounded-sm"
-                      :class="{
-                        'bg-yellow-400': cardType === 'yellow',
-                        'bg-green-500': cardType === 'green',
-                        'bg-red-500': cardType === 'red'
-                      }"
-                    ></div>
-                    <span class="text-sm">{{ count }}</span>
-                  </div>
-                </div>
-                
-                <!-- Active Player Penalties -->
-                <div v-if="getActivePenalties('team_b').length > 0" class="space-y-1">
-                  <div class="text-xs font-semibold text-red-300">PENALTIES:</div>
-                  <div 
-                    v-for="penalty in getActivePenalties('team_b')" 
-                    :key="penalty.playerId"
-                    class="text-xs px-2 py-1 rounded"
-                    :class="{
-                      'bg-yellow-500 text-black': penalty.type === 'yellow',
-                      'bg-green-600 text-white': penalty.type === 'green',
-                      'bg-red-600 text-white': penalty.type === 'red'
-                    }"
-                  >
-                    #{{ penalty.playerNumber }} {{ penalty.playerName }} - {{ penalty.timeRemaining }}
-                  </div>
-                </div>
-
-
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Maddie Effect Display -->
-      <div v-if="currentMatch?.maddie" class="text-center mb-8">
-        <div class="text-4xl font-bold text-yellow-400 animate-bounce">
-          🎪 MADDIE EFFECT! 🎪
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="text-center mt-8">
+      <!-- Minimal Footer -->
+      <div class="text-center py-2">
         <div class="flex items-center justify-center space-x-2">
           <img 
             v-if="themeStore.currentTheme?.logo" 
             :src="themeStore.currentTheme.logo" 
             :alt="themeStore.currentTheme.name"
-            class="w-6 h-6"
+            class="w-4 h-4"
           />
-          <span v-else class="text-xl">🏒</span>
-          <p class="font-theme-text cursor-pointer hover:opacity-80 transition-opacity"
+          <span v-else class="text-sm">🏒</span>
+          <p class="text-sm font-theme-text cursor-pointer hover:opacity-80 transition-opacity"
              :style="{ color: themeStore.currentTheme?.colors.textSecondary }"
              @click="toggleDebugPanel"
              :title="isDevelopment ? 'Toggle debug panel' : ''">
@@ -2561,92 +2340,114 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Booster Countdown Overlay -->
+    <!-- Booster Countdown Overlay - Full Screen -->
     <div 
       v-if="boosterCountdown?.active"
       class="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
     >
-      <!-- Enhanced backdrop for better visibility -->
-      <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+      <!-- Enhanced gradient backdrop for full screen impact -->
+      <div class="absolute inset-0 bg-gradient-to-br from-black/90 to-gray-900/90 backdrop-blur-xl"></div>
       
-      <!-- Main content with improved contrast -->
-      <div class="relative text-center transform animate-pulse">
-        <div class="text-9xl mb-4 drop-shadow-2xl" 
-             style="filter: drop-shadow(0 0 30px rgba(255,255,255,0.9))">
+      <!-- Main content container - Full width/height with proper spacing -->
+      <div class="relative text-center w-full h-full flex flex-col justify-center px-4 py-4">
+        <!-- Booster icon - Balanced size -->
+        <div class="text-[8rem] lg:text-[10rem] xl:text-[12rem] mb-4 lg:mb-6 animate-pulse drop-shadow-2xl" 
+             style="filter: drop-shadow(0 0 30px rgba(255,255,255,0.9)) drop-shadow(0 0 60px rgba(255,255,255,0.5))">
           {{ boosterCountdown.boosterIcon }}
         </div>
+        
+        <!-- Team name - Controlled size -->
         <div 
-          class="text-5xl font-bold mb-4 drop-shadow-lg"
+          class="text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 lg:mb-6 drop-shadow-2xl"
           :class="{
             'text-blue-300': boosterCountdown.teamColor === 'blue',
             'text-red-300': boosterCountdown.teamColor === 'red'
           }"
-          style="text-shadow: 3px 3px 6px rgba(0,0,0,0.9)"
+          style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)"
         >
           {{ boosterCountdown.teamName }}
         </div>
-        <div class="text-4xl font-bold text-white mb-4 drop-shadow-lg" 
-             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
+        
+        <!-- "BOOSTER INCOMING!" - Large but controlled -->
+        <div class="text-4xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 lg:mb-6 drop-shadow-2xl animate-pulse" 
+             style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
           BOOSTER INCOMING!
         </div>
+        
+        <!-- Booster name container - Optimized -->
         <div 
-          class="text-3xl font-bold px-8 py-4 rounded-2xl border-4 mb-4 backdrop-blur-sm"
+          class="text-3xl lg:text-4xl xl:text-5xl font-bold px-8 py-4 lg:px-12 lg:py-6 rounded-3xl border-4 mb-4 lg:mb-6 backdrop-blur-lg shadow-2xl max-w-3xl mx-auto"
           :class="{
             'bg-blue-600/90 border-blue-200 text-blue-50': boosterCountdown.teamColor === 'blue',
             'bg-red-600/90 border-red-200 text-red-50': boosterCountdown.teamColor === 'red'
           }"
-          style="box-shadow: 0 8px 32px rgba(0,0,0,0.5)"
+          style="box-shadow: 0 8px 32px rgba(0,0,0,0.7)"
         >
           {{ boosterCountdown.boosterName }}
         </div>
-        <div class="text-8xl font-bold text-yellow-300 animate-bounce drop-shadow-2xl"
-             style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9); filter: drop-shadow(0 0 20px rgba(255,255,0,0.8))">
+        
+        <!-- Countdown number - Large but fits -->
+        <div class="text-[6rem] lg:text-[8rem] xl:text-[10rem] font-bold text-yellow-300 animate-bounce drop-shadow-2xl mb-2 lg:mb-4"
+             style="text-shadow: 6px 6px 12px rgba(0,0,0,0.9); filter: drop-shadow(0 0 30px rgba(255,255,0,0.8)) drop-shadow(0 0 60px rgba(255,255,0,0.5))">
           {{ boosterCountdown.countdown }}
         </div>
-        <div class="text-2xl text-white mt-2 drop-shadow-lg"
-             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
+        
+        <!-- Seconds text - Readable size -->
+        <div class="text-2xl lg:text-3xl xl:text-4xl text-white drop-shadow-lg"
+             style="text-shadow: 3px 3px 6px rgba(0,0,0,0.9)">
           seconds until activation
         </div>
       </div>
     </div>
 
-    <!-- Maddie Countdown Overlay -->
+    <!-- Maddie Countdown Overlay - Full Screen -->
     <div 
       v-if="maddieCountdown?.active"
       class="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
     >
-      <!-- Enhanced backdrop for better visibility -->
-      <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+      <!-- Enhanced gradient backdrop for full screen impact -->
+      <div class="absolute inset-0 bg-gradient-to-br from-purple-900/90 to-purple-600/90 backdrop-blur-xl"></div>
       
-      <!-- Main content with improved contrast -->
-      <div class="relative text-center transform animate-pulse">
-        <div class="text-9xl mb-4 drop-shadow-2xl" 
-             style="filter: drop-shadow(0 0 30px rgba(255,255,255,0.9))">
+      <!-- Main content container - Full width/height with proper spacing -->
+      <div class="relative text-center w-full h-full flex flex-col justify-center px-4 py-4">
+        <!-- Maddie icon - Balanced size -->
+        <div class="text-[8rem] lg:text-[10rem] xl:text-[12rem] mb-4 lg:mb-6 drop-shadow-2xl animate-pulse" 
+             style="filter: drop-shadow(0 0 30px rgba(255,255,255,0.9)) drop-shadow(0 0 60px rgba(255,255,255,0.5))">
           {{ maddieCountdown.maddieIcon }}
         </div>
-        <div class="text-4xl font-bold text-white mb-4 drop-shadow-lg" 
-             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
+        
+        <!-- "MADDIE INCOMING!" - Large but controlled -->
+        <div class="text-4xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 lg:mb-6 drop-shadow-2xl animate-pulse" 
+             style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
           MADDIE INCOMING!
         </div>
+        
+        <!-- Maddie name container - Optimized -->
         <div 
-          class="text-3xl font-bold px-8 py-4 rounded-2xl border-4 mb-4 backdrop-blur-sm bg-purple-600/90 border-purple-200 text-purple-50"
-          style="box-shadow: 0 8px 32px rgba(0,0,0,0.5)"
+          class="text-3xl lg:text-4xl xl:text-5xl font-bold px-8 py-4 lg:px-12 lg:py-6 rounded-3xl border-4 mb-4 lg:mb-6 backdrop-blur-lg bg-purple-600/90 border-purple-200 text-purple-50 shadow-2xl max-w-3xl mx-auto"
+          style="box-shadow: 0 8px 32px rgba(0,0,0,0.7)"
         >
           {{ maddieCountdown.maddieName }}
         </div>
+        
+        <!-- Description - Compact if present -->
         <div 
           v-if="maddieCountdown.maddieDescription"
-          class="text-xl text-purple-100 mb-4 drop-shadow-lg max-w-2xl mx-auto"
+          class="text-xl lg:text-2xl xl:text-3xl text-purple-100 mb-4 lg:mb-6 drop-shadow-lg max-w-4xl mx-auto"
           style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8)"
         >
           {{ maddieCountdown.maddieDescription }}
         </div>
-        <div class="text-8xl font-bold text-yellow-300 animate-bounce drop-shadow-2xl"
-             style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9); filter: drop-shadow(0 0 20px rgba(255,255,0,0.8))">
+        
+        <!-- Countdown number - Large but fits -->
+        <div class="text-[6rem] lg:text-[8rem] xl:text-[10rem] font-bold text-yellow-300 animate-bounce drop-shadow-2xl mb-2 lg:mb-4"
+             style="text-shadow: 6px 6px 12px rgba(0,0,0,0.9); filter: drop-shadow(0 0 30px rgba(255,255,0,0.8)) drop-shadow(0 0 60px rgba(255,255,0,0.5))">
           {{ maddieCountdown.countdown }}
         </div>
-        <div class="text-2xl text-white mt-2 drop-shadow-lg"
-             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.9)">
+        
+        <!-- Seconds text - Readable size -->
+        <div class="text-2xl lg:text-3xl xl:text-4xl text-white drop-shadow-lg"
+             style="text-shadow: 3px 3px 6px rgba(0,0,0,0.9)">
           seconds until activation
         </div>
       </div>
@@ -2655,69 +2456,47 @@ onUnmounted(() => {
     <!-- Booster Activation Overlay -->
     <div 
       v-if="boosterActivation?.active"
-      class="fixed inset-0 flex items-center justify-center pointer-events-none z-40"
+      class="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
     >
-      <!-- Semi-transparent backdrop for better contrast -->
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <!-- Enhanced gradient backdrop -->
+      <div class="absolute inset-0 bg-gradient-to-br from-black/80 to-gray-900/80 backdrop-blur-lg"></div>
       
-      <!-- Main content with enhanced readability -->
+      <!-- Main content with enhanced styling -->
       <div class="relative text-center transform animate-bounce">
-        <!-- Large booster icon with glow -->
-        <div class="text-9xl mb-4 animate-pulse drop-shadow-2xl" 
-             style="filter: drop-shadow(0 0 20px rgba(255,255,255,0.8))">
+        <!-- Large booster icon with enhanced glow -->
+        <div class="text-[12rem] mb-8 animate-pulse drop-shadow-2xl" 
+             style="filter: drop-shadow(0 0 40px rgba(255,255,255,0.9))">
           {{ boosterActivation.boosterIcon }}
         </div>
         
-        <!-- Team name with strong contrast -->
+        <!-- Team name with enhanced contrast -->
         <div 
-          class="text-5xl font-bold mb-4 drop-shadow-2xl"
+          class="text-6xl font-bold mb-6 drop-shadow-2xl"
           :class="{
             'text-blue-300': boosterActivation.teamColor === 'blue',
             'text-red-300': boosterActivation.teamColor === 'red'
           }"
-          style="text-shadow: 3px 3px 6px rgba(0,0,0,0.9)"
+          style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)"
         >
           {{ boosterActivation.teamName }}
         </div>
         
         <!-- "BOOSTER ACTIVATED!" text with enhanced visibility -->
-        <div class="text-4xl font-bold text-white mb-4 drop-shadow-2xl"
-             style="text-shadow: 3px 3px 6px rgba(0,0,0,0.9)">
+        <div class="text-5xl font-bold text-white mb-6 drop-shadow-2xl"
+             style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
           BOOSTER ACTIVATED!
         </div>
         
         <!-- Booster name with enhanced container -->
         <div 
-          class="text-3xl font-bold px-8 py-4 rounded-2xl border-4 animate-pulse shadow-2xl"
+          class="text-4xl font-bold px-12 py-6 rounded-3xl border-4 animate-pulse shadow-2xl"
           :class="{
             'bg-blue-700/90 border-blue-300 text-white': boosterActivation.teamColor === 'blue',
             'bg-red-700/90 border-red-300 text-white': boosterActivation.teamColor === 'red'
           }"
-          style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8); backdrop-filter: blur(8px);"
+          style="text-shadow: 3px 3px 6px rgba(0,0,0,0.8); backdrop-filter: blur(8px);"
         >
           {{ boosterActivation.boosterName }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Maddie Activation Overlay (Bottom Banner) -->
-    <div 
-      v-if="maddieActivation?.active"
-      class="fixed bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none z-40"
-    >
-      <div class="text-center bg-purple-600/95 backdrop-blur-lg rounded-2xl border-4 border-purple-300 p-6 shadow-2xl max-w-lg mx-auto animate-bounce">
-        <div class="flex items-center justify-center mb-3">
-          <div class="text-4xl mr-3 animate-pulse">{{ maddieActivation.maddieIcon }}</div>
-          <div class="text-2xl font-bold text-purple-100">MADDIE ACTIVATED!</div>
-        </div>
-        <div class="text-xl font-bold text-white mb-2">
-          {{ maddieActivation.maddieName }}
-        </div>
-        <div 
-          v-if="maddieActivation.maddieDescription"
-          class="text-sm text-purple-200 leading-relaxed"
-        >
-          {{ maddieActivation.maddieDescription }}
         </div>
       </div>
     </div>

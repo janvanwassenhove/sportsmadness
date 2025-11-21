@@ -1103,8 +1103,8 @@ async function updateMatch(updates: Partial<any>) {
   return new Promise((resolve, reject) => {
     const updateFn = async () => {
       try {
-        // Mark that we're making a local update - ignore real-time for 8 seconds
-        // (needs to cover 7-second countdown + buffer)
+        // Mark that we're making a local update - ignore real-time for 15 seconds
+        // (needs to cover 15-second countdown + buffer)
         const updateTimestamp = Date.now()
         lastLocalUpdateTime.value = updateTimestamp
         ignoreRealtimeUntil.value = updateTimestamp + 8000
@@ -1237,10 +1237,10 @@ async function activateUserBooster(boosterIndex: number) {
     // Update database with countdown state - USE THE SAME UPDATEMATCH AS MATCHCONTROL
     await updateMatch({ boosters })
     
-    // Start 20-second countdown before actual activation
+    // Start 15-second countdown before actual activation
     setTimeout(async () => {
       try {
-        console.log('⏰ 20-second countdown timer fired!')
+        console.log('⏰ 15-second countdown timer fired!')
         console.log('⏰ Re-fetching match state from database to verify countdown...')
         
         // Double-check booster still exists and countdown is still active (same as Match Control)
@@ -1342,7 +1342,7 @@ async function activateUserBooster(boosterIndex: number) {
       } catch (error) {
         console.error('Error during user booster activation after countdown:', error)
       }
-    }, 20000) // 10 seconds countdown
+    }, 15000) // 15 seconds countdown
     
   } else {
     console.log('❌ Booster activation conditions not met:', {
