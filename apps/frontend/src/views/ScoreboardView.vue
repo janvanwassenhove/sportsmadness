@@ -1979,11 +1979,11 @@ onUnmounted(() => {
     <div v-else-if="error && !isDemoMode" class="flex items-center justify-center h-screen text-center">
       <div class="max-w-2xl mx-auto px-4">
         <div class="text-6xl mb-4">⚠️</div>
-        <h2 class="text-3xl font-bold mb-4 text-red-400">Connection Error</h2>
-        <p class="text-xl mb-6 text-gray-300">{{ error }}</p>
+        <h2 class="text-3xl font-bold mb-4 text-red-400">{{ $t('scoreboard.connectionError') }}</h2>
+        <p class="text-xl mb-6 text-gray-300">{{ $t('scoreboard.databaseUnavailable') }}</p>
         <div class="text-sm text-gray-400">
-          <p>The scoreboard cannot connect to the database.</p>
-          <p class="mt-2">If you're a developer, check your Supabase configuration.</p>
+          <p>{{ error }}</p>
+          <p class="mt-2">{{ $t('scoreboard.developerNote') }}</p>
         </div>
       </div>
     </div>
@@ -2121,7 +2121,7 @@ onUnmounted(() => {
           
           <!-- Demo mode indicator -->
           <div v-if="isDemoMode" class="bg-yellow-600 text-yellow-100 px-2 py-1 rounded text-xs font-medium ml-2">
-            DEMO MODE
+            {{ $t('scoreboard.demoMode') }}
           </div>
         </div>
         
