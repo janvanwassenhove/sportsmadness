@@ -180,72 +180,7 @@
             <h2 class="text-2xl font-bold text-white mb-6">❓ Game Help</h2>
             
             <div class="space-y-6">
-              <!-- Boosters Section -->
-              <div>
-                <h3 class="text-lg font-semibold text-white mb-3 flex items-center">
-                  ⚡ Boosters
-                </h3>
-                <div class="space-y-3 text-sm text-blue-100">
-                  <div class="bg-white/5 rounded-lg p-3">
-                    <div class="font-semibold text-white mb-1">🚀 Speed Boost</div>
-                    <p>Increases team movement speed for a limited time</p>
-                  </div>
-                  <div class="bg-white/5 rounded-lg p-3">
-                    <div class="font-semibold text-white mb-1">🎯 Accuracy Boost</div>
-                    <p>Improves shooting accuracy and goal-scoring chances</p>
-                  </div>
-                  <div class="bg-white/5 rounded-lg p-3">
-                    <div class="font-semibold text-white mb-1">🛡️ Defense Boost</div>
-                    <p>Strengthens defensive capabilities and blocking</p>
-                  </div>
-                  <div class="bg-white/5 rounded-lg p-3">
-                    <div class="font-semibold text-white mb-1">⭐ Power Play</div>
-                    <p>Temporary advantage with enhanced all-around performance</p>
-                  </div>
-                </div>
-              </div>
 
-              <!-- Maddies Section -->
-              <div>
-                <h3 class="text-lg font-semibold text-white mb-3 flex items-center">
-                  🎪 Maddies
-                </h3>
-                <div class="bg-white/5 rounded-lg p-4">
-                  <div class="font-semibold text-white mb-2">🎭 Maddie Events</div>
-                  <p class="text-blue-100 text-sm mb-3">
-                    Special chaotic events that can dramatically change the game!
-                  </p>
-                  <ul class="space-y-2 text-sm text-blue-100">
-                    <li class="flex items-start">
-                      <span class="mr-2">🌪️</span>
-                      <span><strong>Chaos Mode:</strong> Unpredictable gameplay changes</span>
-                    </li>
-                    <li class="flex items-start">
-                      <span class="mr-2">🔄</span>
-                      <span><strong>Team Swap:</strong> Players switch sides temporarily</span>
-                    </li>
-                    <li class="flex items-start">
-                      <span class="mr-2">⚡</span>
-                      <span><strong>Lightning Round:</strong> Super fast-paced gameplay</span>
-                    </li>
-                    <li class="flex items-start">
-                      <span class="mr-2">🎲</span>
-                      <span><strong>Random Events:</strong> Surprise effects during play</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- Strategy Tips -->
-              <div>
-                <h3 class="text-lg font-semibold text-white mb-3">💡 Pro Tips</h3>
-                <div class="bg-white/5 rounded-lg p-4 space-y-2 text-sm text-blue-100">
-                  <p><strong>⏱️ Timing:</strong> Save boosters for crucial moments</p>
-                  <p><strong>🎯 Strategy:</strong> Coordinate with your team for maximum effect</p>
-                  <p><strong>🎪 Adaptation:</strong> Stay flexible when Maddie events trigger</p>
-                  <p><strong>📊 Analytics:</strong> Watch the scoreboard for opponent patterns</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
