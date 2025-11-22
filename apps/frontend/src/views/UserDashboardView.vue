@@ -177,11 +177,7 @@
 
           <!-- Help Section -->
           <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-            <h2 class="text-2xl font-bold text-white mb-6">❓ Game Help</h2>
-            
-            <div class="space-y-6">
 
-            </div>
           </div>
         </div>
       </div>
