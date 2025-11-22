@@ -15,8 +15,8 @@ console.log('🚏 Router configuration:', {
 })
 
 const router = createRouter({
-  // Try history mode first, fallback to hash mode if there are issues
-  history: createWebHistory(baseUrl),
+  // Use hash mode for GitHub Pages - much more reliable than history mode
+  history: createWebHashHistory(baseUrl),
   routes: [
     {
       path: '/',

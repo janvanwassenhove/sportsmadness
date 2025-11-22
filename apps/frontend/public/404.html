@@ -24,8 +24,20 @@
     var pathSegmentsToKeep = 1;
 
     var l = window.location;
+    console.log('404.html: Original URL:', l.href);
+    
+    // Check if this is a scoreboard route and redirect to fallback
+    if (l.pathname.includes('/scoreboard')) {
+      console.log('404.html: Scoreboard route detected, redirecting to fallback');
+      l.replace(l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + 
+               '/' + l.pathname.split('/')[1] + '/scoreboard-fallback.html');
+      return;
+    }
+    
     var pathArray = l.pathname.split('/').filter(function(segment) { return segment; });
     var redirectPath = pathArray.slice(pathSegmentsToKeep).join('/');
+    
+    console.log('404.html: Redirecting to:', redirectPath);
     
     l.replace(
       l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
