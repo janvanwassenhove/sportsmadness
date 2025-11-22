@@ -54,6 +54,28 @@ interface Team {
   players: any[]
 }
 
+interface Booster {
+  id: string
+  name: string
+  icon: string
+  description?: string
+  duration?: number
+  expired?: boolean
+  activated?: boolean
+  isUsed?: boolean
+}
+
+interface Booster {
+  id: string
+  name: string
+  icon: string
+  description?: string
+  duration?: number
+  expired?: boolean
+  activated?: boolean
+  isUsed?: boolean
+}
+
 const { t } = useI18n()
 const router = useRouter()
 const themeStore = useThemeStore()
@@ -397,7 +419,7 @@ const teamB = computed(() => currentMatch.value ? teams.value[currentMatch.value
 const teamAAvailableBoosters = computed(() => {
   if (!availableBoosters.value.length || !currentMatch.value) return []
   
-  const usedBoosterIds = currentMatch.value.boosters?.current_boosters?.teamA?.map(b => b.id) || []
+  const usedBoosterIds = currentMatch.value.boosters?.current_boosters?.teamA?.map((b: any) => b.id) || []
   
   return availableBoosters.value.map(booster => ({
     ...booster,
@@ -408,7 +430,7 @@ const teamAAvailableBoosters = computed(() => {
 const teamBAvailableBoosters = computed(() => {
   if (!availableBoosters.value.length || !currentMatch.value) return []
   
-  const usedBoosterIds = currentMatch.value.boosters?.current_boosters?.teamB?.map(b => b.id) || []
+  const usedBoosterIds = currentMatch.value.boosters?.current_boosters?.teamB?.map((b: any) => b.id) || []
   
   return availableBoosters.value.map(booster => ({
     ...booster,
@@ -444,7 +466,7 @@ const teamABoostersWithState = computed(() => {
   const currentBoosters = currentMatch.value?.boosters?.current_boosters?.teamA || 
                          currentMatch.value?.boosters?.teamA || []
   
-  return currentBoosters.map(booster => ({
+  return currentBoosters.map((booster: any) => ({
     ...booster,
     isExpired: booster.expired || false,
     isActivated: booster.activated || false
@@ -455,7 +477,7 @@ const teamBBoostersWithState = computed(() => {
   const currentBoosters = currentMatch.value?.boosters?.current_boosters?.teamB || 
                          currentMatch.value?.boosters?.teamB || []
   
-  return currentBoosters.map(booster => ({
+  return currentBoosters.map((booster: any) => ({
     ...booster,
     isExpired: booster.expired || false,
     isActivated: booster.activated || false
