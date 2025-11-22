@@ -698,6 +698,15 @@ async function updateMatch(updates: Partial<any>) {
           boosters: match.value?.boosters ? 'present' : 'absent'
         })
         
+        // CRITICAL: If we're updating something other than boosters, preserve existing boosters
+        if (!updates.boosters && match.value?.boosters) {
+          const hasConfirmedBoosters = match.value.boosters.teamA?.length > 0 || match.value.boosters.teamB?.length > 0
+          if (hasConfirmedBoosters) {
+            console.log('🔒 Preserving existing boosters during non-booster update')
+            updates.boosters = match.value.boosters
+          }
+        }
+        
         // Try the simplest possible update
         const result = await supabase
           .from('matches')
@@ -1442,6 +1451,48 @@ async function confirmBoosters() {
   
   console.log('✅ Database updated! Boosters should now be visible on scoreboard')
   
+  // Wait a moment and verify the boosters were saved correctly
+  setTimeout(async () => {
+    try {
+      const { data: verifyMatch } = await supabase
+        .from('matches')
+        .select('boosters')
+        .eq('id', match.value.id)
+        .single()
+      
+      console.log('🔍 Verification - boosters in database after 1 second:', {
+        teamA: verifyMatch?.boosters?.teamA?.length || 0,
+        teamB: verifyMatch?.boosters?.teamB?.length || 0,
+        full_boosters: verifyMatch?.boosters
+      })
+    } catch (error) {
+      console.error('❌ Failed to verify boosters in database:', error)
+    }
+  }, 1000)
+  
+  // Verify again after 6 seconds to see if they disappear
+  setTimeout(async () => {
+    try {
+      const { data: verifyMatch } = await supabase
+        .from('matches')
+        .select('boosters')
+        .eq('id', match.value.id)
+        .single()
+      
+      console.log('🔍 Verification - boosters in database after 6 seconds:', {
+        teamA: verifyMatch?.boosters?.teamA?.length || 0,
+        teamB: verifyMatch?.boosters?.teamB?.length || 0,
+        full_boosters: verifyMatch?.boosters
+      })
+      
+      if (!verifyMatch?.boosters?.teamA?.length && !verifyMatch?.boosters?.teamB?.length) {
+        console.error('❌ CRITICAL: Boosters were cleared from database! This indicates another process is overwriting them.')
+      }
+    } catch (error) {
+      console.error('❌ Failed to verify boosters in database:', error)
+    }
+  }, 6000)
+  
   console.log('🎯 Boosters confirmed and modal closing')
   showBoosterSelection.value = false
   selectedBoosters.value = { teamA: [], teamB: [] }
@@ -1822,14 +1873,27 @@ async function initializeMatch() {
     
     // Then update the database
     console.log('📤 About to call updateMatch...')
-    const result = await updateMatch({ 
-      status: 'pending',
-      score_a: 0,
-      score_b: 0,
-      pc_a: 0,
-      pc_b: 0,
-      cards: {},
-      boosters: {
+    
+    // Preserve existing boosters if they exist (don't overwrite confirmed boosters)
+    const existingBoosters = match.value?.boosters || {}
+    const hasConfirmedBoosters = existingBoosters.teamA?.length > 0 || existingBoosters.teamB?.length > 0
+    
+    let boostersToUpdate
+    if (hasConfirmedBoosters) {
+      console.log('🎯 Preserving existing confirmed boosters during initialization')
+      boostersToUpdate = {
+        ...existingBoosters,
+        // Only clear selection state, keep the actual boosters
+        selection_active: false,
+        selection_phase: null,
+        is_spinning: false,
+        current_team: null,
+        spinning_slot: null,
+        current_boosters: null
+      }
+    } else {
+      console.log('🎯 No existing boosters found, initializing empty booster structure')
+      boostersToUpdate = {
         // Explicitly clear all booster selection state
         selection_active: false,
         selection_phase: null,
@@ -1839,7 +1903,17 @@ async function initializeMatch() {
         current_boosters: null,
         teamA: [],
         teamB: []
-      },
+      }
+    }
+    
+    const result = await updateMatch({ 
+      status: 'pending',
+      score_a: 0,
+      score_b: 0,
+      pc_a: 0,
+      pc_b: 0,
+      cards: {},
+      boosters: boostersToUpdate,
       time_left: getCalculatedMatchTime()
     })
     console.log('📥 updateMatch completed with result:', result)
@@ -2178,12 +2252,21 @@ function setupRealtimeSubscription() {
       })
       
       const oldMatch = match.value
-      match.value = payload.new as any
+      const newMatchData = payload.new as any
+      
+      // CRITICAL: Preserve existing boosters if the new data doesn't contain them
+      // This prevents boosters from being lost when other updates are made
+      if (oldMatch?.boosters && (!newMatchData.boosters || (!newMatchData.boosters.teamA && !newMatchData.boosters.teamB))) {
+        console.log('⚠️ Preserving existing boosters - new payload lacks booster data')
+        newMatchData.boosters = oldMatch.boosters
+      }
+      
+      match.value = newMatchData
 
       // Check for booster activations from users
-      if (oldMatch?.boosters && (payload.new as any).boosters) {
+      if (oldMatch?.boosters && newMatchData.boosters) {
         console.log('🔄 Checking for user booster activations...')
-        detectUserBoosterActivations(oldMatch.boosters, (payload.new as any).boosters)
+        detectUserBoosterActivations(oldMatch.boosters, newMatchData.boosters)
       }
       
       // Update match phase
