@@ -72,8 +72,8 @@
                     </span>
                   </div>
                   <div class="text-right text-sm text-blue-200">
-                    <div v-if="match.match_date">{{ formatMatchDate(match.match_date) }}</div>
-                    <div v-if="match.start_time">{{ match.start_time }}</div>
+                    <div>📅 {{ formatMatchDate(match) }}</div>
+                    <div>🕒 {{ formatMatchStartTime(match) }}</div>
                   </div>
                 </div>
                 
@@ -126,7 +126,7 @@
                     </span>
                   </div>
                   <div class="text-xs text-blue-200">
-                    {{ formatMatchDate(match.created_at) }}
+                    {{ formatMatchDate(match) }}
                   </div>
                 </div>
               </RouterLink>
@@ -441,11 +441,35 @@ function getMatchResultClass(match: Match, teamId?: string) {
   }
 }
 
-function formatMatchDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
+function formatMatchDate(match: Match): string {
+  if (match.match_date) {
+    const date = new Date(match.match_date)
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  }
+  // Fallback to creation date
+  const date = new Date(match.created_at)
+  return date.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  })
+}
+
+// Format match start time for display
+function formatMatchStartTime(match: Match): string {
+  if (match.start_time) {
+    return match.start_time.substring(0, 5) // HH:MM format
+  }
+  // Fallback to creation time
+  const date = new Date(match.created_at)
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    hour12: false 
   })
 }
 
