@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hockey Madness - Scoreboard</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: rgba(26, 26, 46, 0.9);
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 2px solid #4CAF50;
+        }
+        .container { 
+            flex: 1;
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .scoreboard {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            color: #4CAF50;
+        }
+        .status {
+            font-size: 1.5rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 10px;
+        }
+        .message {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+            opacity: 0.9;
+        }
+        .buttons {
+            margin-top: 2rem;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        .footer {
+            background: rgba(26, 26, 46, 0.9);
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #4CAF50;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏒 HC Lokeren - Hockey Madness</h1>
+    </div>
+
+    <div class="container">
+        <div class="scoreboard">
+            <div class="title">📊 Scoreboard</div>
+            
+            <div class="status" id="status">
+                <div class="loading"></div>
+                Loading scoreboard...
+            </div>
+            
+            <div class="message" id="message">
+                Checking for active matches...
+            </div>
+            
+            <div class="buttons">
+                <button class="button" onclick="loadMainApp()">Load Full App</button>
+                <button class="button" onclick="window.location.reload()">Reload Page</button>
+                <button class="button" onclick="goHome()">Home</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2025 Hockey Madness. All rights reserved.</p>
+        <p>Real-time match information for hockey tournaments</p>
+    </div>
+
+    <script>
+        // Simple fallback scoreboard functionality
+        let checkInterval;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        function updateStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            const messageEl = document.getElementById('message');
+            
+            if (isError) {
+                status.innerHTML = '❌ ' + message;
+                status.style.background = 'rgba(244, 67, 54, 0.2)';
+            } else {
+                status.innerHTML = '✅ ' + message;
+                status.style.background = 'rgba(76, 175, 80, 0.2)';
+            }
+            
+            messageEl.textContent = new Date().toLocaleString();
+        }
+
+        function loadMainApp() {
+            updateStatus('Attempting to load full application...');
+            
+            // Try to load the main Vue app
+            try {
+                // Clear any retry flags
+                sessionStorage.removeItem('scoreboard-retry');
+                sessionStorage.removeItem('router-error-reload');
+                sessionStorage.removeItem('chunk-load-reload');
+                
+                // Navigate to the main app using hash routing
+                window.location.href = window.location.origin + window.location.pathname + '#/scoreboard';
+            } catch (error) {
+                console.error('Error loading main app:', error);
+                updateStatus('Failed to load main application', true);
+            }
+        }
+
+        function goHome() {
+            window.location.href = window.location.origin + window.location.pathname;
+        }
+
+        function checkForMatches() {
+            retryCount++;
+            
+            if (retryCount > maxRetries) {
+                updateStatus('No active matches found', true);
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                }
+                return;
+            }
+
+            // Simulate checking for matches (in a real implementation, this would check the database)
+            updateStatus('Searching for active matches... (attempt ' + retryCount + '/' + maxRetries + ')');
+            
+            setTimeout(() => {
+                // Try to load the main app after a short delay
+                loadMainApp();
+            }, 2000);
+        }
+
+        // Start checking for matches when page loads
+        setTimeout(() => {
+            checkForMatches();
+            
+            // Set up periodic checks
+            checkInterval = setInterval(checkForMatches, 10000); // Check every 10 seconds
+        }, 1000);
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+        });
+    </script>
+</body>
+</html>
