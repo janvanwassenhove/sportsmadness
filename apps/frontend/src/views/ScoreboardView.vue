@@ -393,6 +393,75 @@ async function loadBoostersAndMaddies() {
 const teamA = computed(() => currentMatch.value ? teams.value[currentMatch.value.team_a] : null)
 const teamB = computed(() => currentMatch.value ? teams.value[currentMatch.value.team_b] : null)
 
+// Available boosters per team - available vs used
+const teamAAvailableBoosters = computed(() => {
+  if (!availableBoosters.value.length || !currentMatch.value) return []
+  
+  const usedBoosterIds = currentMatch.value.boosters?.current_boosters?.teamA?.map(b => b.id) || []
+  
+  return availableBoosters.value.map(booster => ({
+    ...booster,
+    isUsed: usedBoosterIds.includes(booster.id)
+  }))
+})
+
+const teamBAvailableBoosters = computed(() => {
+  if (!availableBoosters.value.length || !currentMatch.value) return []
+  
+  const usedBoosterIds = currentMatch.value.boosters?.current_boosters?.teamB?.map(b => b.id) || []
+  
+  return availableBoosters.value.map(booster => ({
+    ...booster,
+    isUsed: usedBoosterIds.includes(booster.id)
+  }))
+})
+
+// Check if any booster is in countdown or activation state
+const isAnyBoosterCountingDown = computed(() => {
+  return boosterCountdown.value?.active || false
+})
+
+const isAnyBoosterActivated = computed(() => {
+  return boosterActivation.value?.active || false
+})
+
+// Check if any booster is currently running (has active timer)
+const isAnyBoosterRunning = computed(() => {
+  return Object.keys(activeBoosterTimers.value).length > 0
+})
+
+// Check if team boosters should be hidden (during countdown, activation, or running)
+const shouldHideTeamABoosters = computed(() => {
+  return isAnyBoosterCountingDown.value || isAnyBoosterActivated.value || isAnyBoosterRunning.value
+})
+
+const shouldHideTeamBBoosters = computed(() => {
+  return isAnyBoosterCountingDown.value || isAnyBoosterActivated.value || isAnyBoosterRunning.value
+})
+
+// Get boosters with their state for display (including expired/crossed out)
+const teamABoostersWithState = computed(() => {
+  const currentBoosters = currentMatch.value?.boosters?.current_boosters?.teamA || 
+                         currentMatch.value?.boosters?.teamA || []
+  
+  return currentBoosters.map(booster => ({
+    ...booster,
+    isExpired: booster.expired || false,
+    isActivated: booster.activated || false
+  }))
+})
+
+const teamBBoostersWithState = computed(() => {
+  const currentBoosters = currentMatch.value?.boosters?.current_boosters?.teamB || 
+                         currentMatch.value?.boosters?.teamB || []
+  
+  return currentBoosters.map(booster => ({
+    ...booster,
+    isExpired: booster.expired || false,
+    isActivated: booster.activated || false
+  }))
+})
+
 // Match duration settings with defaults
 const matchSettings = computed(() => {
   if (!currentMatch.value) return null
@@ -1928,91 +1997,114 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Booster Selection Overlay -->
+    <!-- Booster Selection Overlay - Full Screen -->
     <div 
       v-if="shouldShowBoosterOverlay"
       class="fixed inset-0 bg-gradient-to-r from-[#121238] to-[#478dcb] flex items-center justify-center z-50"
     >
-      <div class="text-center">
-        <h1 class="text-6xl font-bold mb-8 text-white">
-          {{ $t('scoreboard.boosterSelection') }}
+      <div class="text-center w-full h-full flex flex-col justify-center px-4 py-4">
+        <!-- Main title - Adaptive size when spinning -->
+        <h1 :class="currentMatch?.boosters?.is_spinning ? 'text-5xl lg:text-6xl xl:text-7xl mb-4 lg:mb-6' : 'text-8xl lg:text-9xl xl:text-[8rem] mb-8 lg:mb-12'" 
+            class="font-bold text-white drop-shadow-2xl">
+          🎰 {{ $t('scoreboard.boosterSelection') }} 🎰
         </h1>
         
-        <div class="text-3xl font-bold text-white mb-8">
+        <!-- Phase status - Adaptive size when spinning -->
+        <div :class="currentMatch?.boosters?.is_spinning ? 'text-2xl lg:text-3xl xl:text-4xl mb-4 lg:mb-6' : 'text-4xl lg:text-5xl xl:text-6xl mb-8 lg:mb-12'" 
+             class="font-bold text-white drop-shadow-xl">
           {{ getBoosterSelectionPhaseText() }}
         </div>
         
-        <!-- Slot Machine Animation (only show when spinning) -->
-        <div v-if="currentMatch?.boosters?.is_spinning" class="mb-8">
-          <div class="text-2xl font-bold text-yellow-300 mb-4">
+        <!-- Slot Machine Animation - Compact when spinning -->
+        <div v-if="currentMatch?.boosters?.is_spinning" class="mb-4 lg:mb-6">
+          <div class="text-xl lg:text-2xl xl:text-3xl font-bold text-yellow-300 mb-3 lg:mb-4 drop-shadow-lg">
             {{ $t('scoreboard.spinningFor', { team: currentMatch.boosters.current_team === 'A' ? teamA?.name : teamB?.name }) }}
           </div>
           
-          <!-- Slot Machine Display -->
-          <div class="mx-auto bg-gradient-to-b from-yellow-600 to-yellow-800 rounded-2xl p-8 max-w-lg shadow-2xl border-4 border-yellow-500 animate-pulse">
-            <div class="bg-black rounded-xl p-6 mb-4 border-2 border-yellow-400">
+          <!-- Slot Machine Display - Compact -->
+          <div class="mx-auto bg-gradient-to-b from-yellow-600 to-yellow-800 rounded-3xl p-6 lg:p-8 max-w-3xl shadow-2xl border-6 border-yellow-500 animate-pulse">
+            <div class="bg-black rounded-2xl p-4 lg:p-6 mb-3 border-3 border-yellow-400">
               <div class="text-center">
-                <div class="text-8xl mb-4 animate-bounce" style="animation-duration: 0.3s;">
+                <div class="text-[6rem] lg:text-[8rem] xl:text-[10rem] mb-2 lg:mb-3 animate-bounce drop-shadow-2xl" style="animation-duration: 0.3s;">
                   {{ availableBoosters[currentMatch.boosters.spinning_slot || 0]?.icon || '🎲' }}
                 </div>
-                <div class="text-2xl font-bold text-yellow-300 animate-pulse">
+                <div class="text-2xl lg:text-3xl xl:text-4xl font-bold text-yellow-300 animate-pulse mb-2 drop-shadow-lg">
                   {{ availableBoosters[currentMatch.boosters.spinning_slot || 0]?.name || 'Spinning...' }}
                 </div>
-                <div class="text-sm text-yellow-200 mt-2">
+                <div class="text-lg lg:text-xl xl:text-2xl text-yellow-200 mt-2 drop-shadow-sm">
                   {{ availableBoosters[currentMatch.boosters.spinning_slot || 0]?.description || 'Rolling the dice...' }}
                 </div>
               </div>
             </div>
-            <div class="text-center text-yellow-100 font-bold text-xl animate-pulse">
+            <div class="text-center text-yellow-100 font-bold text-xl lg:text-2xl xl:text-3xl animate-pulse drop-shadow-lg">
               {{ $t('scoreboard.hockeyCasino') }}
             </div>
-            <div class="text-center text-yellow-300 text-sm mt-2">
+            <div class="text-center text-yellow-300 text-lg lg:text-xl xl:text-2xl mt-2 drop-shadow-sm">
               {{ $t('scoreboard.boosterSelectionLabel') }}
             </div>
           </div>
         </div>
         
-        <!-- Team Boosters Display -->
-        <div class="grid grid-cols-2 gap-12 max-w-4xl">
+        <!-- Team Boosters Display - Compact when spinning -->
+        <div :class="currentMatch?.boosters?.is_spinning ? 'gap-4 lg:gap-6' : 'gap-8 lg:gap-12'" 
+             class="grid grid-cols-1 xl:grid-cols-2 max-w-7xl mx-auto w-full">
           <!-- Team A Boosters -->
-          <div class="bg-white/10 rounded-xl p-6 border-2 border-blue-500/50">
-            <h3 class="text-2xl font-bold text-blue-300 mb-4">{{ teamA?.name || 'Team A' }}</h3>
-            <div v-if="currentMatch?.boosters?.current_boosters?.teamA && currentMatch.boosters.current_boosters.teamA.length > 0" class="space-y-2">
+          <div :class="currentMatch?.boosters?.is_spinning ? 'p-4 lg:p-6' : 'p-8 lg:p-12'" 
+               class="bg-white/10 rounded-3xl border-4 border-blue-500/50 backdrop-blur-sm shadow-2xl">
+            <h3 :class="currentMatch?.boosters?.is_spinning ? 'text-2xl lg:text-3xl xl:text-4xl mb-3 lg:mb-4' : 'text-4xl lg:text-5xl xl:text-6xl mb-6 lg:mb-8'" 
+                class="font-bold text-blue-300 drop-shadow-lg">{{ teamA?.name || 'Team A' }}</h3>
+            <div v-if="currentMatch?.boosters?.current_boosters?.teamA && currentMatch.boosters.current_boosters.teamA.length > 0" 
+                 :class="currentMatch?.boosters?.is_spinning ? 'space-y-2 lg:space-y-3' : 'space-y-4 lg:space-y-6'"
+                 class="">
               <div 
                 v-for="(booster, index) in currentMatch.boosters.current_boosters.teamA" 
                 :key="index"
-                class="bg-blue-500/20 rounded-lg p-3"
+                :class="currentMatch?.boosters?.is_spinning ? 'p-3 lg:p-4' : 'p-6 lg:p-8'"
+                class="bg-blue-500/20 rounded-2xl border-2 border-blue-400/30 shadow-lg"
               >
-                <div class="text-lg font-bold">{{ booster.icon }} {{ booster.name }}</div>
-                <div class="text-sm text-blue-200">{{ booster.description }}</div>
+                <div :class="currentMatch?.boosters?.is_spinning ? 'text-lg lg:text-xl xl:text-2xl mb-1' : 'text-2xl lg:text-3xl xl:text-4xl mb-2'" 
+                     class="font-bold drop-shadow-sm">{{ booster.icon }} {{ booster.name }}</div>
+                <div :class="currentMatch?.boosters?.is_spinning ? 'text-sm lg:text-base xl:text-lg' : 'text-lg lg:text-xl xl:text-2xl'" 
+                     class="text-blue-200 drop-shadow-sm">{{ booster.description?.length > 150 ? booster.description.substring(0, 150) + '...' : booster.description }}</div>
               </div>
             </div>
-            <div v-else class="text-blue-300 italic">{{ $t('scoreboard.waitingForBoosters') }}</div>
+            <div v-else :class="currentMatch?.boosters?.is_spinning ? 'text-lg lg:text-xl xl:text-2xl' : 'text-2xl lg:text-3xl xl:text-4xl'" 
+                 class="text-blue-300 italic drop-shadow-sm">{{ $t('scoreboard.waitingForBoosters') }}</div>
           </div>
           
           <!-- Team B Boosters -->
-          <div class="bg-white/10 rounded-xl p-6 border-2 border-red-500/50">
-            <h3 class="text-2xl font-bold text-red-300 mb-4">{{ teamB?.name || 'Team B' }}</h3>
-            <div v-if="currentMatch?.boosters?.current_boosters?.teamB && currentMatch.boosters.current_boosters.teamB.length > 0" class="space-y-2">
+          <div :class="currentMatch?.boosters?.is_spinning ? 'p-4 lg:p-6' : 'p-8 lg:p-12'" 
+               class="bg-white/10 rounded-3xl border-4 border-red-500/50 backdrop-blur-sm shadow-2xl">
+            <h3 :class="currentMatch?.boosters?.is_spinning ? 'text-2xl lg:text-3xl xl:text-4xl mb-3 lg:mb-4' : 'text-4xl lg:text-5xl xl:text-6xl mb-6 lg:mb-8'" 
+                class="font-bold text-red-300 drop-shadow-lg">{{ teamB?.name || 'Team B' }}</h3>
+            <div v-if="currentMatch?.boosters?.current_boosters?.teamB && currentMatch.boosters.current_boosters.teamB.length > 0" 
+                 :class="currentMatch?.boosters?.is_spinning ? 'space-y-2 lg:space-y-3' : 'space-y-4 lg:space-y-6'"
+                 class="">
               <div 
                 v-for="(booster, index) in currentMatch.boosters.current_boosters.teamB" 
                 :key="index"
-                class="bg-red-500/20 rounded-lg p-3"
+                :class="currentMatch?.boosters?.is_spinning ? 'p-3 lg:p-4' : 'p-6 lg:p-8'"
+                class="bg-red-500/20 rounded-2xl border-2 border-red-400/30 shadow-lg"
               >
-                <div class="text-lg font-bold">{{ booster.icon }} {{ booster.name }}</div>
-                <div class="text-sm text-red-200">{{ booster.description }}</div>
+                <div :class="currentMatch?.boosters?.is_spinning ? 'text-lg lg:text-xl xl:text-2xl mb-1' : 'text-2xl lg:text-3xl xl:text-4xl mb-2'" 
+                     class="font-bold drop-shadow-sm">{{ booster.icon }} {{ booster.name }}</div>
+                <div :class="currentMatch?.boosters?.is_spinning ? 'text-sm lg:text-base xl:text-lg' : 'text-lg lg:text-xl xl:text-2xl'" 
+                     class="text-red-200 drop-shadow-sm">{{ booster.description?.length > 150 ? booster.description.substring(0, 150) + '...' : booster.description }}</div>
               </div>
             </div>
-            <div v-else class="text-red-300 italic">{{ $t('scoreboard.waitingForBoosters') }}</div>
+            <div v-else :class="currentMatch?.boosters?.is_spinning ? 'text-lg lg:text-xl xl:text-2xl' : 'text-2xl lg:text-3xl xl:text-4xl'" 
+                 class="text-red-300 italic drop-shadow-sm">{{ $t('scoreboard.waitingForBoosters') }}</div>
           </div>
         </div>
         
-        <!-- Auto-closing message when selection is complete -->
-        <div v-if="currentMatch?.boosters?.selection_phase === 'complete'" class="mt-8">
-          <div class="text-green-400 font-bold text-lg">
+        <!-- Auto-closing message - Adaptive -->
+        <div v-if="currentMatch?.boosters?.selection_phase === 'complete'" :class="currentMatch?.boosters?.is_spinning ? 'mt-4 lg:mt-6' : 'mt-8 lg:mt-12'">
+          <div :class="currentMatch?.boosters?.is_spinning ? 'text-xl lg:text-2xl xl:text-3xl' : 'text-3xl lg:text-4xl xl:text-5xl'" 
+               class="text-green-400 font-bold drop-shadow-lg">
             {{ $t('scoreboard.boostersConfirmed') }}
           </div>
-          <div class="text-sm text-white/70 mt-2">
+          <div :class="currentMatch?.boosters?.is_spinning ? 'text-lg lg:text-xl xl:text-2xl mt-2' : 'text-xl lg:text-2xl xl:text-3xl mt-4'" 
+               class="text-white/70 drop-shadow-sm">
             {{ $t('scoreboard.returningToScoreboard') }}
           </div>
         </div>
@@ -2104,7 +2196,7 @@ onUnmounted(() => {
                           </div>
                           <div class="text-2xl lg:text-3xl xl:text-4xl opacity-90 drop-shadow-lg mt-2" 
                                style="text-shadow: 3px 3px 6px rgba(0,0,0,0.8)">
-                            {{ booster.description || 'Active boost effect' }}
+                            {{ booster.description?.length > 150 ? booster.description.substring(0, 150) + '...' : (booster.description || 'Active boost effect') }}
                           </div>
                         </div>
                       </div>
@@ -2157,7 +2249,7 @@ onUnmounted(() => {
                           </div>
                           <div class="text-2xl lg:text-3xl xl:text-4xl opacity-90 drop-shadow-lg mt-2" 
                                style="text-shadow: 3px 3px 6px rgba(0,0,0,0.8)">
-                            {{ booster.description || 'Active boost effect' }}
+                            {{ booster.description?.length > 150 ? booster.description.substring(0, 150) + '...' : (booster.description || 'Active boost effect') }}
                           </div>
                         </div>
                       </div>
@@ -2254,7 +2346,42 @@ onUnmounted(() => {
         <div class="grid grid-cols-3 gap-4 w-full h-full max-h-96">
           <!-- Team A -->
           <div class="text-center flex flex-col justify-center">
-            <div class="p-6">
+            <div class="p-2">
+              <!-- Selected Boosters for Team A -->
+              <div v-if="!shouldHideTeamABoosters && ((currentMatch?.boosters?.current_boosters?.teamA?.length > 0) || (currentMatch?.boosters?.teamA?.length > 0))" class="mb-1">
+                <div class="flex flex-wrap justify-center gap-4 lg:gap-6">
+                  <!-- Display boosters with state management -->
+                  <div 
+                    v-for="booster in teamABoostersWithState" 
+                    :key="booster.id || booster.name"
+                    class="relative transition-all duration-300 min-w-24 lg:min-w-32"
+                    :class="{
+                      'opacity-60 scale-95': booster.isExpired,
+                      'bg-blue-600/50 rounded-2xl p-4 lg:p-6 border-3 border-blue-300/70 shadow-xl backdrop-blur-sm': !booster.isExpired,
+                      'bg-blue-600/30 rounded-2xl p-4 lg:p-6 border-3 border-blue-300/40 shadow-lg backdrop-blur-sm': booster.isExpired
+                    }"
+                  >
+                    <div class="text-center">
+                      <div class="text-4xl lg:text-5xl xl:text-6xl mb-3 drop-shadow-lg"
+                           :class="{ 'opacity-50': booster.isExpired }">
+                        {{ booster.icon }}
+                      </div>
+                      <div class="text-base lg:text-lg xl:text-xl font-bold text-white drop-shadow-md"
+                           :class="{ 'opacity-50': booster.isExpired }">
+                        {{ booster.name }}
+                      </div>
+                    </div>
+                    <!-- Cross-out effect for expired boosters -->
+                    <div 
+                      v-if="booster.isExpired" 
+                      class="absolute inset-0 flex items-center justify-center bg-black/20 rounded-2xl"
+                    >
+                      <div class="text-red-500 text-6xl lg:text-7xl xl:text-8xl font-bold opacity-90 transform rotate-12">✗</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <h2 class="text-4xl lg:text-6xl xl:text-8xl font-bold mb-4">
                 {{ teamA?.name || 'Team A' }}
               </h2>
@@ -2309,7 +2436,42 @@ onUnmounted(() => {
 
           <!-- Team B -->
           <div class="text-center flex flex-col justify-center">
-            <div class="p-6">
+            <div class="p-2">
+              <!-- Selected Boosters for Team B -->
+              <div v-if="!shouldHideTeamBBoosters && ((currentMatch?.boosters?.current_boosters?.teamB?.length > 0) || (currentMatch?.boosters?.teamB?.length > 0))" class="mb-1">
+                <div class="flex flex-wrap justify-center gap-4 lg:gap-6">
+                  <!-- Display boosters with state management -->
+                  <div 
+                    v-for="booster in teamBBoostersWithState" 
+                    :key="booster.id || booster.name"
+                    class="relative transition-all duration-300 min-w-24 lg:min-w-32"
+                    :class="{
+                      'opacity-60 scale-95': booster.isExpired,
+                      'bg-red-600/50 rounded-2xl p-4 lg:p-6 border-3 border-red-300/70 shadow-xl backdrop-blur-sm': !booster.isExpired,
+                      'bg-red-600/30 rounded-2xl p-4 lg:p-6 border-3 border-red-300/40 shadow-lg backdrop-blur-sm': booster.isExpired
+                    }"
+                  >
+                    <div class="text-center">
+                      <div class="text-4xl lg:text-5xl xl:text-6xl mb-3 drop-shadow-lg"
+                           :class="{ 'opacity-50': booster.isExpired }">
+                        {{ booster.icon }}
+                      </div>
+                      <div class="text-base lg:text-lg xl:text-xl font-bold text-white drop-shadow-md"
+                           :class="{ 'opacity-50': booster.isExpired }">
+                        {{ booster.name }}
+                      </div>
+                    </div>
+                    <!-- Cross-out effect for expired boosters -->
+                    <div 
+                      v-if="booster.isExpired" 
+                      class="absolute inset-0 flex items-center justify-center bg-black/20 rounded-2xl"
+                    >
+                      <div class="text-red-500 text-6xl lg:text-7xl xl:text-8xl font-bold opacity-90 transform rotate-12">✗</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <h2 class="text-4xl lg:text-6xl xl:text-8xl font-bold mb-4">
                 {{ teamB?.name || 'Team B' }}
               </h2>

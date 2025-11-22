@@ -2973,21 +2973,21 @@ onUnmounted(() => {
     <!-- Booster Selection Modal -->
     <div 
       v-if="showBoosterSelection"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       @click="cancelBoosterSelection"
     >
       <div 
-        class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl p-8 max-w-4xl w-full mx-4 border-2 border-purple-500/50"
+        class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-2xl p-6 max-w-5xl w-full border-2 border-purple-500/50 max-h-[90vh] overflow-y-auto"
         @click.stop
       >
-        <div class="text-center mb-8">
-          <h2 class="text-4xl font-bold text-white mb-2">🎰 Casino Booster Selection</h2>
+        <div class="text-center mb-6">
+          <h2 class="text-3xl lg:text-4xl font-bold text-white mb-2">🎰 Casino Booster Selection</h2>
           <p class="text-purple-200">Spin the slots to get 2 random boosters for each team!</p>
         </div>
 
         <!-- Current Phase Display -->
         <div class="mb-6 text-center">
-          <div class="text-xl font-bold text-yellow-400">
+          <div class="text-lg lg:text-xl font-bold text-yellow-400">
             {{ getPhaseDescription() }}
           </div>
           <!-- Debug Info -->
@@ -2997,24 +2997,24 @@ onUnmounted(() => {
         </div>
 
         <!-- Slot Machine -->
-        <div class="grid grid-cols-2 gap-8 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <!-- Team A Section -->
           <div 
-            class="bg-white/10 rounded-xl p-6 text-center border-2"
+            class="bg-white/10 rounded-xl p-4 lg:p-6 text-center border-2"
             :class="{
               'border-blue-500 shadow-blue-500/50 shadow-lg': currentTeamSpinning === 'A' || (boosterPhase.includes('team-a') && !isSpinning),
               'border-blue-500/30': currentTeamSpinning !== 'A' && !boosterPhase.includes('team-a')
             }"
           >
-            <h3 class="text-2xl font-bold text-blue-300 mb-4">{{ teamA?.name || 'Team A' }}</h3>
+            <h3 class="text-xl lg:text-2xl font-bold text-blue-300 mb-4">{{ teamA?.name || 'Team A' }}</h3>
             
             <!-- Slot Machine for Team A -->
             <div 
               v-if="currentTeamSpinning === 'A' || (boosterPhase.includes('team-a') && boosterPhase !== 'ready')" 
-              class="h-32 bg-black/30 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden border-2 border-blue-400"
+              class="h-24 lg:h-32 bg-black/30 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden border-2 border-blue-400"
             >
               <div 
-                class="text-6xl transition-all duration-100"
+                class="text-4xl lg:text-6xl transition-all duration-100"
                 :class="{ 'animate-spin': isSpinning && currentTeamSpinning === 'A' }"
               >
                 {{ getCurrentSlotIcon() }}
@@ -3029,7 +3029,7 @@ onUnmounted(() => {
                 :key="index"
                 class="bg-blue-500/20 rounded-lg p-3"
               >
-                <div class="text-lg font-bold">{{ booster.icon }} {{ booster.name }}</div>
+                <div class="text-base lg:text-lg font-bold">{{ booster.icon }} {{ booster.name }}</div>
                 <div class="text-sm text-blue-200">{{ booster.description }}</div>
               </div>
             </div>
@@ -3037,21 +3037,21 @@ onUnmounted(() => {
 
           <!-- Team B Section -->
           <div 
-            class="bg-white/10 rounded-xl p-6 text-center border-2"
+            class="bg-white/10 rounded-xl p-4 lg:p-6 text-center border-2"
             :class="{
               'border-red-500 shadow-red-500/50 shadow-lg': currentTeamSpinning === 'B' || (boosterPhase.includes('team-b') && !isSpinning),
               'border-red-500/30': currentTeamSpinning !== 'B' && !boosterPhase.includes('team-b')
             }"
           >
-            <h3 class="text-2xl font-bold text-red-300 mb-4">{{ teamB?.name || 'Team B' }}</h3>
+            <h3 class="text-xl lg:text-2xl font-bold text-red-300 mb-4">{{ teamB?.name || 'Team B' }}</h3>
             
             <!-- Slot Machine for Team B -->
             <div 
               v-if="currentTeamSpinning === 'B' || (boosterPhase.includes('team-b') && boosterPhase !== 'ready')" 
-              class="h-32 bg-black/30 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden border-2 border-red-400"
+              class="h-24 lg:h-32 bg-black/30 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden border-2 border-red-400"
             >
               <div 
-                class="text-6xl transition-all duration-100"
+                class="text-4xl lg:text-6xl transition-all duration-100"
                 :class="{ 'animate-spin': isSpinning && currentTeamSpinning === 'B' }"
               >
                 {{ getCurrentSlotIcon() }}
@@ -3066,31 +3066,31 @@ onUnmounted(() => {
                 :key="index"
                 class="bg-red-500/20 rounded-lg p-3"
               >
-                <div class="text-lg font-bold">{{ booster.icon }} {{ booster.name }}</div>
+                <div class="text-base lg:text-lg font-bold">{{ booster.icon }} {{ booster.name }}</div>
                 <div class="text-sm text-red-200">{{ booster.description }}</div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Available Boosters Reference -->
-        <div class="mb-8">
-          <h3 class="text-xl font-bold text-white mb-4 text-center">Available Boosters</h3>
-          <div class="grid grid-cols-5 gap-4">
+        <!-- Available Boosters Reference - Compact -->
+        <div class="mb-6">
+          <h3 class="text-lg lg:text-xl font-bold text-white mb-4 text-center">Available Boosters</h3>
+          <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             <div 
               v-for="booster in availableBoosters" 
               :key="booster.id"
-              class="bg-white/5 rounded-lg p-3 text-center border border-purple-500/30"
+              class="bg-white/5 rounded-lg p-2 lg:p-3 text-center border border-purple-500/30"
             >
-              <div class="text-2xl mb-2">{{ booster.icon }}</div>
-              <div class="text-sm font-bold text-white">{{ booster.name }}</div>
-              <div class="text-xs text-gray-300 mt-1">{{ booster.description }}</div>
+              <div class="text-xl lg:text-2xl mb-1 lg:mb-2">{{ booster.icon }}</div>
+              <div class="text-xs lg:text-sm font-bold text-white">{{ booster.name }}</div>
+              <div class="text-xs text-gray-300 mt-1 line-clamp-2">{{ booster.description }}</div>
             </div>
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex justify-center space-x-4">
+        <!-- Action Buttons - Responsive -->
+        <div class="flex flex-wrap justify-center gap-2 lg:gap-4">
           <button 
             @click="cancelBoosterSelection"
             class="btn btn-secondary"
@@ -3131,7 +3131,7 @@ onUnmounted(() => {
             v-if="boosterPhase !== 'complete'"
             @click="() => { if (!isSpinning) spinCurrentPhase() }"
             :disabled="isSpinning"
-            class="btn bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold px-8"
+            class="btn bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold px-6 lg:px-8"
             :class="{ 'opacity-50 cursor-not-allowed': isSpinning }"
           >
             {{ isSpinning ? '🎰 Spinning...' : getSpinButtonText() }}
@@ -3140,7 +3140,7 @@ onUnmounted(() => {
           <button 
             v-else
             @click="confirmBoosters"
-            class="btn btn-success px-8"
+            class="btn btn-success px-6 lg:px-8"
           >
             ✅ Confirm Boosters
           </button>
