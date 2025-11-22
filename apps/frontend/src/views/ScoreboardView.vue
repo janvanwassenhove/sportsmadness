@@ -452,13 +452,20 @@ const isAnyBoosterRunning = computed(() => {
   return Object.keys(activeBoosterTimers.value).length > 0
 })
 
-// Check if team boosters should be hidden (during countdown, activation, or running)
+// Check if any maddie is active (countdown, activation display, or running)
+const isAnyMaddieActive = computed(() => {
+  return maddieCountdown.value?.active || 
+         maddieActivation.value?.active || 
+         activeMaddieTimer.value !== null
+})
+
+// Check if team boosters should be hidden (during countdown, activation, running, or maddie active)
 const shouldHideTeamABoosters = computed(() => {
-  return isAnyBoosterCountingDown.value || isAnyBoosterActivated.value || isAnyBoosterRunning.value
+  return isAnyBoosterCountingDown.value || isAnyBoosterActivated.value || isAnyBoosterRunning.value || isAnyMaddieActive.value
 })
 
 const shouldHideTeamBBoosters = computed(() => {
-  return isAnyBoosterCountingDown.value || isAnyBoosterActivated.value || isAnyBoosterRunning.value
+  return isAnyBoosterCountingDown.value || isAnyBoosterActivated.value || isAnyBoosterRunning.value || isAnyMaddieActive.value
 })
 
 // Get boosters with their state for display (including expired/crossed out)
@@ -2307,56 +2314,64 @@ onUnmounted(() => {
         <!-- Enhanced gradient backdrop for full screen impact -->
         <div class="absolute inset-0 bg-gradient-to-br from-purple-900/90 to-purple-600/90 backdrop-blur-xl"></div>
         
-        <!-- Main content container - Full width/height -->
-        <div class="relative text-center w-full h-full flex flex-col justify-center px-4 py-4">
-          <!-- Massive maddie icon with enhanced glow -->
-          <div class="text-[12rem] lg:text-[15rem] xl:text-[18rem] mb-6 lg:mb-8 animate-pulse drop-shadow-2xl" 
-               style="filter: drop-shadow(0 0 50px rgba(255,255,255,0.9)) drop-shadow(0 0 100px rgba(255,255,255,0.5))">
-            {{ (currentMatch && typeof currentMatch.maddie === 'object') ? currentMatch.maddie.icon || '📢' : '📢' }}
-          </div>
+        <!-- Main content container - Full width/height with proper spacing -->
+        <div class="relative text-center w-full h-full flex flex-col justify-between px-4 py-8 lg:py-12">
+          <!-- Top spacer -->
+          <div class="flex-shrink-0"></div>
           
-          <!-- "MADDIE EFFECT ACTIVE" - Massive text -->
-          <div class="text-6xl lg:text-8xl xl:text-9xl font-bold text-white mb-6 lg:mb-8 drop-shadow-2xl animate-pulse"
-               style="text-shadow: 6px 6px 12px rgba(0,0,0,0.9)">
-            MADDIE EFFECT ACTIVE
-          </div>
-          
-          <!-- Maddie name container - Enhanced and large -->
-          <div class="text-4xl lg:text-6xl xl:text-7xl font-bold px-12 py-6 lg:px-16 lg:py-8 rounded-4xl border-6 mb-6 lg:mb-8 backdrop-blur-lg bg-purple-700/90 border-purple-200 text-white shadow-2xl max-w-5xl mx-auto"
-               style="box-shadow: 0 16px 64px rgba(0,0,0,0.7)">
-            {{ (currentMatch && typeof currentMatch.maddie === 'object') ? (currentMatch.maddie.name || currentMatch.maddie.title || 'Special Effect') : 'Special Effect' }}
-          </div>
-          
-          <!-- Description - Large if available -->
-          <div 
-            v-if="currentMatch && typeof currentMatch.maddie === 'object' && (currentMatch.maddie.description || currentMatch.maddie.subtitle)"
-            class="text-3xl lg:text-4xl xl:text-5xl text-purple-100 mb-6 lg:mb-8 drop-shadow-xl max-w-6xl mx-auto"
-            style="text-shadow: 4px 4px 8px rgba(0,0,0,0.8)"
-          >
-            {{ currentMatch.maddie.description || currentMatch.maddie.subtitle }}
-          </div>
-          
-          <!-- Timer display - Enhanced size -->
-          <div 
-            v-if="activeMaddieTimer"
-            class="text-4xl lg:text-5xl xl:text-6xl text-purple-100 font-semibold text-center bg-purple-800/90 rounded-3xl px-12 py-6 lg:px-16 lg:py-8 border-4 border-purple-300 shadow-2xl max-w-4xl mx-auto"
-            style="box-shadow: 0 16px 64px rgba(0,0,0,0.6)"
-          >
-            <div class="flex items-center justify-center space-x-6 lg:space-x-8">
-              <span class="text-yellow-300 animate-pulse text-6xl lg:text-7xl xl:text-8xl drop-shadow-2xl">⏰</span>
-              <span class="font-mono text-7xl lg:text-8xl xl:text-9xl text-white drop-shadow-2xl" 
-                    style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
-                {{ formatMaddieTime(activeMaddieTimer.remainingTime) }}
-              </span>
-              <span class="text-3xl lg:text-4xl xl:text-5xl text-purple-200 drop-shadow-lg">remaining</span>
+          <!-- Main content area -->
+          <div class="flex-1 flex flex-col justify-center space-y-4 lg:space-y-6 xl:space-y-8 min-h-0">
+            <!-- Maddie icon with enhanced glow -->
+            <div class="text-[8rem] lg:text-[10rem] xl:text-[12rem] animate-pulse drop-shadow-2xl flex-shrink-0" 
+                 style="filter: drop-shadow(0 0 50px rgba(255,255,255,0.9)) drop-shadow(0 0 100px rgba(255,255,255,0.5))">
+              {{ (currentMatch && typeof currentMatch.maddie === 'object') ? currentMatch.maddie.icon || '📢' : '📢' }}
+            </div>
+            
+            <!-- "MADDIE EFFECT ACTIVE" - Large text -->
+            <div class="text-4xl lg:text-6xl xl:text-7xl font-bold text-white drop-shadow-2xl animate-pulse flex-shrink-0"
+                 style="text-shadow: 6px 6px 12px rgba(0,0,0,0.9)">
+              MADDIE EFFECT ACTIVE
+            </div>
+            
+            <!-- Maddie name container - Enhanced and large -->
+            <div class="text-2xl lg:text-4xl xl:text-5xl font-bold px-8 py-4 lg:px-12 lg:py-6 rounded-3xl border-4 backdrop-blur-lg bg-purple-700/90 border-purple-200 text-white shadow-2xl max-w-4xl mx-auto flex-shrink-0"
+                 style="box-shadow: 0 16px 64px rgba(0,0,0,0.7)">
+              {{ (currentMatch && typeof currentMatch.maddie === 'object') ? (currentMatch.maddie.name || currentMatch.maddie.title || 'Special Effect') : 'Special Effect' }}
+            </div>
+            
+            <!-- Description - Large if available -->
+            <div 
+              v-if="currentMatch && typeof currentMatch.maddie === 'object' && (currentMatch.maddie.description || currentMatch.maddie.subtitle)"
+              class="text-lg lg:text-2xl xl:text-3xl text-purple-100 drop-shadow-xl max-w-5xl mx-auto flex-shrink-0 leading-relaxed"
+              style="text-shadow: 4px 4px 8px rgba(0,0,0,0.8)"
+            >
+              {{ currentMatch.maddie.description || currentMatch.maddie.subtitle }}
             </div>
           </div>
-          <div 
-            v-else-if="currentMatch && typeof currentMatch.maddie === 'object' && currentMatch.maddie.duration"
-            class="text-3xl lg:text-4xl xl:text-5xl text-purple-200 font-semibold text-center drop-shadow-xl"
-            style="text-shadow: 4px 4px 8px rgba(0,0,0,0.8)"
-          >
-            ⏱️ Duration: {{ currentMatch.maddie.duration }}s
+          
+          <!-- Timer display - Fixed at bottom -->
+          <div class="flex-shrink-0 pb-4 lg:pb-8">
+            <div 
+              v-if="activeMaddieTimer"
+              class="text-2xl lg:text-3xl xl:text-4xl text-purple-100 font-semibold text-center bg-purple-800/90 rounded-2xl px-8 py-4 lg:px-12 lg:py-6 border-4 border-purple-300 shadow-2xl max-w-3xl mx-auto"
+              style="box-shadow: 0 16px 64px rgba(0,0,0,0.6)"
+            >
+              <div class="flex items-center justify-center space-x-4 lg:space-x-6">
+                <span class="text-yellow-300 animate-pulse text-3xl lg:text-4xl xl:text-5xl drop-shadow-2xl">⏰</span>
+                <span class="font-mono text-4xl lg:text-5xl xl:text-6xl text-white drop-shadow-2xl" 
+                      style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9)">
+                  {{ formatMaddieTime(activeMaddieTimer.remainingTime) }}
+                </span>
+                <span class="text-lg lg:text-xl xl:text-2xl text-purple-200 drop-shadow-lg">remaining</span>
+              </div>
+            </div>
+            <div 
+              v-else-if="currentMatch && typeof currentMatch.maddie === 'object' && currentMatch.maddie.duration"
+              class="text-xl lg:text-2xl xl:text-3xl text-purple-200 font-semibold text-center drop-shadow-xl"
+              style="text-shadow: 4px 4px 8px rgba(0,0,0,0.8)"
+            >
+              ⏱️ Duration: {{ currentMatch.maddie.duration }}s
+            </div>
           </div>
         </div>
       </div>
