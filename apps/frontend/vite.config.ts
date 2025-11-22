@@ -33,23 +33,14 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('node_modules')) {
             return 'vendor'
           }
-          // Keep router-heavy components in separate chunks
-          if (id.includes('/views/ScoreboardView.vue')) {
-            return 'scoreboard'
-          }
+          // Remove ScoreboardView specific chunking since we're using static import
         }
       }
     },
     // Improve asset handling for better reliability
     assetsInlineLimit: 0, // Don't inline any assets to avoid base64 issues
     cssCodeSplit: true,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: false, // Keep console logs for debugging
-        drop_debugger: true
-      }
-    }
+    minify: 'esbuild' // Use esbuild instead of terser to avoid dependency issues
   },
   // Prioritize system environment variables over .env files
   define: {

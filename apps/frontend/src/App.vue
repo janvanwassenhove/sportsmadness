@@ -82,7 +82,8 @@ function clearCacheAndReload() {
             <div class="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center">
               <div class="text-center">
                 <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto mb-4"></div>
-                <p class="text-white text-xl">Loading...</p>
+                <p class="text-white text-xl">Loading Hockey Madness...</p>
+                <p class="text-white text-sm mt-2">Please wait while we set up your experience</p>
               </div>
             </div>
           </template>

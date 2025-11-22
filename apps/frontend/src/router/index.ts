@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import TournamentBuilderView from '@/views/TournamentBuilderView.vue'
+import ScoreboardView from '@/views/ScoreboardView.vue'
+import ScoreboardTestView from '@/views/ScoreboardTestView.vue'
 
 // Ensure proper base URL handling for GitHub Pages
 const baseUrl = import.meta.env.BASE_URL || '/'
@@ -33,21 +35,18 @@ const router = createRouter({
     {
       path: '/scoreboard',
       name: 'scoreboard',
-      component: () => import('../views/ScoreboardView.vue').catch(error => {
-        console.error('Failed to load ScoreboardView:', error)
-        // Retry loading or show error
-        return import('../views/ScoreboardView.vue')
-      }),
+      component: ScoreboardTestView, // Temporarily use test component
     },
     {
       path: '/scoreboard/:id',
       name: 'scoreboard-match',
-      component: () => import('../views/ScoreboardView.vue').catch(error => {
-        console.error('Failed to load ScoreboardView for match:', error)
-        // Retry loading or show error
-        return import('../views/ScoreboardView.vue')
-      }),
+      component: ScoreboardTestView, // Temporarily use test component
       props: true,
+    },
+    {
+      path: '/scoreboard-full',
+      name: 'scoreboard-full',
+      component: ScoreboardView, // Keep full version available for testing
     },
     {
       path: '/admin',
