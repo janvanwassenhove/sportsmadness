@@ -1847,7 +1847,7 @@ async function playTickSound() {
 async function playCountdownSound() {
   try {
     // Play countdown start sound when booster or maddie countdown begins
-    await SoundManager.playSound('/sounds/countdown.wav', 1.5)
+    await SoundManager.playSound('/sounds/countdown.wav', 1.0)
     console.log('🔊 Playing countdown start sound')
   } catch (error) {
     console.log('🔊 Countdown sound not available, trying fallback')
@@ -2092,7 +2092,7 @@ onUnmounted(() => {
                 class="bg-blue-500/20 rounded-2xl border-2 border-blue-400/30 shadow-lg"
               >
                 <div :class="currentMatch?.boosters?.is_spinning ? 'text-lg lg:text-xl xl:text-2xl mb-1' : 'text-2xl lg:text-3xl xl:text-4xl mb-2'" 
-                     class="font-bold drop-shadow-sm">{{ booster.icon }} {{ booster.name }}</div>
+                     class="font-bold text-white drop-shadow-sm">{{ booster.icon }} {{ booster.name }}</div>
                 <div :class="currentMatch?.boosters?.is_spinning ? 'text-sm lg:text-base xl:text-lg' : 'text-lg lg:text-xl xl:text-2xl'" 
                      class="text-blue-200 drop-shadow-sm">{{ booster.description?.length > 150 ? booster.description.substring(0, 150) + '...' : booster.description }}</div>
               </div>
@@ -2116,7 +2116,7 @@ onUnmounted(() => {
                 class="bg-red-500/20 rounded-2xl border-2 border-red-400/30 shadow-lg"
               >
                 <div :class="currentMatch?.boosters?.is_spinning ? 'text-lg lg:text-xl xl:text-2xl mb-1' : 'text-2xl lg:text-3xl xl:text-4xl mb-2'" 
-                     class="font-bold drop-shadow-sm">{{ booster.icon }} {{ booster.name }}</div>
+                     class="font-bold text-white drop-shadow-sm">{{ booster.icon }} {{ booster.name }}</div>
                 <div :class="currentMatch?.boosters?.is_spinning ? 'text-sm lg:text-base xl:text-lg' : 'text-lg lg:text-xl xl:text-2xl'" 
                      class="text-red-200 drop-shadow-sm">{{ booster.description?.length > 150 ? booster.description.substring(0, 150) + '...' : booster.description }}</div>
               </div>

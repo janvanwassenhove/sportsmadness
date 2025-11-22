@@ -39,6 +39,12 @@ export class SoundManager {
   // Play a sound file with automatic base path resolution
   static async playSound(soundPath: string, volume: number = 0.7): Promise<void> {
     try {
+      // Validate volume range (0.0 to 1.0)
+      const validVolume = Math.max(0, Math.min(1, volume))
+      if (validVolume !== volume) {
+        console.warn(`🔊 Volume ${volume} out of range, clamped to ${validVolume}`)
+      }
+      
       // If soundPath doesn't start with http or data: and doesn't include the base path, add it
       let fullPath = soundPath
       const basePath = this.getBasePath()
@@ -55,13 +61,13 @@ export class SoundManager {
       
       if (!audio) {
         audio = new Audio(fullPath)
-        audio.volume = volume
+        audio.volume = validVolume
         this.audioCache.set(fullPath, audio)
       }
 
       // Reset the audio to the beginning
       audio.currentTime = 0
-      audio.volume = volume
+      audio.volume = validVolume
       
       console.log('🔊 Playing sound:', fullPath)
       await audio.play()
