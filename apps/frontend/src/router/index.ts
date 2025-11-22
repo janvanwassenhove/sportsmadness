@@ -1,14 +1,21 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import TournamentBuilderView from '@/views/TournamentBuilderView.vue'
-import ScoreboardView from '@/views/ScoreboardView.vue'
-import ScoreboardTestView from '@/views/ScoreboardTestView.vue'
 
 // Ensure proper base URL handling for GitHub Pages
 const baseUrl = import.meta.env.BASE_URL || '/'
-console.log('🚏 Router base URL:', baseUrl)
+const isProduction = import.meta.env.PROD
+const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io')
+
+console.log('🚏 Router configuration:', {
+  baseUrl,
+  isProduction,
+  isGitHubPages,
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'unknown'
+})
 
 const router = createRouter({
+  // Try history mode first, fallback to hash mode if there are issues
   history: createWebHistory(baseUrl),
   routes: [
     {
@@ -35,18 +42,68 @@ const router = createRouter({
     {
       path: '/scoreboard',
       name: 'scoreboard',
-      component: ScoreboardTestView, // Temporarily use test component
+      component: () => import('../views/ScoreboardView.vue').catch(async (error) => {
+        console.error('❌ Failed to load ScoreboardView:', error)
+        console.log('🔄 Attempting to reload and retry...')
+        
+        // Try to reload the page if this is the first attempt
+        const hasRetried = sessionStorage.getItem('scoreboard-retry')
+        if (!hasRetried) {
+          sessionStorage.setItem('scoreboard-retry', 'true')
+          window.location.reload()
+          return Promise.reject(error)
+        }
+        
+        // If retry failed, provide a minimal fallback
+        return {
+          template: `
+            <div class="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-700 text-white flex items-center justify-center">
+              <div class="text-center p-8">
+                <h1 class="text-4xl font-bold mb-4">🏒 Scoreboard Loading Error</h1>
+                <p class="text-xl mb-4">Unable to load the scoreboard component.</p>
+                <button onclick="window.location.reload()" class="bg-white text-red-900 px-6 py-3 rounded font-semibold">
+                  Reload Page
+                </button>
+                <p class="text-sm mt-4 opacity-75">Error: {{error}}</p>
+              </div>
+            </div>
+          `,
+          data() { return { error: error.message } }
+        }
+      }),
     },
     {
       path: '/scoreboard/:id',
       name: 'scoreboard-match',
-      component: ScoreboardTestView, // Temporarily use test component
+      component: () => import('../views/ScoreboardView.vue').catch(async (error) => {
+        console.error('❌ Failed to load ScoreboardView for match:', error)
+        console.log('🔄 Attempting to reload and retry...')
+        
+        // Try to reload the page if this is the first attempt
+        const hasRetried = sessionStorage.getItem('scoreboard-match-retry')
+        if (!hasRetried) {
+          sessionStorage.setItem('scoreboard-match-retry', 'true')
+          window.location.reload()
+          return Promise.reject(error)
+        }
+        
+        // If retry failed, provide a minimal fallback
+        return {
+          template: `
+            <div class="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-700 text-white flex items-center justify-center">
+              <div class="text-center p-8">
+                <h1 class="text-4xl font-bold mb-4">🏒 Match Scoreboard Error</h1>
+                <p class="text-xl mb-4">Unable to load the match scoreboard.</p>
+                <button onclick="window.location.reload()" class="bg-white text-red-900 px-6 py-3 rounded font-semibold">
+                  Reload Page
+                </button>
+                <p class="text-sm mt-4 opacity-75">Match ID: {{$route.params.id}}</p>
+              </div>
+            </div>
+          `,
+        }
+      }),
       props: true,
-    },
-    {
-      path: '/scoreboard-full',
-      name: 'scoreboard-full',
-      component: ScoreboardView, // Keep full version available for testing
     },
     {
       path: '/admin',

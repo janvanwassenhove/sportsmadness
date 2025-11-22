@@ -92,6 +92,24 @@ async function initializeApp() {
     console.log('🏑 Continuing with app setup anyway...')
   }
   
+  // Add router error handling
+  router.onError((error) => {
+    console.error('🚨 Router error:', error)
+    
+    // Check if it's a routing issue that might be fixed with a page reload
+    if (error.message.includes('Failed to fetch') || 
+        error.message.includes('Loading chunk') ||
+        error.message.includes('dynamically imported module')) {
+      
+      const hasReloaded = sessionStorage.getItem('router-error-reload')
+      if (!hasReloaded) {
+        sessionStorage.setItem('router-error-reload', 'true')
+        console.log('🔄 Reloading due to router error...')
+        window.location.reload()
+      }
+    }
+  })
+  
   app.use(router)
   app.mount('#app')
   console.log('🏑 App mounted successfully!')
