@@ -18,16 +18,21 @@ const isLocalDevKey = supabaseUrl.includes('localhost')
 
 // Debug logging in development
 if (import.meta.env.DEV) {
+  const urlSource = (globalThis as any).__VITE_SUPABASE_URL__ ? 'system/user-env-define' : 
+                   import.meta.env.VITE_SUPABASE_URL ? 'vite-env-file' : 'default-fallback'
+  const keySource = (globalThis as any).__VITE_SUPABASE_ANON_KEY__ ? 'system/user-env-define' : 
+                   import.meta.env.VITE_SUPABASE_ANON_KEY ? 'vite-env-file' : 'default-fallback'
+
   console.log('🔧 Supabase Config Debug:', {
     url: supabaseUrl,
+    urlSource,
     keyPreview: supabaseAnonKey.substring(0, 20) + '...',
+    keySource,
     keyType: isLocalDevKey ? 'local-dev' : (isNewPublishableKey ? 'publishable' : 'legacy'),
-    source: (globalThis as any).__VITE_SUPABASE_URL__ ? 'system-env-define' : 
-            import.meta.env.VITE_SUPABASE_URL ? 'vite-env-file' : 'default-fallback',
-    systemDefineUrl: (globalThis as any).__VITE_SUPABASE_URL__,
+    systemDefineUrl: (globalThis as any).__VITE_SUPABASE_URL__ || 'not-set',
     systemDefineKey: (globalThis as any).__VITE_SUPABASE_ANON_KEY__ ? 
       (globalThis as any).__VITE_SUPABASE_ANON_KEY__.substring(0, 20) + '...' : 'not-set',
-    viteEnvUrl: import.meta.env.VITE_SUPABASE_URL,
+    viteEnvUrl: import.meta.env.VITE_SUPABASE_URL || 'not-set',
     viteEnvKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 
       import.meta.env.VITE_SUPABASE_ANON_KEY.substring(0, 20) + '...' : 'not-set'
   })
